@@ -12,11 +12,11 @@ ATTACH 'cloudflare' AS cf (TYPE vgi, LOCATION 'uv run cloudflare_worker.py');
 CREATE SECRET cf (TYPE cloudflare, api_token '<token>');
 
 SELECT id, name, status FROM cf.zones.zones;
-SELECT name, type, content FROM cf.dns.records WHERE zone_id = '<zone>';
+SELECT name, type, content FROM cf.dns.records('<zone>');    -- list function
 SELECT * FROM cf.dns.record('<zone>', '<record-id>');       -- lookup function
-SELECT z.name, r.name FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r;  -- fan-out
-SELECT date, requests, threats FROM cf.analytics.http_requests_daily
-  WHERE zone_id = '<zone>' AND date >= DATE '2024-01-01';
+SELECT z.name, r.name FROM cf.zones.zones z, cf.dns.records(z.id) r;  -- lateral
+SELECT date, requests, threats FROM cf.analytics.http_requests_daily(
+  '<zone>', since := DATE '2024-01-01', until := DATE '2024-01-31');
 ```
 
 > The first `ATTACH` argument **must be `cloudflare`** (the catalog name); the
@@ -54,23 +54,27 @@ Both the hand-written resources and the OpenAPI codegen produce the same
 descriptor shape, so there is **no per-endpoint code**.
 
 A descriptor's `kind` and `schema` decide its shape and namespace:
-- `kind="list"` → a scannable **table**, plural noun (path params are pushdown
-  filter columns). With path params it also gets a **fan-out function**
-  `<table>_by_<parent>(ids…)` (`records_by_zone`), the same list once per input row.
+- `kind="list"` **with path params** → a **list function**, plural noun, of those
+  ids (`dns.records(zone_id)`), all pages per input row. Its query params are named
+  args (`records(z.id, type := 'A')`). There is no table for it: a table could only
+  take its ids as constant `WHERE` filters, which the function does better.
+- `kind="list"` **without path params** → a scannable **table** (`zones.zones`);
+  query params matching a column are pushed down from `WHERE`.
 - `kind="item"` → a **lookup function**, singular noun (`record`, `zone`; path
-  params are args, in URL order); 0 or 1 row per input row.
-- Lookups and fan-outs with path params are VGI `RowTransformFunction`s: args are
-  per-row input columns, so one registration serves `f('id')`, `FROM t, f(t.id)`
+  params are args, in URL order, query params named args); 0 or 1 row per input row.
+  Parameterless ones (`accounts.user`, Radar reports) are tables too.
+- List and lookup functions with path params are VGI `RowTransformFunction`s: args
+  are per-row input columns, so one registration serves `f('id')`, `FROM t, f(t.id)`
   and `LATERAL`. A batch is fetched concurrently (deduped by key) and emitted once
-  with `parent_rows` provenance. Lookups treat 404 as 0 rows; fan-outs don't.
+  with `parent_rows` provenance. Lookups treat 404 as 0 rows; list functions don't.
 - `schema` → the product family it lands in (`cloudflare.dns`, `cloudflare.access`, …).
 
 ```
 ResourceDescriptor (descriptor.py)
         │  schema, kind, path, path_params, query_params, columns, pagination
-        ├─ kind=list ─► make_resource_function()     ─► table function (+ scannable Table)
-        │             make_lateral_list_function() ─► <table>_by_<parent>(ids) fan-out
-        └─ kind=item ─► make_item_function()         ─► lookup function (args = path ids)
+        ├─ kind=list, no ids ─► make_resource_function()     ─► scannable Table
+        ├─ kind=list, ids    ─► make_lateral_list_function() ─► list function records(zone_id)
+        └─ kind=item         ─► make_item_function()         ─► lookup function (args = path ids)
                         (runtime.py)
         ▼
 build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWorker
@@ -99,11 +103,12 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 
 ### How a query runs
 
-1. `WHERE zone_id = '...'` arrives as a **pushdown filter** at `on_init`.
-2. `_resolve_bindings()` turns filters into one or more *bindings*: required
-   **path params** (URL `{placeholders}`) come from equality/IN filters (error if
-   absent); **query params** matching an output column get pushed onto the API
-   query string. DuckDB drops the filters it pushes to a scan, so the worker
+List and lookup functions read their path ids from each input row and their
+query params from named args (`_lateral_process`). Unscoped tables run like this:
+
+1. `WHERE status = '...'` arrives as a **pushdown filter** at `on_init`.
+2. `_resolve_bindings()` turns filters into *bindings*: **query params** matching
+   an output column get pushed onto the API query string. DuckDB drops the filters it pushes to a scan, so the worker
    applies every predicate to its output (`Meta.auto_apply_filters`); without it a
    filter on a non-API column is silently ignored.
 3. `process()` pops a binding, **paginates** the Cloudflare API, maps each
@@ -140,11 +145,14 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
   URL order (the runtime fills placeholders positionally).
 
 Item names are the singular from the trailing path param (`zone_id` → `zone`),
-distinct from the plural list tables. Lists are named first; an item whose noun is
-already a table name becomes `<noun>_by_id` (uncountables like `rules`). Fan-out
-names (`<table>_by_<parent>`) are derived at catalog build (`lateral_list_name`):
-the last path param minus `_id`/`_name`/…, or the singular of the segment before a
-generic `{id}`. Reserved words (`group`, `default`) are fine schema-qualified.
+distinct from the plural lists. Lists are named first, shallowest path first, so
+the general endpoint gets the bare name; an item whose noun is already a list name
+becomes `<noun>_by_id` (uncountables like `rules`). A name that would collide is
+qualified by what differs — the noun before a generic `{id}` (`rule`), its scope
+(`zone_apps` beside account-level `apps`; `organization_accounts`), or its area
+(`iam_permission_groups`) — and is never silently dropped (a duplicate name would
+shadow an endpoint). Query params that are SQL reserved words become `limit_`.
+Reserved object names (`group`, `default`) are fine schema-qualified.
 
 Regenerate after a spec update:
 ```sh
@@ -162,9 +170,10 @@ The Cloudflare GraphQL Analytics API is a separate, regular shape
 (`viewer.zones|accounts → <dataset>(filter,orderBy) → dimensions/sum/avg/count/uniq`),
 so `graphql.py` models it with its own descriptor (`GraphQLDataset`) and runtime
 (`make_graphql_function`), all landing in the `analytics` schema. Each dataset is
-scoped by a required `zone_id`/`account_id` filter; the time bucket
-(`date`/`datetime`) is read from `WHERE` range bounds (`get_column_bounds`),
-defaulting to a trailing window.
+a `RowTransformFunction` of its `zone_id`/`account_id` (per input row, so it works
+laterally) with a **required** `since`/`until` window as named args — no default,
+because a silently defaulted window would truncate what a `WHERE` range asked
+for. Named args must be constants in a lateral call.
 
 **Add a dataset** = one entry in `DATASETS`: the GraphQL `dataset` field, `scope`
 (zone/account), `time_field`, `dimensions`, and `metrics` (each tagged with its
@@ -239,8 +248,9 @@ Run pytest with `--rootdir=. -o "addopts="` so it ignores any parent pytest conf
    `cf.dns.records`). Hand-written resources override generated ones only when
    their `(schema, name)` matches, so keep both in sync (e.g. the curated DNS
    record table is `schema="dns", name="records"`).
-3. **Path params are required filters.** Set `Table.required_filters`
-   and resolve from pushdown in `on_init`; raise a clear error if absent.
+3. **Path params are function arguments**, never `WHERE` filters: a scoped list is
+   a list function of its ids (a subquery or join can't feed a table's required
+   filter — DuckDB plans the scan before those values exist).
 4. **Build batches against `params.output_schema`, not `FIXED_SCHEMA`** — projection
    pushdown may drop columns; `from_pydict` against the full schema would mismatch.
 5. **Query params only help if they match an output column** — DuckDB can only

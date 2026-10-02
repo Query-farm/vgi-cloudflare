@@ -15,7 +15,6 @@ from . import docs
 from .descriptor import ResourceDescriptor
 from .runtime import (
     FunctionDocs,
-    lateral_list_name,
     make_item_function,
     make_lateral_list_function,
     make_resource_function,
@@ -61,10 +60,10 @@ def build_catalog(
     """Build the ``cloudflare`` catalog, grouping resources into per-product schemas.
 
     Each descriptor's ``schema`` selects its DuckDB schema (``cloudflare.dns``, ...).
-    List descriptors become a scannable Table (path params forced via
-    ``required_filters``) and, with path params, a lateral
-    ``<name>_by_<parent>(ids...)`` function. Item descriptors become a lookup
-    function, and a Table too when they take no parameters. Every object carries
+    A list scoped by URL ids becomes one function of those ids (``dns.records(zone_id)``),
+    usable with literals or laterally; an unscoped list (``zones.zones``) is a Table.
+    Item descriptors become a lookup function, and a Table too when they take no
+    parameters. Every object carries
     docs generated from its descriptor (``docs.py``). ``extra`` injects
     non-descriptor objects per schema:
     ``{"analytics": {"functions": [...], "tables": [...], "categories": [...]}}``.
@@ -73,26 +72,15 @@ def build_catalog(
     for d in descriptors:
         by_schema[d.schema].append(d)
 
-    # Fan-out names: records_by_zone; on a clash, the full param (records_by_zone_id).
-    taken = {(d.schema, d.name) for d in descriptors}
-    fanouts: dict[tuple[str, str], str] = {}
-    for d in descriptors:
-        if d.kind == "list" and d.path_params:
-            for name in (lateral_list_name(d), f"{d.name}_by_{d.path_params[-1].name}"):
-                if (d.schema, name) not in taken:
-                    taken.add((d.schema, name))
-                    fanouts[(d.schema, d.name)] = name
-                    break
-
     # Docs per object, then make descriptions unique catalog-wide.
     plans: list[tuple[ResourceDescriptor, str, str, docs.ObjectDocs]] = []
     for d in descriptors:
         out = d.output_schema()
-        if d.kind == "list":
-            fanout = fanouts.get((d.schema, d.name))
-            plans.append((d, "table", d.name, docs.table_docs(d, out, fanout)))
-            if fanout:
-                plans.append((d, "fanout", fanout, docs.fanout_docs(d, out, fanout)))
+        if d.kind == "list" and d.path_params:
+            # A scoped list is a function of its path ids: dns.records(zone_id).
+            plans.append((d, "fanout", d.name, docs.fanout_docs(d, out, d.name)))
+        elif d.kind == "list":
+            plans.append((d, "table", d.name, docs.table_docs(d, out, None)))
         elif d.path_params:
             plans.append((d, "lookup", d.name, docs.lookup_docs(d, out)))
         else:
@@ -238,10 +226,13 @@ EXECUTABLE_EXAMPLES = [
     {
         "name": "dns_records_require_zone",
         "description": (
-            "The DNS records table exposes zone_id, the URL path parameter every scan must "
-            "filter on (no Cloudflare credentials needed to inspect the schema)."
+            "The DNS records function takes the zone id as its argument and returns it as the "
+            "zone_id column (no Cloudflare credentials needed to inspect the schema)."
         ),
-        "sql": "SELECT column_name FROM (DESCRIBE cloudflare.dns.records) WHERE column_name = 'zone_id'",
+        "sql": (
+            "SELECT column_name FROM (DESCRIBE SELECT * FROM cloudflare.dns.records('some-zone')) "
+            "WHERE column_name = 'zone_id'"
+        ),
         "expected_result": [["zone_id"]],
     }
 ]

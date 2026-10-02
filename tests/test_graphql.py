@@ -1,4 +1,4 @@
-"""Tests for the descriptor-driven GraphQL analytics datasets (mocked GraphQL POST)."""
+"""Tests for the descriptor-driven GraphQL analytics functions (mocked GraphQL POST)."""
 
 from __future__ import annotations
 
@@ -12,11 +12,27 @@ import pyarrow as pa
 import pytest
 
 import vgi_cloudflare.client as client
-from tests.harness import comparisons, eq_filters, invoke_resource
+from tests.harness import invoke_lateral
 from vgi_cloudflare.client import CloudflareError
 from vgi_cloudflare.graphql import DATASETS, _split_window, build_query, make_graphql_function
 
 _BY_NAME = {d.name: d for d in DATASETS}
+_UTC = pa.timestamp("us", tz="UTC")
+_DAY = (datetime.date(2024, 1, 1), datetime.date(2024, 1, 7))
+_TIME = (
+    pa.scalar(datetime.datetime(2024, 3, 1, tzinfo=datetime.UTC), type=_UTC),
+    pa.scalar(datetime.datetime(2024, 3, 2, tzinfo=datetime.UTC), type=_UTC),
+)
+
+
+def _window(desc) -> dict[str, Any]:  # noqa: ANN001
+    since, until = _DAY if desc.time_field == "date" else _TIME
+    return {"since": since, "until": until}
+
+
+def _call(desc, ids: list[str | None], window: dict[str, Any] | None = None):  # noqa: ANN001
+    """Call a dataset function for each scope id, with a window (default: one per grain)."""
+    return invoke_lateral(make_graphql_function(desc), {desc.scope_id: ids}, named=window or _window(desc))
 
 
 def _mock_graphql(zone_or_account: str, dataset: str, groups: list[dict], capture: dict | None = None):
@@ -24,6 +40,7 @@ def _mock_graphql(zone_or_account: str, dataset: str, groups: list[dict], captur
 
     def _fake_post(path, json=None, headers=None):  # noqa: ANN001
         if capture is not None:
+            capture.setdefault("bodies", []).append(json)
             capture["body"] = json
         return httpx.Response(200, json=body)
 
@@ -32,7 +49,6 @@ def _mock_graphql(zone_or_account: str, dataset: str, groups: list[dict], captur
 
 class TestHttpRequestsDaily:
     def test_sum_and_uniq_extraction(self) -> None:
-        fn = make_graphql_function(_BY_NAME["http_requests_daily"])
         groups = [
             {
                 "dimensions": {"date": "2024-01-01"},
@@ -41,7 +57,7 @@ class TestHttpRequestsDaily:
             }
         ]
         with _mock_graphql("zones", "httpRequests1dGroups", groups):
-            table = invoke_resource(fn, pushdown_filters=eq_filters(zone_id="z1"))
+            table, _ = _call(_BY_NAME["http_requests_daily"], ["z1"])
         row = table.to_pylist()[0]
         assert row["zone_id"] == "z1"
         assert row["date"] == datetime.date(2024, 1, 1)
@@ -52,7 +68,6 @@ class TestHttpRequestsDaily:
 
 class TestFirewallEvents:
     def test_dimensions_and_count(self) -> None:
-        fn = make_graphql_function(_BY_NAME["firewall_events"])
         groups = [
             {
                 "dimensions": {
@@ -67,7 +82,7 @@ class TestFirewallEvents:
             }
         ]
         with _mock_graphql("zones", "firewallEventsAdaptiveGroups", groups):
-            table = invoke_resource(fn, pushdown_filters=eq_filters(zone_id="z1"))
+            table, _ = _call(_BY_NAME["firewall_events"], ["z1"])
         row = table.to_pylist()[0]
         assert row["action"] == "block"
         assert row["client_country"] == "US"  # renamed dimension column
@@ -78,7 +93,6 @@ class TestFirewallEvents:
 
 class TestHealthChecks:
     def test_avg_metric(self) -> None:
-        fn = make_graphql_function(_BY_NAME["health_check_events"])
         groups = [
             {
                 "dimensions": {
@@ -93,7 +107,7 @@ class TestHealthChecks:
             }
         ]
         with _mock_graphql("zones", "healthCheckEventsAdaptiveGroups", groups):
-            table = invoke_resource(fn, pushdown_filters=eq_filters(zone_id="z1"))
+            table, _ = _call(_BY_NAME["health_check_events"], ["z1"])
         row = table.to_pylist()[0]
         assert row["avg_rtt_ms"] == 12.5
         assert row["health_status"] == "healthy"
@@ -101,7 +115,6 @@ class TestHealthChecks:
 
 class TestAccountScope:
     def test_workers_invocations_uses_accounts(self) -> None:
-        fn = make_graphql_function(_BY_NAME["workers_invocations"])
         capture: dict[str, Any] = {}
         groups = [
             {
@@ -110,7 +123,7 @@ class TestAccountScope:
             }
         ]
         with _mock_graphql("accounts", "workersInvocationsAdaptive", groups, capture):
-            table = invoke_resource(fn, pushdown_filters=eq_filters(account_id="acctZ"))
+            table, _ = _call(_BY_NAME["workers_invocations"], ["acctZ"])
         assert capture["body"]["variables"]["tag"] == "acctZ"
         assert "accounts(filter: {accountTag:" in capture["body"]["query"]
         row = table.to_pylist()[0]
@@ -119,37 +132,27 @@ class TestAccountScope:
         assert row["errors"] == 1
 
 
-class TestTimeBounds:
-    def test_datetime_range_from_pushdown(self) -> None:
-        fn = make_graphql_function(_BY_NAME["firewall_events"])
-        utc = pa.timestamp("us", tz="UTC")
-        filters = comparisons(
-            ("datetime", "ge", pa.scalar(datetime.datetime(2024, 3, 1, tzinfo=datetime.UTC), type=utc)),
-            ("datetime", "le", pa.scalar(datetime.datetime(2024, 3, 2, tzinfo=datetime.UTC), type=utc)),
-            ("zone_id", "eq", "z1"),
-        )
+class TestWindowAndScope:
+    def test_window_arguments_become_the_api_time_filter(self) -> None:
         capture: dict[str, Any] = {}
         with _mock_graphql("zones", "firewallEventsAdaptiveGroups", [], capture):
-            invoke_resource(fn, pushdown_filters=filters)
+            _call(_BY_NAME["firewall_events"], ["z1"])
         v = capture["body"]["variables"]
-        assert v["since"] == "2024-03-01T00:00:00Z"
-        assert v["until"] == "2024-03-02T00:00:00Z"
+        assert (v["since"], v["until"]) == ("2024-03-01T00:00:00Z", "2024-03-02T00:00:00Z")
 
-    @pytest.mark.parametrize("name", ["http_requests_hourly", "http_requests_daily"])
-    def test_default_window_is_non_empty(self, name: str) -> None:
-        # Regression: datetime datasets used to default to since == until == now.
-        desc = _BY_NAME[name]
+    def test_window_is_required(self) -> None:
+        # A silently defaulted window would truncate what the caller asked for.
+        with _mock_graphql("zones", "httpRequests1dGroups", []), pytest.raises(KeyError, match="since"):
+            _call(_BY_NAME["http_requests_daily"], ["z1"], window={"until": _DAY[1]})
+
+    def test_each_scope_id_is_queried_and_rows_map_back(self) -> None:
         capture: dict[str, Any] = {}
-        with _mock_graphql("zones", desc.dataset, [], capture):
-            invoke_resource(make_graphql_function(desc), pushdown_filters=eq_filters(zone_id="z1"))
-        v = capture["body"]["variables"]
-        assert v["since"] < v["until"]
-
-    def test_missing_scope_id_raises(self) -> None:
-        fn = make_graphql_function(_BY_NAME["http_requests_daily"])
-        with _mock_graphql("zones", "httpRequests1dGroups", []):
-            with pytest.raises(RuntimeError, match="requires an equality filter on 'zone_id'"):
-                invoke_resource(fn)
+        groups = [{"dimensions": {"date": "2024-01-01"}, "sum": {"requests": 1}}]
+        with _mock_graphql("zones", "httpRequests1dGroups", groups, capture):
+            table, parents = _call(_BY_NAME["http_requests_daily"], ["z1", None, "z2", "z1"])
+        assert parents == [0, 2, 3]  # NULL id: no rows; repeated id fetched once
+        assert table.column("zone_id").to_pylist() == ["z1", "z2", "z1"]
+        assert sorted(b["variables"]["tag"] for b in capture["bodies"]) == ["z1", "z2"]
 
 
 class TestQueryBuilder:
@@ -164,19 +167,18 @@ class TestQueryBuilder:
 class TestWindowSplitting:
     """A response at the group limit may be truncated, so its window is bisected."""
 
-    def _run(self, name: str, groups_for, filters):  # noqa: ANN001
-        desc = dataclasses.replace(_BY_NAME[name], limit=4)
+    def _run(self, groups_for, since: datetime.date, until: datetime.date):  # noqa: ANN001
+        desc = dataclasses.replace(_BY_NAME["http_requests_daily"], limit=4)
         calls: list[dict[str, Any]] = []
 
         def _fake_post(path, json=None, headers=None):  # noqa: ANN001
             v = json["variables"]
             calls.append(v)
-            groups = groups_for(v["since"], v["until"])
-            scope = "zones" if desc.scope == "zone" else "accounts"
-            return httpx.Response(200, json={"data": {"viewer": {scope: [{desc.dataset: groups}]}}})
+            body = {"data": {"viewer": {"zones": [{desc.dataset: groups_for(v["since"], v["until"])}]}}}
+            return httpx.Response(200, json=body)
 
         with patch.object(client._http, "post", side_effect=_fake_post):
-            table = invoke_resource(make_graphql_function(desc), pushdown_filters=filters)
+            table, _ = _call(desc, ["z1"], window={"since": since, "until": until})
         return table, calls
 
     def test_daily_window_is_split_until_complete(self) -> None:
@@ -186,10 +188,7 @@ class TestWindowSplitting:
             hit = [d for d in days if since <= d.isoformat() <= until]
             return [{"dimensions": {"date": d.isoformat()}, "sum": {"requests": 1}} for d in hit[:4]]
 
-        filters = comparisons(
-            ("date", "ge", pa.scalar(days[0])), ("date", "le", pa.scalar(days[-1])), ("zone_id", "eq", "z1")
-        )
-        table, calls = self._run("http_requests_daily", groups_for, filters)
+        table, calls = self._run(groups_for, days[0], days[-1])
         assert sorted(table.column("date").to_pylist()) == days  # every day, none twice
         assert len(calls) > 1
 
@@ -197,9 +196,8 @@ class TestWindowSplitting:
         def groups_for(since: str, until: str) -> list[dict]:
             return [{"dimensions": {"date": since}, "sum": {"requests": i}} for i in range(4)]
 
-        day = pa.scalar(datetime.date(2024, 1, 1))
-        filters = comparisons(("date", "ge", day), ("date", "le", day), ("zone_id", "eq", "z1"))
-        table, calls = self._run("http_requests_daily", groups_for, filters)
+        day = datetime.date(2024, 1, 1)
+        table, calls = self._run(groups_for, day, day)
         assert len(calls) == 1
         assert table.num_rows == 4  # emitted, not dropped
 
@@ -219,7 +217,4 @@ class TestPlanGatedDataset:
         body = {"data": None, "errors": [{"message": "zone 'z1' does not have access to the path"}]}
         with patch.object(client._http, "post", return_value=httpx.Response(200, json=body)):
             with pytest.raises(CloudflareError, match="firewallEventsAdaptiveGroups.*plans"):
-                invoke_resource(
-                    make_graphql_function(_BY_NAME["firewall_events"]),
-                    pushdown_filters=eq_filters(zone_id="z1"),
-                )
+                _call(_BY_NAME["firewall_events"], ["z1"])

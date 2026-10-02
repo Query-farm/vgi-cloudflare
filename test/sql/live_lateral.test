@@ -11,6 +11,10 @@ require-env CLOUDFLARE_TEST_ZONE_ID
 
 require-env CLOUDFLARE_TEST_ACCOUNT_ID
 
+require-env CLOUDFLARE_TEST_SINCE
+
+require-env CLOUDFLARE_TEST_UNTIL
+
 require vgi
 
 statement ok
@@ -27,48 +31,61 @@ SELECT count(*) FROM cf.accounts.user();
 
 # Fan-out: every record row carries the zone that produced it.
 query I
-SELECT count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r WHERE r.zone_id <> z.id;
+SELECT count(*) FROM cf.zones.zones z, cf.dns.records(z.id) r WHERE r.zone_id <> z.id;
 ----
 0
 
-# Fan-out agrees with the pushdown table for the test zone.
+# A literal call and the lateral form agree for the test zone.
 query I
-SELECT (SELECT count(*) FROM cf.dns.records WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}')
-     = (SELECT count(*) FROM (VALUES ('${CLOUDFLARE_TEST_ZONE_ID}')) t(z), cf.dns.records_by_zone(t.z));
+SELECT (SELECT count(*) FROM cf.dns.records('${CLOUDFLARE_TEST_ZONE_ID}'))
+     = (SELECT count(*) FROM (VALUES ('${CLOUDFLARE_TEST_ZONE_ID}')) t(z), cf.dns.records(t.z));
+----
+true
+
+# A named argument filters at the API, and agrees with filtering in SQL.
+query I
+SELECT (SELECT count(*) FROM cf.dns.records('${CLOUDFLARE_TEST_ZONE_ID}', type := 'CNAME'))
+     = (SELECT count(*) FROM cf.dns.records('${CLOUDFLARE_TEST_ZONE_ID}') WHERE type = 'CNAME');
 ----
 true
 
 # Lateral lookup: each listed record fetched by id comes back once, unchanged.
 query I
 SELECT count(*) = count(r.id) AND bool_and(r.id = t.id)
-FROM (SELECT zone_id, id FROM cf.dns.records WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}' LIMIT 5) t,
+FROM (SELECT zone_id, id FROM cf.dns.records('${CLOUDFLARE_TEST_ZONE_ID}') LIMIT 5) t,
      cf.dns.record(t.zone_id, t.id) r;
 ----
 true
 
 query I
-SELECT count(*) >= 1 FROM cf.accounts.accounts a, cf.accounts.members_by_account(a.id);
+SELECT count(*) >= 1 FROM cf.accounts.accounts a, cf.accounts.members(a.id);
 ----
 true
 
-# GraphQL analytics run with the default time window (field names are accepted
-# by the live schema). firewall_events / health_check_events are plan-gated.
+# GraphQL analytics over yesterday..today (field names are accepted by the live
+# schema). firewall_events / health_check_events are plan-gated.
 query I
-SELECT count(*) >= 0 FROM cf.analytics.http_requests_daily WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}';
-----
-true
-
-query I
-SELECT count(*) >= 0 FROM cf.analytics.http_requests_hourly WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}';
+SELECT count(*) >= 0 FROM cf.analytics.http_requests_daily('${CLOUDFLARE_TEST_ZONE_ID}', since := DATE '${CLOUDFLARE_TEST_SINCE}', until := DATE '${CLOUDFLARE_TEST_UNTIL}');
 ----
 true
 
 query I
-SELECT count(*) >= 0 FROM cf.analytics.http_requests_adaptive WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}';
+SELECT count(*) >= 0 FROM cf.analytics.http_requests_hourly('${CLOUDFLARE_TEST_ZONE_ID}', since := TIMESTAMPTZ '${CLOUDFLARE_TEST_SINCE} 00:00:00+00', until := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:00:00+00');
 ----
 true
 
 query I
-SELECT count(*) >= 0 FROM cf.analytics.workers_invocations WHERE account_id = '${CLOUDFLARE_TEST_ACCOUNT_ID}';
+SELECT count(*) >= 0 FROM cf.analytics.http_requests_adaptive('${CLOUDFLARE_TEST_ZONE_ID}', since := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:00:00+00', until := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:10:00+00');
+----
+true
+
+# Lateral across every zone: each row carries the zone it was fetched for.
+query I
+SELECT count(*) FROM cf.zones.zones z, cf.analytics.http_requests_daily(z.id, since := DATE '${CLOUDFLARE_TEST_SINCE}', until := DATE '${CLOUDFLARE_TEST_UNTIL}') d WHERE d.zone_id <> z.id;
+----
+0
+
+query I
+SELECT count(*) >= 0 FROM cf.analytics.workers_invocations('${CLOUDFLARE_TEST_ACCOUNT_ID}', since := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:00:00+00', until := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:10:00+00');
 ----
 true

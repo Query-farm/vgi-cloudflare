@@ -176,6 +176,7 @@ def invoke_lateral(
     func_cls: type,
     rows: dict[str, list[Any]],
     *,
+    named: dict[str, Any] | None = None,
     secrets: dict[str, dict[str, pa.Scalar]] | None = None,
 ) -> tuple[pa.Table, list[int]]:
     """Drive a ``RowTransformFunction`` with one input batch of per-row path params.
@@ -185,7 +186,10 @@ def invoke_lateral(
     from vgi.table_function import ProcessParams
 
     input_batch = pa.RecordBatch.from_pydict({k: pa.array(v, type=pa.string()) for k, v in rows.items()})
-    arguments = Arguments(positional=(), named={})
+    arguments = Arguments(
+        positional=(),
+        named={k: v if isinstance(v, pa.Scalar) else pa.scalar(v) for k, v in (named or {}).items()},
+    )
     bind_req = BindRequest(
         function_name=func_cls.Meta.name,
         arguments=arguments,

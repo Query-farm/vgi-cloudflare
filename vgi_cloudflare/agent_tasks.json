@@ -468,10 +468,6 @@
     "prompt": "Over the past 12 weeks, which 5 countries were the top origins of network-layer (layer 3/4) DDoS attacks? Return rank and country_name, ordered by rank."
   },
   {
-    "name": "radar_b_l3_top_target_countries",
-    "prompt": "Over the past 12 weeks, which 5 countries were most targeted by network-layer (layer 3/4) DDoS attacks? Return rank, country_code and share_pct (rounded to 1 decimal), ordered by rank."
-  },
-  {
     "name": "radar_b_l3_protocol_mix",
     "prompt": "Over the past 12 weeks, how were network-layer DDoS attacks split by IP protocol (TCP, UDP, ICMP, GRE)? Return protocol and share_pct rounded to 1 decimal, highest first."
   },
@@ -578,14 +574,6 @@
   {
     "name": "radar_b_ai_crawl_purpose",
     "prompt": "Over the past 12 weeks, how was AI bot crawling traffic split by declared crawl purpose? Return crawl_purpose and share_pct rounded to 1 decimal, highest first."
-  },
-  {
-    "name": "radar_b_ai_bot_user_agents",
-    "prompt": "Over the past 12 weeks, which 5 AI crawler user agents (excluding 'other') accounted for the most AI bot requests? Return user_agent and share_pct rounded to 1 decimal, highest first."
-  },
-  {
-    "name": "radar_b_ai_inference_tasks",
-    "prompt": "Over the past 12 weeks, which 3 task types made up the largest share of Workers AI inference requests? Return task and share_pct rounded to 1 decimal, highest first."
   },
   {
     "name": "radar_b_leaked_creds_bot_class",
@@ -718,10 +706,6 @@
   {
     "name": "radar_b_ts_duration",
     "prompt": "Using the daily time series for the past 12 weeks broken down by duration bucket of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return duration_bucket and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
-  },
-  {
-    "name": "radar_b_ts_vector",
-    "prompt": "Using the daily time series for the past 12 weeks broken down by attack vector of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return vector and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
   },
   {
     "name": "radar_b_ts_industry",
@@ -874,10 +858,6 @@
   {
     "name": "radar_b_tsd_origin",
     "prompt": "Using the daily time series for the past 12 weeks broken down by TLS key agreement support among origin servers, compute the average daily value for each group. Return key_agreement and avg_value (average of the daily values, rounded to 1 decimal), highest first."
-  },
-  {
-    "name": "radar_b_tsd_performance",
-    "prompt": "Using the daily time series for the past 12 weeks broken down by TLD nameserver DNS latency percentiles (values in ms), compute the average daily value for each group. Return percentile and avg_value (average of the daily values, rounded to 1 decimal), highest first."
   },
   {
     "name": "radar_b_cloud_origin_request_share",

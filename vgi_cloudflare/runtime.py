@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import keyword
 import logging
 import os
 import re
@@ -55,7 +56,7 @@ from vgi.table_function import (
 from vgi.table_in_out_function import RowTransformFunction
 
 from .client import CloudflareAuth, CloudflareError, paginate
-from .descriptor import Column, Example, ResourceDescriptor
+from .descriptor import Column, Example, QueryParam, ResourceDescriptor
 from .secret import API_EMAIL_KEY, API_KEY_KEY, API_TOKEN_KEY, CLOUDFLARE_SECRET_TYPE
 
 log = logging.getLogger(__name__)
@@ -231,14 +232,13 @@ def make_resource_function(
 
 
 def _build_item_args_class(desc: ResourceDescriptor) -> type:
-    """Args for a lookup: path params positional (URL order), query params as named args.
+    """Args for a function: path params positional (URL order), query params as named args.
 
     Named args default to the descriptor's ``default_query`` value (Radar's
     ``date_range => '7d'``) or to ``''``, meaning "not sent".
     """
     defaults = dict(desc.default_query)
-    # Only lookups take query params as arguments; a list's are pushed-down filter columns.
-    named = desc.query_params if desc.kind == "item" else ()
+    named = _named_params(desc)
     if not desc.path_params and not named:
         return _NoArgs
     fields: list[tuple[str, Any] | tuple[str, Any, Any]] = []
@@ -255,21 +255,46 @@ def _build_item_args_class(desc: ResourceDescriptor) -> type:
         ]
         fields.append((p.name, annotation))
     for q in named:
+        arg = _arg_name(q)
         doc = q.doc or f"Sent as the `{q.key}` query parameter."
-        if pa.types.is_integer(q.type) or pa.types.is_floating(q.type):
-            # Numeric: optional (None = not sent), with the spec's bounds.
-            py = int if pa.types.is_integer(q.type) else float
-            annotation = Annotated[py | None, Arg(q.name, doc=doc, default=None, ge=q.ge, le=q.le)]
-            fields.append((q.name, annotation, dataclasses.field(default=None)))
+        if pa.types.is_integer(q.type) or pa.types.is_floating(q.type) or pa.types.is_boolean(q.type):
+            # Numeric / boolean: optional (None = not sent), with the spec's bounds.
+            py = bool if pa.types.is_boolean(q.type) else int if pa.types.is_integer(q.type) else float
+            annotation = Annotated[py | None, Arg(arg, doc=doc, default=None, ge=q.ge, le=q.le)]
+            fields.append((arg, annotation, dataclasses.field(default=None)))
             continue
         default = defaults.get(q.key, "")
         if default:
             doc = f"{doc} Default: `{default}`."
         choices = list(q.choices) + ([""] if q.choices and not default else []) or None
         pattern = f"(?:{q.pattern})?" if q.pattern and not default else q.pattern  # '' = unset
-        annotation = Annotated[str, Arg(q.name, doc=doc, default=default, choices=choices, pattern=pattern)]
-        fields.append((q.name, annotation, dataclasses.field(default=default)))
+        annotation = Annotated[str, Arg(arg, doc=doc, default=default, choices=choices, pattern=pattern)]
+        fields.append((arg, annotation, dataclasses.field(default=default)))
     return dataclasses.make_dataclass(f"{_camel(desc.name)}Args", fields, frozen=True, slots=True)
+
+
+#: DuckDB reserved words (``duckdb_keywords()``), unusable as bare argument names.
+_SQL_RESERVED = set(
+    "all analyse analyze and any array as asc asymmetric both case cast check collate column constraint "
+    "create default deferrable desc describe distinct do else end except false fetch for foreign from group "
+    "having in initially intersect into lambda lateral leading limit not null offset on only or order pivot "
+    "pivot_longer pivot_wider placing primary qualify references returning select show some summarize "
+    "symmetric table then to trailing true union unique unpivot using variadic when where window with".split()
+)
+
+
+def _arg_name(q: QueryParam) -> str:
+    """A query param's named-argument name: a keyword or reserved word gets a trailing ``_``."""
+    name = q.name
+    if keyword.iskeyword(name) or name in _SQL_RESERVED or not name.isidentifier():
+        name += "_"
+    return name
+
+
+def _named_params(desc: ResourceDescriptor) -> tuple[QueryParam, ...]:
+    """Query params exposed as named arguments (never shadowing a path param)."""
+    paths = {p.name for p in desc.path_params}
+    return tuple(q for q in desc.query_params if _arg_name(q) not in paths)
 
 
 #: A default that an explicit choice of these other parameters replaces: Radar rejects
@@ -290,9 +315,11 @@ def _named_query(desc: ResourceDescriptor, args: Any) -> dict[str, str]:
     """
     defaults = dict(desc.default_query)
     out = {}
-    for q in desc.query_params:
-        value = getattr(args, q.name, "")
-        if value is not None and value != "":
+    for q in _named_params(desc):
+        value = getattr(args, _arg_name(q), "")
+        if isinstance(value, bool):
+            out[q.key] = "true" if value else "false"  # the API's spelling, not Python's
+        elif value is not None and value != "":
             out[q.key] = str(value)
     for key, others in _REPLACED_BY.items():
         if key in out and out[key] == defaults.get(key) and any(out.get(o) for o in others):
@@ -322,7 +349,7 @@ def _lateral_process(
     ]
     distinct = list(dict.fromkeys(k for k in keys if k is not None))
 
-    query = _named_query(desc, params.args) if desc.kind == "item" else {}
+    query = _named_query(desc, params.args)
 
     def fetch(key: tuple[str, ...]) -> list[dict[str, Any]]:
         return _fetch_all(auth, desc, dict(zip(names, key, strict=True)), query, not_found_ok=not_found_ok)
@@ -403,51 +430,19 @@ def make_item_function(
 def make_lateral_list_function(
     desc: ResourceDescriptor, name: str | None = None, docs: FunctionDocs | None = None
 ) -> type[RowTransformFunction]:
-    """Build ``<table>_by_<parent>(path params...)``: a list resource driven per input row.
+    """Build a scoped list resource as a function of its path ids: ``records(zone_id)``.
 
-    The pushdown table (``cf.dns.records WHERE zone_id = ...``) needs its ids as
-    constants; this form takes them from another table, fanning each input row
-    out to all of its (paginated) results::
+    Each input row's ids select one listing, fetched across all pages, so the
+    function works with literals or laterally from another table::
 
         SELECT z.name, r.name, r.type
-        FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r;
+        FROM cf.zones.zones z, cf.dns.records(z.id) r;
+
+    The endpoint's query parameters are named arguments (``records(z.id, type := 'A')``).
     """
     if not desc.path_params:
-        raise ValueError(f"{desc.name}: a lateral list function needs at least one path param")
-    return _make_lateral_function(desc, name or lateral_list_name(desc), item=False, docs=docs)
-
-
-_PARAM_SUFFIXES = ("_identifier", "_id", "_tag", "_name", "_key")
-_GENERIC_PARAMS = {"id", "identifier", "name", "tag", "key", "slug", "value", "param", "url"}
-
-
-def _parent_noun(desc: ResourceDescriptor) -> str:
-    """The noun for a resource's most specific parent: its last path param, de-suffixed.
-
-    ``account_id`` -> ``account``, ``script_name`` -> ``script``. A generic param
-    (``{id}``, ``{name}``) is named by the path segment before it, singularized.
-    """
-    param = desc.path_params[-1].name
-    base = param
-    for suffix in _PARAM_SUFFIXES:
-        if base.endswith(suffix) and len(base) > len(suffix):
-            base = base[: -len(suffix)]
-            break
-    if base and base not in _GENERIC_PARAMS:
-        return base
-    segments = desc.path.split("/")
-    idx = segments.index("{" + param + "}")
-    prev = segments[idx - 1].replace("-", "_") if idx > 0 else ""
-    if prev.endswith("ies"):
-        return prev[:-3] + "y"
-    if prev.endswith("s") and not prev.endswith("ss"):
-        return prev[:-1]
-    return prev or param
-
-
-def lateral_list_name(desc: ResourceDescriptor) -> str:
-    """``records`` with parent ``{zone_id}`` -> ``records_by_zone``."""
-    return f"{desc.name}_by_{_parent_noun(desc)}"
+        raise ValueError(f"{desc.name}: a list function needs at least one path param")
+    return _make_lateral_function(desc, name or desc.name, item=False, docs=docs)
 
 
 def _make_singleton_function(
@@ -611,9 +606,7 @@ def _resolve_bindings(
         if not values:
             raise RuntimeError(
                 f"Table '{desc.name}' requires an equality filter on '{p.name}' "
-                f"(e.g. WHERE {p.name} = '...'); it maps to a URL path segment. To take "
-                f"{desc.path_params[-1].name} values from another query, use the function "
-                f"{desc.schema}.{lateral_list_name(desc)}({', '.join(x.name for x in desc.path_params)})."
+                f"(e.g. WHERE {p.name} = '...'); it maps to a URL path segment."
             )
         path_value_lists[p.name] = [str(v) for v in values]
 

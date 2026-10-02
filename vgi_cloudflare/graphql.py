@@ -28,30 +28,28 @@ a required ``zone_id`` / ``account_id`` filter, with the time bucket
 
 from __future__ import annotations
 
-import json
+import dataclasses
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, ClassVar
+from typing import Annotated, Any, ClassVar, cast
 
 import pyarrow as pa
-from vgi.arguments import SecretLookupEntry
-from vgi.catalog import Table
-from vgi.invocation import GlobalInitResponse
+from vgi.arguments import Arg, SecretLookupEntry
 from vgi.metadata import FunctionExample
-from vgi.table_filter_pushdown import deserialize_filters
+from vgi.protocol import BindResponse
 from vgi.table_function import (
     BindParams,
-    InitParams,
     OutputCollector,
     ProcessParams,
-    TableCardinality,
-    TableFunctionGenerator,
-    bind_fixed_schema,
 )
+from vgi.table_in_out_function import RowTransformFunction
 from vgi_rpc.log import Level
 
 from .client import CloudflareError, graphql_post
 from .descriptor import Example, comment_field
+from .docs import result_columns_schema
 from .runtime import _auth_from_secrets, example_tags
 from .secret import CLOUDFLARE_SECRET_TYPE
 
@@ -211,16 +209,86 @@ class _NoArgs:
     pass
 
 
-def make_graphql_function(desc: GraphQLDataset) -> type[TableFunctionGenerator]:
-    """Build a VGI table function for one GraphQL analytics dataset."""
+def _window_type(desc: GraphQLDataset) -> type:
+    return date if desc.time_field == "date" else datetime
+
+
+def _dataset_args_class(desc: GraphQLDataset) -> type:
+    """The scope id per row (positional), and the time window as required named args."""
+    bucket = "day" if desc.time_field == "date" else "time"
+    kind = _window_type(desc)
+    arrow = pa.date32() if desc.time_field == "date" else _TS
+    return dataclasses.make_dataclass(
+        f"{_camel(desc.name)}Args",
+        [
+            (
+                desc.scope_id,
+                Annotated[str, Arg(0, doc=f"The {desc.scope} to report on.", arrow_type=pa.string())],
+            ),
+            (
+                "since",
+                Annotated[
+                    kind, Arg("since", doc=f"First {bucket} of the window (inclusive).", arrow_type=arrow)
+                ],
+            ),
+            (
+                "until",
+                Annotated[
+                    kind, Arg("until", doc=f"Last {bucket} of the window (inclusive).", arrow_type=arrow)
+                ],
+            ),
+        ],
+        frozen=True,
+        slots=True,
+    )
+
+
+def _fetch_groups(
+    auth: Any, query: str, desc: GraphQLDataset, tag: str, since: str, until: str, out: OutputCollector
+) -> list[dict[str, Any]]:
+    """Every group for one scope id and window, splitting windows the API caps.
+
+    The API returns at most ``desc.limit`` groups and has no cursor, so a full
+    response may be truncated: its window is halved and re-queried, down to the
+    smallest bucket (a warning is logged if even that is full).
+    """
+    plural = "zones" if desc.scope == "zone" else "accounts"
+    pending = [{"tag": tag, "since": since, "until": until}]
+    groups: list[dict[str, Any]] = []
+    while pending:
+        binding = pending.pop()
+        data = _post(auth, query, binding, desc)
+        scoped = (data.get("viewer") or {}).get(plural) or []
+        got = scoped[0].get(desc.dataset, []) if scoped else []
+        if len(got) >= desc.limit:
+            halves = _split_window(binding, desc.time_field)
+            if halves:
+                pending.extend(halves)
+                continue
+            out.client_log(
+                Level.WARN,
+                f"{desc.name}: {binding['since']}..{binding['until']} returned the "
+                f"{desc.limit}-group limit in its smallest window; results may be truncated",
+            )
+        groups.extend(got)
+    return groups
+
+
+def make_graphql_function(desc: GraphQLDataset) -> type[RowTransformFunction]:
+    """Build a lateral function for one GraphQL analytics dataset.
+
+    ``http_requests_daily(zone_id, since := DATE '…', until := DATE '…')``: the scope
+    id comes per input row (a literal, or columns of another relation), and the time
+    window is required — a window defaulted silently would truncate results that a
+    ``WHERE`` range asked for.
+    """
     output_schema = _output_schema(desc)
     query = build_query(desc)
-    plural = "zones" if desc.scope == "zone" else "accounts"
     dim_by_name = {d.name: d for d in desc.dimensions}
     metric_by_name = {m.name: m for m in desc.metrics}
+    args_class = _dataset_args_class(desc)
 
-    @bind_fixed_schema
-    class _Dataset(TableFunctionGenerator[_NoArgs, None]):
+    class _Dataset(RowTransformFunction[args_class]):
         DATASET: ClassVar[GraphQLDataset] = desc
         FIXED_SCHEMA: ClassVar[pa.Schema] = output_schema
 
@@ -228,100 +296,42 @@ def make_graphql_function(desc: GraphQLDataset) -> type[TableFunctionGenerator]:
             name = desc.name
             description = desc.description or f"Cloudflare {desc.dataset} analytics."
             categories = ["cloudflare", "analytics", desc.scope]
-            projection_pushdown = True
-            filter_pushdown = True
-            # DuckDB drops the filters it pushes to us, so every predicate must be applied
-            # here; the ones the API understands are also sent upstream to fetch less.
-            auto_apply_filters = True
             required_secrets = [SecretLookupEntry(secret_type=CLOUDFLARE_SECRET_TYPE)]
             examples = [FunctionExample(sql=e.sql, description=e.description) for e in dataset_examples(desc)]
             tags = {**example_tags(examples), **dataset_tags(desc)}
 
         @classmethod
-        def cardinality(cls, params: BindParams[_NoArgs]) -> TableCardinality:
-            return TableCardinality(estimate=desc.cardinality_estimate, max=desc.cardinality_max)
+        def on_bind(cls, params: BindParams[Any]) -> BindResponse:
+            return BindResponse(output_schema=output_schema)
 
         @classmethod
-        def on_init(cls, params: InitParams[_NoArgs]) -> GlobalInitResponse:
-            pushdown = params.init_call.pushdown_filters
-            filters = (
-                deserialize_filters(
-                    pushdown,
-                    join_keys=params.init_call.join_keys,
-                    output_schema=params.init_call.output_schema,
-                )
-                if pushdown is not None
-                else None
-            )
-
-            tags: list[str] = []
-            if filters is not None:
-                values = filters.get_column_values(desc.scope_id)
-                if values is not None:
-                    tags = [str(v) for v in values.to_pylist() if v is not None]
-            if not tags:
-                raise RuntimeError(
-                    f"Table '{desc.name}' requires an equality filter on '{desc.scope_id}' "
-                    f"(e.g. WHERE {desc.scope_id} = '...')."
-                )
-
-            # Default: the trailing window ending now (datetime datasets) or today.
-            now = datetime.now(UTC)
-            since: Any = now - timedelta(days=desc.default_range_days)
-            until: Any = now
-            if filters is not None:
-                bounds = filters.get_column_bounds(desc.time_field)
-                if bounds is not None:
-                    if bounds.min_value is not None:
-                        since = bounds.min_value.as_py() or since
-                    if bounds.max_value is not None:
-                        until = bounds.max_value.as_py() or until
-
-            bindings = [
-                {"tag": t, "since": _fmt(since, desc.time_field), "until": _fmt(until, desc.time_field)}
-                for t in tags
-            ]
-            params.storage.queue_push([json.dumps(b).encode("utf-8") for b in bindings])
-            return GlobalInitResponse(max_workers=1)
-
-        @classmethod
-        def process(cls, params: ProcessParams[_NoArgs], state: None, out: OutputCollector) -> None:
+        def process(
+            cls, params: ProcessParams[Any], state: None, batch: pa.RecordBatch, out: OutputCollector
+        ) -> None:
             auth = _auth_from_secrets(params.secrets)
-            out_cols = list(params.output_schema.names)
-
-            while True:
-                item = params.storage.queue_pop()
-                if item is None:
-                    out.finish()
-                    return
-                binding = json.loads(item.decode("utf-8"))
-                data = _post(auth, query, binding, desc)
-                scoped = (data.get("viewer") or {}).get(plural) or []
-                groups = scoped[0].get(desc.dataset, []) if scoped else []
-                if not groups:
-                    continue
-                if len(groups) >= desc.limit:
-                    # A full page may be truncated (the API has no cursor): split the
-                    # window and re-query each half, down to the smallest bucket.
-                    halves = _split_window(binding, desc.time_field)
-                    if halves:
-                        params.storage.queue_push([json.dumps(h).encode("utf-8") for h in halves])
-                        continue
-                    out.client_log(
-                        Level.WARN,
-                        f"{desc.name}: {binding['since']}..{binding['until']} returned the "
-                        f"{desc.limit}-group limit in its smallest window; results may be truncated",
+            since = _fmt(params.args.since, desc.time_field)
+            until = _fmt(params.args.until, desc.time_field)
+            keys = [None if v is None else str(v) for v in batch.column(desc.scope_id).to_pylist()]
+            distinct = list(dict.fromkeys(k for k in keys if k is not None))
+            with ThreadPoolExecutor(max_workers=max(1, min(4, len(distinct)))) as pool:
+                fetched = dict(
+                    zip(
+                        distinct,
+                        pool.map(lambda t: _fetch_groups(auth, query, desc, t, since, until, out), distinct),
+                        strict=True,
                     )
-
-                rows: dict[str, list[Any]] = {c: [] for c in out_cols}
-                for g in groups:
+                )
+            out_cols = list(params.output_schema.names)
+            rows: dict[str, list[Any]] = {c: [] for c in out_cols}
+            parent_rows: list[int] = []
+            for i, key in enumerate(keys):
+                for g in fetched.get(key, []) if key is not None else []:
                     dims = g.get("dimensions") or {}
                     for col in out_cols:
-                        rows[col].append(
-                            _extract(col, g, dims, binding["tag"], desc, dim_by_name, metric_by_name)
-                        )
-                out.emit(pa.RecordBatch.from_pydict(rows, schema=params.output_schema))
-                return
+                        rows[col].append(_extract(col, g, dims, key, desc, dim_by_name, metric_by_name))
+                    parent_rows.append(i)
+            emit = cast(Callable[..., None], out.emit)
+            emit(pa.RecordBatch.from_pydict(rows, schema=params.output_schema), parent_rows=parent_rows)
 
     _Dataset.__name__ = f"{_camel(desc.name)}Dataset"
     _Dataset.__qualname__ = _Dataset.__name__
@@ -555,23 +565,36 @@ CATEGORIES = [
 _PLAN_GATED = {"firewall_events", "health_check_events"}
 
 
+def _window_sql(desc: GraphQLDataset, recent: bool) -> str:
+    """A literal window: named arguments must be constants (no ``current_date``) in a lateral call."""
+    if desc.time_field == "date":
+        return (
+            "since := DATE '2026-09-24', until := DATE '2026-09-30'"
+            if recent
+            else "since := DATE '2026-09-01', until := DATE '2026-09-07'"
+        )
+    if recent:
+        return "since := TIMESTAMPTZ '2026-09-30 18:00:00+00', until := TIMESTAMPTZ '2026-10-01 00:00:00+00'"
+    return "since := TIMESTAMPTZ '2026-09-01 00:00:00+00', until := TIMESTAMPTZ '2026-09-01 06:00:00+00'"
+
+
 def dataset_examples(desc: GraphQLDataset) -> list[Example]:
     metric = desc.metrics[0].name
     dims = ", ".join(d.name for d in desc.dimensions[:2])
-    scope = f"{desc.scope_id} = '<{desc.scope_id}>'"
     t = desc.time_field
-    range_sql = f"{t} >= current_date - INTERVAL 7 DAY" if t == "date" else f"{t} >= now() - INTERVAL 6 HOUR"
     group = f", {dims}" if dims else ""
+    parent = "zones.zones" if desc.scope == "zone" else "accounts.accounts"
     return [
         Example(
-            f"SELECT {t}{group}, {metric} FROM cloudflare.analytics.{desc.name} WHERE {scope} ORDER BY {t}",
-            f"{metric} per {t}{' and ' + dims if dims else ''} for one {desc.scope} over the default "
-            f"trailing window ({desc.default_range_days} day{'s' if desc.default_range_days != 1 else ''}).",
+            f"SELECT {t}{group}, {metric} FROM cloudflare.analytics.{desc.name}("
+            f"'<{desc.scope_id}>', {_window_sql(desc, False)}) ORDER BY {t}",
+            f"{metric} per {t}{' and ' + dims if dims else ''} for one {desc.scope} over a fixed window.",
         ),
         Example(
-            f"SELECT sum({metric}) AS {metric} FROM cloudflare.analytics.{desc.name} "
-            f"WHERE {scope} AND {range_sql}",
-            f"Total {metric} for an explicit window: the {t} range in WHERE sets the API's time filter.",
+            f"SELECT p.name AS {desc.scope}, sum(x.{metric}) AS {metric} FROM cloudflare.{parent} p, "
+            f"cloudflare.analytics.{desc.name}(p.id, {_window_sql(desc, True)}) x "
+            f"GROUP BY ALL ORDER BY {metric} DESC",
+            f"Total {metric} for every {desc.scope} over one window, one API call per {desc.scope}.",
         ),
     ]
 
@@ -581,16 +604,13 @@ def dataset_tags(desc: GraphQLDataset) -> dict[str, str]:
     bucket = "day" if desc.time_field == "date" else "time bucket"
     llm = (
         f"{desc.description.rstrip('.')}, from Cloudflare's GraphQL Analytics API ({desc.dataset}). "
-        f"Requires a {desc.scope_id} filter (= or IN). One row per {bucket}"
+        f"Call it with a {desc.scope_id} — a literal, or per row of another query for a lateral join — and "
+        f"a required window, since := … and until := … (inclusive {bucket}s, UTC; constants, not "
+        f"expressions like current_date, in a lateral call). One row per {bucket}"
         + (f" and combination of {', '.join(d.name for d in desc.dimensions)}" if desc.dimensions else "")
-        + f", with metrics {', '.join(m.name for m in desc.metrics)}. The window comes from a range filter "
-        f"on {desc.time_field} (>=, <=, BETWEEN); without one it is the trailing {desc.default_range_days} "
-        "day(s). Large windows are split into several API calls so results aren't truncated."
-        + (
-            " Only available on Cloudflare plans that include this dataset."
-            if desc.name in _PLAN_GATED
-            else ""
-        )
+        + f", with metrics {', '.join(m.name for m in desc.metrics)}. Large windows are split into several "
+        "API calls so results aren't truncated."
+        + (" Only available on plans that include this dataset." if desc.name in _PLAN_GATED else "")
     )
     fields = [f"- `{desc.time_field}` — the {bucket} (UTC)."]
     fields += [f"- `{d.name}` — {d.doc or d.gql}" for d in desc.dimensions]
@@ -599,37 +619,13 @@ def dataset_tags(desc: GraphQLDataset) -> dict[str, str]:
     return {
         "vgi.doc_llm": llm,
         "vgi.doc_md": md,
+        "vgi.result_columns_schema": result_columns_schema(_output_schema(desc)),
         "vgi.category": _CATEGORY.get(desc.name, "http-traffic"),
     }
 
 
 def graphql_catalog_items() -> dict[str, list]:
-    """Functions + tables for the ``analytics`` schema (for build_catalog ``extra``).
-
-    One function class per dataset, shared between ``functions`` and ``tables``.
-    """
-    functions: list[type[TableFunctionGenerator]] = []
-    tables: list[Table] = []
-    for d in DATASETS:
-        fn = make_graphql_function(d)
-        functions.append(fn)
-        tables.append(
-            Table(
-                name=d.name,
-                function=fn,
-                comment=d.description or None,
-                required_filters=((d.scope_id,),),
-                tags={
-                    **dataset_tags(d),
-                    "vgi.example_queries": json.dumps(
-                        [{"description": e.description, "sql": e.sql} for e in dataset_examples(d)]
-                    ),
-                    "vgi.keywords": json.dumps(
-                        ["analytics", d.scope, d.dataset, *(m.name for m in d.metrics)][:8]
-                    ),
-                    "provider": "cloudflare",
-                },
-            )
-        )
+    """Functions for the ``analytics`` schema (for build_catalog ``extra``)."""
+    functions = [make_graphql_function(d) for d in DATASETS]
     examples = [dataset_examples(d)[0] for d in DATASETS[:3]]
-    return {"functions": functions, "tables": tables, "categories": CATEGORIES, "examples": examples}
+    return {"functions": functions, "tables": [], "categories": CATEGORIES, "examples": examples}

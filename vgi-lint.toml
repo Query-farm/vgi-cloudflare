@@ -26,11 +26,6 @@ into artificial sub-schemas would make the catalog *harder* to navigate than \
 Cloudflare's documentation; each schema is instead organized into at most 12 \
 vgi.categories sections drawn from the API's own product areas.\
 """ },
-  { code = "VGI134", kind = "domain-exemption", reason = """\
-One table per Cloudflare list endpoint (plus parameterless reports). The Cloudflare \
-API has more than 500 of them, and the catalog mirrors the API rather than curating \
-a subset, so the count is the size of the API itself.\
-""" },
   { code = "VGI135", kind = "domain-exemption", reason = """\
 One lookup function per get endpoint and one lateral fan-out per scoped list \
 endpoint, generated from the OpenAPI spec. The function count tracks the size of \
@@ -58,9 +53,6 @@ the Cloudflare API, not accidental sprawl.\
 "cloudflare.security.indicators" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "tags is a free-form tag filter; the spec declares no enum, so a choices list would be invented" },
 ] }
-"cloudflare.zero_trust.device" = { ignore = [
-  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
-] }
 "cloudflare.zero_trust.registration" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
 ] }
@@ -69,4 +61,31 @@ the Cloudflare API, not accidental sprawl.\
 ] }
 "cloudflare.radar.events" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "min/max_confidence describe score bands (1-4 low, 5-7 mid, 8+ high) but the spec declares no bounds to enforce" },
+] }
+"cloudflare.ai.items" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "metadata_filter is a JSON Vectorize filter; the examples in its description are not its values" },
+] }
+"cloudflare.email.allow_policies" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "verify_sender is a BOOLEAN; the rule reads 'DMARC, SPF, or DKIM' in its description as a value list" },
+] }
+"cloudflare.magic.providers" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "order_by's allowed fields appear only in prose; the spec declares no enum to make machine-readable" },
+] }
+"cloudflare.magic.resources" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "order_by's allowed fields appear only in prose; the spec declares no enum to make machine-readable" },
+] }
+"cloudflare.magic.tcp_flow_protection_filters" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "mode's values appear only in prose; the spec declares no enum to make machine-readable" },
+] }
+"cloudflare.zero_trust.physical_devices" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
+] }
+"cloudflare.zones.connections" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "status and exclude_urls are comma-separated lists; choices would allow only a single value" },
+] }
+"cloudflare.zones.custom_hostnames" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "hostname / id / hostname_contain / hostname_startsWith are free text; their descriptions name sibling parameters, not values" },
+] }
+"cloudflare.zones.scripts" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "status and exclude_urls are comma-separated lists; choices would allow only a single value" },
 ] }

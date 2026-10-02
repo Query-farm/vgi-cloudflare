@@ -45,7 +45,7 @@ zz	NULL
 
 # Fan-out across pages: zone zN has N records x 2 pages.
 query TI
-SELECT z.id, count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r GROUP BY 1 ORDER BY 1;
+SELECT z.id, count(*) FROM cf.zones.zones z, cf.dns.records(z.id) r GROUP BY 1 ORDER BY 1;
 ----
 z1	2
 z2	4
@@ -53,25 +53,25 @@ z3	6
 
 # Every fan-out row is stamped with the outer row that produced it.
 query I
-SELECT count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r WHERE r.zone_id <> z.id;
+SELECT count(*) FROM cf.zones.zones z, cf.dns.records(z.id) r WHERE r.zone_id <> z.id;
 ----
 0
 
-# The pushdown table (multi-page) is unchanged.
+# Called with a literal id, across both pages.
 query I
-SELECT count(*) FROM cf.dns.records WHERE zone_id = 'z3';
+SELECT count(*) FROM cf.dns.records('z3');
 ----
 6
 
 # Filters on columns the API can't filter are still applied (DuckDB drops pushed
 # filters, so the worker must apply them): zone z3 has r0..r2 on each of 2 pages.
 query I
-SELECT count(*) FROM cf.dns.records WHERE zone_id = 'z3' AND name = 'r0.zone3.com';
+SELECT count(*) FROM cf.dns.records('z3') WHERE name = 'r0.zone3.com';
 ----
 2
 
 query I
-SELECT count(*) FROM cf.dns.records WHERE zone_id = 'z3' AND name LIKE 'nomatch%';
+SELECT count(*) FROM cf.dns.records('z3') WHERE name LIKE 'nomatch%';
 ----
 0
 
@@ -80,7 +80,7 @@ statement ok
 SET vgi_batch_lateral = false;
 
 query TI
-SELECT z.id, count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r GROUP BY 1 ORDER BY 1;
+SELECT z.id, count(*) FROM cf.zones.zones z, cf.dns.records(z.id) r GROUP BY 1 ORDER BY 1;
 ----
 z1	2
 z2	4

@@ -27,7 +27,7 @@ product at once — and join the answers with anything else DuckDB can read.
 ```sql
 -- Which of my DNS records bypass Cloudflare's proxy, in every zone?
 SELECT z.name AS zone, r.name, r.type, r.content
-FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
 WHERE r.type IN ('A', 'AAAA', 'CNAME') AND r.proxiable AND NOT r.proxied
 ORDER BY zone, r.name;
 ```
@@ -95,10 +95,12 @@ repository.
 Most Cloudflare data lives under an **account** or a **zone**, so most queries
 start from `cloudflare.accounts.accounts` or `cloudflare.zones.zones` and fan out:
 
-- **Tables** (plural: `cloudflare.dns.records`) need their scope id as a constant —
-  `WHERE zone_id = '…'`.
-- **Fan-out functions** (`cloudflare.dns.records_by_zone(z.id)`) take the id from
-  each row of another query, so one statement covers every zone.
+- **List functions** (plural: `cloudflare.dns.records(zone_id)`) take the ids in
+  their URL as arguments — a literal, or each row of another query, so one
+  statement covers every zone. The endpoint's own filters are named arguments
+  (`records(z.id, type := 'A')`).
+- **Tables** (`cloudflare.zones.zones`, `cloudflare.accounts.accounts`) are the
+  unscoped lists you start from.
 - **Lookup functions** (singular: `cloudflare.dns.record(zone_id, id)`) fetch one
   object by id — an unknown id is no row, not an error.
 
@@ -111,7 +113,7 @@ account; the sample outputs are illustrative.
 
 ```sql
 SELECT r.type, count(*) AS records, count(*) FILTER (WHERE r.proxied) AS proxied
-FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
 GROUP BY r.type ORDER BY records DESC;
 ```
 
@@ -131,7 +133,7 @@ remembers which zone owns `www.something`:
 
 ```sql
 SELECT z.name AS zone, r.name, r.type, r.content, r.ttl
-FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
 WHERE r.name LIKE 'www.%'
 ORDER BY zone, r.name;
 ```
@@ -149,7 +151,7 @@ INSERT INTO expected VALUES
 
 CREATE TEMP TABLE actual AS
 SELECT r.name, r.type, r.content
-FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
 WHERE z.name = 'example.com';
 
 SELECT 'missing' AS problem, * FROM (FROM expected EXCEPT FROM actual)
@@ -173,7 +175,7 @@ ORDER BY problem, name;
 ```sql
 COPY (
   SELECT z.name AS zone, r.*
-  FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+  FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
 ) TO 'dns-backup.parquet' (FORMAT parquet);
 ```
 
@@ -188,7 +190,7 @@ SELECT z.name AS zone,
        max(s.value) FILTER (WHERE s.id = 'min_tls_version')  AS min_tls,
        max(s.value) FILTER (WHERE s.id = 'always_use_https') AS always_https,
        max(s.value) FILTER (WHERE s.id = 'security_level')   AS security_level
-FROM cloudflare.zones.zones z, cloudflare.zones.settings_by_zone(z.id) s
+FROM cloudflare.zones.zones z, cloudflare.zones.settings(z.id) s
 GROUP BY zone ORDER BY zone;
 ```
 
@@ -215,7 +217,7 @@ ORDER BY zone;
 
 ```sql
 SELECT z.name AS zone, p.priority, p.status, p.targets, p.actions
-FROM cloudflare.zones.zones z, cloudflare.zones.pagerules_by_zone(z.id) p
+FROM cloudflare.zones.zones z, cloudflare.zones.pagerules(z.id) p
 ORDER BY zone, p.priority;
 ```
 
@@ -225,7 +227,7 @@ ORDER BY zone, p.priority;
 
 ```sql
 SELECT z.name AS zone, c.type, c.status, c.certificate_authority, c.hosts, c.validity_days
-FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs_by_zone(z.id) c
+FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs(z.id) c
 ORDER BY zone, c.type;
 ```
 
@@ -238,7 +240,7 @@ or unnest `c.hosts` to find which pack covers a given hostname.
 
 ```sql
 SELECT m.email, m.status, m.two_factor_enabled
-FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m
+FROM cloudflare.accounts.accounts a, cloudflare.accounts.members(a.id) m
 WHERE NOT m.two_factor_enabled
 ORDER BY m.email;
 ```
@@ -249,8 +251,8 @@ accounts → apps → each app's policies:
 ```sql
 SELECT app.name AS app, app.domain, p.name AS policy, p.decision
 FROM cloudflare.accounts.accounts a,
-     cloudflare.access.apps_by_account(a.id) app,
-     cloudflare.access.apps_policies_by_app(a.id, app.id) p
+     cloudflare.access.apps(a.id) app,
+     cloudflare.access.apps_policies(a.id, app.id) p
 ORDER BY app, policy;
 ```
 
@@ -258,7 +260,7 @@ ORDER BY app, policy;
 
 ```sql
 SELECT r.name, r.action, r.enabled, r.precedence
-FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.rules_by_account(a.id) r
+FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.rules(a.id) r
 WHERE NOT r.enabled
 ORDER BY r.precedence;
 ```
@@ -267,7 +269,7 @@ ORDER BY r.precedence;
 
 ```sql
 SELECT l."when"::DATE AS day, l.action ->> 'type' AS action, count(*) AS changes
-FROM cloudflare.accounts.accounts a, cloudflare.logs.audit_logs_by_account(a.id) l
+FROM cloudflare.accounts.accounts a, cloudflare.logs.audit_logs(a.id) l
 GROUP BY ALL ORDER BY day DESC, changes DESC;
 ```
 
@@ -287,7 +289,7 @@ GROUP BY ALL ORDER BY day DESC, changes DESC;
 
 ```sql
 SELECT s.id AS script, s.modified_on::DATE AS modified, s.compatibility_date, s.has_assets
-FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s
+FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s
 ORDER BY s.modified_on DESC;
 ```
 
@@ -295,11 +297,11 @@ ORDER BY s.modified_on DESC;
 
 ```sql
 SELECT d.hostname, d.service, d.environment
-FROM cloudflare.accounts.accounts a, cloudflare.workers.domains_by_account(a.id) d
+FROM cloudflare.accounts.accounts a, cloudflare.workers.domains(a.id) d
 ORDER BY d.hostname;
 
 SELECT z.name AS zone, rt.pattern, rt.script
-FROM cloudflare.zones.zones z, cloudflare.workers.routes_by_zone(z.id) rt
+FROM cloudflare.zones.zones z, cloudflare.workers.routes(z.id) rt
 ORDER BY zone, rt.pattern;
 ```
 
@@ -307,15 +309,16 @@ ORDER BY zone, rt.pattern;
 
 ```sql
 SELECT d.name, d.version, d.created_at::DATE AS created
-FROM cloudflare.accounts.accounts a, cloudflare.storage.database_by_account(a.id) d
+FROM cloudflare.accounts.accounts a, cloudflare.storage.database(a.id) d
 ORDER BY d.name;
 ```
 
 ## Traffic and performance
 
-The analytics tables read Cloudflare's GraphQL Analytics API. They take a
-`zone_id` (or `account_id`), and a time range in `WHERE` becomes the API's time
-filter.
+The analytics functions read Cloudflare's GraphQL Analytics API. Each takes a
+`zone_id` (or `account_id`) and a **required** window — `since` and `until`,
+inclusive and in UTC — so a query can't silently get less than it asked for.
+Like every function here, the id can come from another table to cover every zone.
 
 **Daily traffic, cache hit rate, and threats for a zone:**
 
@@ -323,37 +326,52 @@ filter.
 SELECT date, requests,
        round(100.0 * cached_requests / requests, 1) AS cache_hit_pct,
        threats, unique_visitors
-FROM cloudflare.analytics.http_requests_daily
-WHERE zone_id = '<zone-id>' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-07'
+FROM cloudflare.analytics.http_requests_daily('<zone-id>',
+       since := DATE '2026-09-01', until := DATE '2026-09-07')
 ORDER BY date;
 ```
 
-**The busiest hours of the last day:**
+**Which zone got the most traffic last week?** One call per zone:
+
+```sql
+SELECT z.name AS zone, sum(d.requests) AS requests, sum(d.threats) AS threats
+FROM cloudflare.zones.zones z,
+     cloudflare.analytics.http_requests_daily(z.id,
+       since := DATE '2026-09-24', until := DATE '2026-09-30') d
+GROUP BY zone ORDER BY requests DESC;
+```
+
+**The busiest hours of a day:**
 
 ```sql
 SELECT datetime, requests
-FROM cloudflare.analytics.http_requests_hourly
-WHERE zone_id = '<zone-id>' AND datetime >= now() - INTERVAL 1 DAY
+FROM cloudflare.analytics.http_requests_hourly('<zone-id>',
+       since := TIMESTAMPTZ '2026-10-01 00:00:00+00', until := TIMESTAMPTZ '2026-10-01 23:59:59+00')
 ORDER BY requests DESC LIMIT 5;
 ```
 
-**Where is traffic coming from right now?**
+**Where is traffic coming from?** Sampled requests by country:
 
 ```sql
 SELECT client_country, sum(count) AS requests
-FROM cloudflare.analytics.http_requests_adaptive
-WHERE zone_id = '<zone-id>' AND datetime >= now() - INTERVAL 6 HOUR
+FROM cloudflare.analytics.http_requests_adaptive('<zone-id>',
+       since := TIMESTAMPTZ '2026-10-01 12:00:00+00', until := TIMESTAMPTZ '2026-10-01 18:00:00+00')
 GROUP BY client_country ORDER BY requests DESC LIMIT 5;
 ```
 
 **Which Workers are throwing errors?**
 
 ```sql
-SELECT script_name, sum(requests) AS requests, sum(errors) AS errors
-FROM cloudflare.analytics.workers_invocations
-WHERE account_id = '<account-id>' AND datetime >= now() - INTERVAL 1 HOUR
-GROUP BY script_name ORDER BY errors DESC, requests DESC;
+SELECT w.script_name, sum(w.requests) AS requests, sum(w.errors) AS errors
+FROM cloudflare.accounts.accounts a,
+     cloudflare.analytics.workers_invocations(a.id,
+       since := TIMESTAMPTZ '2026-10-01 12:00:00+00', until := TIMESTAMPTZ '2026-10-01 13:00:00+00') w
+GROUP BY w.script_name ORDER BY errors DESC, requests DESC;
 ```
+
+The window must be written as constants (`DATE '…'`, `TIMESTAMPTZ '…'`) rather
+than expressions like `current_date - 7` when the id comes from another table;
+a `WHERE` on the time column still narrows the rows that come back.
 
 ## Internet research with Radar
 
@@ -409,12 +427,12 @@ changed:
 ATTACH 'cloudflare-history.duckdb' AS history;
 CREATE TABLE IF NOT EXISTS history.dns AS
 SELECT current_date AS taken, z.name AS zone, r.name, r.type, r.content, r.proxied
-FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
 LIMIT 0;
 
 INSERT INTO history.dns
 SELECT current_date, z.name, r.name, r.type, r.content, r.proxied
-FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r;
+FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r;
 
 -- records that differ between the two most recent snapshots
 WITH days AS (SELECT DISTINCT taken FROM history.dns ORDER BY taken DESC LIMIT 2),
@@ -443,7 +461,7 @@ con.sql(f"CREATE SECRET cf (TYPE cloudflare, api_token '{os.environ['CLOUDFLARE_
 
 df = con.sql("""
   SELECT z.name AS zone, r.type, count(*) AS records
-  FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+  FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
   GROUP BY ALL ORDER BY zone, records DESC
 """).df()
 ```
@@ -471,7 +489,7 @@ clone for everyone else): `uv pip install -e ../vgi-python -e ../vgi-rpc`.
 
 ## Surface
 
-1,471 functions and 553 tables across 24 product schemas, generated from
+1,148 functions and 230 tables across 24 product schemas, generated from
 Cloudflare's OpenAPI description. Every object carries agent- and human-facing
 documentation built from that spec: what it returns, which filters it requires,
 how to call it, and examples.
@@ -480,12 +498,12 @@ how to call it, and examples.
 
 | Shape | Named | Called | Example |
 |---|---|---|---|
-| **Table** | plural noun | scanned; its scope ids (`zone_id`, `account_id`, …) are required constant filters | `cloudflare.dns.records WHERE zone_id = '…'` |
-| **Fan-out** | `<table>_by_<parent>` | ids per input row, so it composes with other tables; 1 → N rows | `cloudflare.dns.records_by_zone(z.id)` |
+| **Table** | plural noun, no ids | scanned like any table | `cloudflare.zones.zones` |
+| **List function** | plural noun | its URL ids as arguments, literal or per row; 1 → N rows; the endpoint's API filters as named arguments | `cloudflare.dns.records(z.id, type := 'A')` |
 | **Lookup** | singular noun | path ids as arguments; 0 or 1 row per call | `cloudflare.dns.record(zone_id, id)` |
-| **Analytics** | `cloudflare.analytics.*` | GraphQL rollups; the time range comes from `WHERE` | `cloudflare.analytics.http_requests_daily` |
+| **Analytics** | `cloudflare.analytics.*` | GraphQL rollups: the zone or account id, plus a required `since`/`until` window | `cloudflare.analytics.http_requests_daily(z.id, since := …, until := …)` |
 
-A lookup whose noun is already a table name takes `_by_id`
+A lookup whose noun is already a list's name takes `_by_id`
 (`cloudflare.zones.rules_by_id`). Parameterless endpoints — mostly Radar reports
 — are both a table and a function, so `SELECT * FROM cloudflare.radar.http_versions`
 and `cloudflare.radar.http_versions(date_range := '28d')` both work.
@@ -494,30 +512,30 @@ and `cloudflare.radar.http_versions(date_range := '28d')` both work.
 
 | Schema | Covers | Tables | Functions |
 |---|---|---:|---:|
-| `zones` | Zones (domains) and per-zone configuration: settings, cache, rules, custom hostnames, waiting rooms | 30 | 113 |
-| `dns` | DNS records, DNSSEC, secondary DNS, DNS Firewall, DNS analytics | 9 | 37 |
-| `accounts` | Accounts, members, roles, API tokens, organizations, the token's user | 42 | 94 |
-| `access` | Cloudflare Access: applications, policies, identity providers, service tokens | 34 | 98 |
-| `zero_trust` | Gateway rules, DLP, devices and posture, DEX, tunnels, risk scoring | 41 | 151 |
-| `security` | Threat intelligence, Security Center, URL scanner, brand protection, bots | 17 | 119 |
-| `ssl` | Edge, custom, origin, and mTLS certificates; certificate authorities | 14 | 46 |
-| `waf` | Legacy firewall: IP access rules, user-agent blocks, lockdowns | 3 | 7 |
-| `api_gateway` | API Shield: discovered operations, schemas, validation | 7 | 22 |
-| `load_balancing` | Load balancers, pools, monitors | 7 | 16 |
-| `workers` | Workers scripts and deployments, Workflows, Queues, Pipelines, Containers | 34 | 118 |
-| `storage` | R2 buckets and Data Catalog, D1, Hyperdrive | 5 | 18 |
-| `ai` | AI Gateway, AI Search (AutoRAG), Workers AI models, Vectorize | 26 | 82 |
-| `pages` | Pages projects, deployments, domains | 3 | 10 |
-| `stream` | Stream video, live inputs, RealtimeKit, Calls/TURN | 8 | 43 |
-| `email` | Email Routing and Email Security | 23 | 73 |
-| `magic` | Magic Transit/WAN, BYOIP prefixes, interconnects | 33 | 101 |
-| `logs` | Logpush jobs, datasets, audit logs | 12 | 31 |
-| `alerting` | Notification policies, destinations, alert history | 6 | 18 |
-| `billing` | Billable and pay-as-you-go usage | 2 | 4 |
-| `registrar` | Domains registered with Cloudflare Registrar | 1 | 2 |
+| `zones` | Zones (domains) and per-zone configuration: settings, cache, rules, custom hostnames, waiting rooms | 1 | 84 |
+| `dns` | DNS records, DNSSEC, secondary DNS, DNS Firewall, DNS analytics | 0 | 28 |
+| `accounts` | Accounts, members, roles, API tokens, organizations, the token's user | 16 | 68 |
+| `access` | Cloudflare Access: applications, policies, identity providers, service tokens | 0 | 64 |
+| `zero_trust` | Gateway rules, DLP, devices and posture, DEX, tunnels, risk scoring | 0 | 110 |
+| `security` | Threat intelligence, Security Center, URL scanner, brand protection, bots | 0 | 102 |
+| `ssl` | Edge, custom, origin, and mTLS certificates; certificate authorities | 1 | 33 |
+| `waf` | Legacy firewall: IP access rules, user-agent blocks, lockdowns | 0 | 4 |
+| `api_gateway` | API Shield: discovered operations, schemas, validation | 0 | 15 |
+| `load_balancing` | Load balancers, pools, monitors | 0 | 9 |
+| `workers` | Workers scripts and deployments, Workflows, Queues, Pipelines, Containers | 0 | 84 |
+| `storage` | R2 buckets and Data Catalog, D1, Hyperdrive | 0 | 13 |
+| `ai` | AI Gateway, AI Search (AutoRAG), Workers AI models, Vectorize | 0 | 56 |
+| `pages` | Pages projects, deployments, domains | 0 | 7 |
+| `stream` | Stream video, live inputs, RealtimeKit, Calls/TURN | 0 | 35 |
+| `email` | Email Routing and Email Security | 0 | 50 |
+| `magic` | Magic Transit/WAN, BYOIP prefixes, interconnects | 1 | 69 |
+| `logs` | Logpush jobs, datasets, audit logs | 0 | 19 |
+| `alerting` | Notification policies, destinations, alert history | 0 | 12 |
+| `billing` | Billable and pay-as-you-go usage | 0 | 2 |
+| `registrar` | Domains registered with Cloudflare Registrar | 0 | 1 |
 | `browser_rendering` | Headless browser sessions | 0 | 7 |
 | `analytics` | GraphQL traffic, firewall, health-check, and Workers rollups | 6 | 6 |
-| `radar` | Cloudflare Radar: Internet-wide traffic, attack, routing, and adoption trends | 190 | 255 |
+| `radar` | Cloudflare Radar: Internet-wide traffic, attack, routing, and adoption trends | 205 | 270 |
 
 `DESCRIBE cloudflare.dns.records` shows any object's columns; the
 `vgi.doc_llm` / `vgi.doc_md` tags in `duckdb_tables()` / `duckdb_functions()`
@@ -525,28 +543,27 @@ explain it in prose.
 
 ## How filters work
 
-**Scope ids are required, and must be constants.** A table's URL contains ids —
-`/zones/{zone_id}/dns_records` — so a scan needs `zone_id = '…'` or
-`zone_id IN (…)` in its `WHERE`. A subquery or a join can't supply them: DuckDB
-plans the API scan before the other side's values exist, so the worker would
-have nothing to put in the URL, and the query is rejected with an error naming
-the missing column. That is what the fan-out functions are for — they take ids
-*per row*, so `FROM zones z, records_by_zone(z.id)` covers every zone.
+**Ids are arguments.** An endpoint whose URL contains ids —
+`/zones/{zone_id}/dns_records` — is a function of them: `cloudflare.dns.records(zone_id)`.
+Pass a literal, or columns of another query (`FROM zones z, records(z.id)`), which
+is a lateral join, so one statement covers every zone.
 
-**Some filters run at Cloudflare.** Where the API accepts a filter on a column
-(`type` and `name` on DNS records, `status` on zones, …), an equality on it is
-sent on the query string. Every other predicate runs in DuckDB on the rows that
-come back. The table docs list which columns are sent.
+**Some filters run at Cloudflare.** An endpoint's own query filters are named
+arguments — `records(z.id, type := 'A')` asks Cloudflare for A records only. On
+the unscoped tables, equality filters on such columns (`status` on zones, …) are
+sent upstream automatically. Every `WHERE` predicate is also applied in DuckDB to
+the rows that come back, so results are correct either way; the API-side filter
+just fetches less.
 
-**Lateral calls are batched.** A fan-out or lookup receives a whole chunk of
+**Lateral calls are batched.** A list function or lookup receives a whole chunk of
 input rows at once, fetches them concurrently (up to 8 requests in flight),
 fetches a repeated id only once, and maps each output row back to the row that
 produced it. A NULL id produces no rows; a lookup's 404 is "no row", while a
-fan-out's 404 is an error (a missing parent is not an empty list).
+list's 404 is an error (a missing parent is not an empty list).
 
 ## Analytics (GraphQL)
 
-| Table | Scope | Grain | What |
+| Function | Scope | Grain | What |
 |---|---|---|---|
 | `http_requests_daily` | zone | day | requests, bytes, cache, encryption, page views, threats, uniques |
 | `http_requests_hourly` | zone | hour | the same, hourly |
@@ -555,8 +572,9 @@ fan-out's 404 is an error (a missing parent is not an empty list).
 | `health_check_events` | zone | event time | origin health checks by hostname, region, origin, status |
 | `workers_invocations` | account | event time | Worker requests, errors, subrequests by script and status |
 
-The window comes from a range on the time column — `date BETWEEN …` or
-`datetime >= …` — and defaults to a trailing window when there is none. The
+Each function takes the zone or account id (a literal, or per row of another
+query) and a required window, `since` and `until`. There is no default window:
+one that silently defaulted would quietly drop data a query asked for. The
 GraphQL API caps a response at 10,000 groups and has no cursor, so a window
 that comes back full is split in half and re-queried until each piece fits;
 results are complete rather than silently truncated. `firewall_events` and
@@ -588,7 +606,7 @@ ORDER BY pct DESC;
 
 **Descriptor-driven.** Each endpoint is a `ResourceDescriptor` — path, path and
 query parameters, columns, pagination. One generic runtime turns a descriptor
-into a table, a fan-out, or a lookup, so there is no per-endpoint code. A few
+into a table, a list function, or a lookup, so there is no per-endpoint code. A few
 core resources (`zones`, `accounts`, `members`, DNS `records`, and their
 lookups) are hand-curated; the rest are generated.
 
@@ -653,13 +671,13 @@ vgi-lint simulate "launch:env VGI_CLOUDFLARE_TOKEN_FILE=$HOME/cf-read-token.txt 
 | Command | What | Needs |
 |---|---|---|
 | `make test-unit` | pytest with mocked HTTP: lifecycle, pagination, pushdown, lateral batching, provenance, splitting, naming | nothing |
-| `make test-mock` | real DuckDB `ATTACH` against a local fake Cloudflare: lateral, `LEFT JOIN LATERAL`, fan-out across pages | the `vgi` sqllogictest runner |
+| `make test-mock` | real DuckDB `ATTACH` against a local fake Cloudflare: lateral, `LEFT JOIN LATERAL`, a list across pages | the `vgi` sqllogictest runner |
 | `make test-stdio` | real DuckDB against real Cloudflare (`test/sql/live*.test`) | a token in `$CLOUDFLARE_API_TOKEN` or `~/cf-read-token.txt` |
 | `vgi-lint simulate` | the agent-acceptance suite | a token file, and Claude |
 
 The live tests skip cleanly without a token. They assert shapes and invariants
-(every fan-out row carries the zone that produced it; a fan-out and the table
-agree), not account-specific values, so they pass for any read token.
+(every list row carries the zone that produced it; a named-argument filter
+agrees with filtering in SQL), not account-specific values, so they pass for any read token.
 
 ## Deployment
 

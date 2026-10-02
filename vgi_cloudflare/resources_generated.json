@@ -1693,13 +1693,13 @@
      "api_name": null,
      "doc": "The earliest event timestamp to query.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "The latest event timestamp to query.",
      "name": "until",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -1721,54 +1721,91 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `allowed` filter.",
      "name": "allowedOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `country_code` filter.",
      "name": "country_codeOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `app_type` filter.",
      "name": "app_typeOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `app_uid` filter.",
      "name": "app_uidOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `ray_id` filter.",
      "name": "ray_idOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq",
+      "contains"
+     ],
      "doc": "Operator for the `email` filter. `contains` performs a substring (case-sensitive) match. When `email_exact=true` is also set, `email_exact` takes precedence and `contains` is ignored.",
      "name": "emailOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `idp` filter.",
      "name": "idpOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Operator for the `non_identity` filter.",
      "name": "non_identityOp",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "eq",
+      "neq"
+     ],
      "doc": "Deprecated. Accepted for backward compatibility but no longer applied as a filter (the `user_id` parameter is itself deprecated).",
      "name": "user_idOp",
      "type": "string"
@@ -1875,13 +1912,13 @@
      "api_name": null,
      "doc": "the timestamp of the earliest update log.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "the timestamp of the most-recent update log.",
      "name": "until",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -1891,18 +1928,32 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "FAILURE",
+      "SUCCESS"
+     ],
      "doc": "The status of the SCIM request.",
      "name": "status",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "USER",
+      "GROUP"
+     ],
      "doc": "The resource type of the SCIM request.",
      "name": "resource_type",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "DELETE",
+      "PATCH",
+      "POST",
+      "PUT"
+     ],
      "doc": "The request method of the SCIM request.",
      "name": "request_method",
      "type": "string"
@@ -2046,7 +2097,7 @@
      "type": "int64"
     },
     {
-     "doc": "One of: `True`.",
+     "doc": "",
      "name": "reusable",
      "source": null,
      "type": "bool"
@@ -2120,6 +2171,11 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "success",
+      "fail",
+      "error"
+     ],
      "doc": "Filter users by their policy evaluation status.",
      "name": "status",
      "type": "string"
@@ -3301,6 +3357,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "equals",
+      "starts-with",
+      "contains"
+     ],
      "doc": "One of: `equals`, `starts-with`, `contains`.",
      "name": "model_rule",
      "type": "string"
@@ -3393,6 +3454,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "asc",
+      "desc"
+     ],
      "doc": "One of: `asc`, `desc`.",
      "name": "order_by_direction",
      "type": "string"
@@ -3895,12 +3960,24 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "created_at",
+      "provider",
+      "model",
+      "model_type",
+      "success",
+      "cached"
+     ],
      "doc": "One of: `created_at`, `provider`, `model`, `model_type`, `success`, `cached`.",
      "name": "order_by",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "asc",
+      "desc"
+     ],
      "doc": "One of: `asc`, `desc`.",
      "name": "order_by_direction",
      "type": "string"
@@ -3921,13 +3998,13 @@
      "api_name": null,
      "doc": "",
      "name": "start_date",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "",
      "name": "end_date",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -3992,6 +4069,8 @@
     {
      "api_name": null,
      "doc": "One of: `-1`.",
+     "ge": -1,
+     "le": -1,
      "name": "feedback",
      "type": "float64"
     },
@@ -4385,16 +4464,24 @@
      "api_name": null,
      "doc": "Filter by namespace.",
      "name": "namespace",
+     "pattern": "^[a-z0-9]([a-z0-9-]{0,26}[a-z0-9])?$",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "created_at"
+     ],
      "doc": "Field to order results by.",
      "name": "order_by",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "asc",
+      "desc"
+     ],
      "doc": "Order direction.",
      "name": "order_by_direction",
      "type": "string"
@@ -4828,16 +4915,24 @@
      "api_name": null,
      "doc": "Filter by namespace.",
      "name": "namespace",
+     "pattern": "^[a-z0-9]([a-z0-9-]{0,26}[a-z0-9])?$",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "created_at"
+     ],
      "doc": "Field to order results by.",
      "name": "order_by",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "asc",
+      "desc"
+     ],
      "doc": "Order direction.",
      "name": "order_by_direction",
      "type": "string"
@@ -4945,12 +5040,24 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "status",
+      "modified_at"
+     ],
      "doc": "Sort order for items. \"status\" (default) sorts by status priority then last_seen_at. \"modified_at\" sorts by file modification time (most recent first), falling back to created_at.",
      "name": "sort_by",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "queued",
+      "running",
+      "completed",
+      "error",
+      "skipped",
+      "outdated"
+     ],
      "doc": "One of: `queued`, `running`, `completed`, `error`, `skipped`, `outdated`.",
      "name": "status",
      "type": "string"
@@ -5625,13 +5732,13 @@
      "api_name": null,
      "doc": "Limit the returned results to history records older than the specified date. This must be a timestamp that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limit the returned results to history records newer than the specified date. This must be a timestamp that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "alerting"
@@ -5899,13 +6006,13 @@
      "api_name": null,
      "doc": "Limits the returned results to logs newer than the specified date. A `full-date` that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs older than the specified date. A `full-date` that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": "zone.name",
@@ -5964,6 +6071,12 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "completed",
+      "queued",
+      "running",
+      "error"
+     ],
      "doc": "One of: `completed`, `queued`, `running`, `error`.",
      "name": "status",
      "type": "string"
@@ -6309,13 +6422,13 @@
      "api_name": null,
      "doc": "Start date for the usage query (ISO 8601). Required if `to` is set. When omitted along with `to`, defaults to the start of the current month. Filters by charge period (when consumption happened), not billing period. The maximum date range is 31 days.",
      "name": "from",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "End date for the usage query (ISO 8601). Required if `from` is set. When omitted along with `from`, defaults to today. Filters by charge period (when consumption happened), not billing period. The maximum date range is 31 days.",
      "name": "to",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -7198,6 +7311,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "tcp",
+      "http"
+     ],
      "doc": "One of: `tcp`, `http`.",
      "name": "type",
      "type": "string"
@@ -7728,6 +7845,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "ga",
+      "beta"
+     ],
      "doc": "The release track (ga for General Availability, beta for Beta releases).",
      "name": "release_track",
      "type": "string"
@@ -8051,12 +8172,25 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "name",
+      "id",
+      "client_version",
+      "last_seen_user.email",
+      "last_seen_at",
+      "active_registrations",
+      "created_at"
+     ],
      "doc": "The device field to order results by.",
      "name": "sort_by",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "asc",
+      "desc"
+     ],
      "doc": "Sort direction.",
      "name": "sort_order",
      "type": "string"
@@ -8081,6 +8215,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "include",
+      "only",
+      "exclude"
+     ],
      "doc": "Include or exclude devices with active registrations. The default is \"only\" - return only devices with active registrations.",
      "name": "active_registrations",
      "type": "string"
@@ -8227,18 +8366,34 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "active",
+      "all",
+      "revoked"
+     ],
      "doc": "Filter by registration status. Defaults to 'active'.",
      "name": "status",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "id",
+      "user.name",
+      "user.email",
+      "last_seen_at",
+      "created_at"
+     ],
      "doc": "The registration field to order results by.",
      "name": "sort_by",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "asc",
+      "desc"
+     ],
      "doc": "Sort direction.",
      "name": "sort_order",
      "type": "string"
@@ -8319,6 +8474,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "fleet-status-usage",
+      "application-tests-usage"
+     ],
      "doc": "Type of usage that colos should be sorted by. If unspecified, returns all Cloudflare colos sorted alphabetically.",
      "name": "sortBy",
      "type": "string"
@@ -8621,6 +8780,15 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "colo",
+      "device_id",
+      "mode",
+      "platform",
+      "status",
+      "timestamp",
+      "version"
+     ],
      "doc": "Dimension to sort results by.",
      "name": "sort_by",
      "type": "string"
@@ -8663,6 +8831,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "last_seen",
+      "hourly",
+      "raw"
+     ],
      "doc": "Source: * `hourly` - device details aggregated hourly, up to 7 days prior * `last_seen` - device details, up to 60 minutes prior. Time windows exceeding 60 minutes will be rejected from June 1st, 2026. Please use 'hourly' or 'raw' instead for longer time ranges. * `raw` - device details, up to 7 da\u2026",
      "name": "source",
      "type": "string"
@@ -8779,12 +8952,20 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "config",
+      "toggle"
+     ],
      "doc": "Filter events by type 'config' or 'toggle'.",
      "name": "type",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "on",
+      "off"
+     ],
      "doc": "Filter events by type toggle value. Applicable to type='toggle' events only.",
      "name": "toggle",
      "type": "string"
@@ -8803,6 +8984,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "ASC",
+      "DESC"
+     ],
      "doc": "Sort response by event timestamp.",
      "name": "sort_order",
      "type": "string"
@@ -10049,6 +10234,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "managed",
+      "custom"
+     ],
      "doc": "Filter regions by type. Omit to return all regions.",
      "name": "type",
      "type": "string"
@@ -10470,13 +10659,13 @@
      "api_name": null,
      "doc": "The beginning of the search date range. Defaults to `now - 30 days`.",
      "name": "start",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "The end of the search date range. Defaults to `now`.",
      "name": "end",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -10492,6 +10681,14 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "MALICIOUS",
+      "SUSPICIOUS",
+      "SPOOF",
+      "SPAM",
+      "BULK",
+      "NONE"
+     ],
      "doc": "Dispositions to filter by.",
      "name": "final_disposition",
      "type": "string"
@@ -10504,6 +10701,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "PREVIEW",
+      "QUARANTINE_RELEASED",
+      "MOVED"
+     ],
      "doc": "Message actions to filter by.",
      "name": "message_action",
      "type": "string"
@@ -10546,6 +10748,15 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "delivered",
+      "moved",
+      "quarantined",
+      "rejected",
+      "deferred",
+      "bounced",
+      "queued"
+     ],
      "doc": "Delivery status to filter by.",
      "name": "delivery_status",
      "type": "string"
@@ -10662,12 +10873,25 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "MOVE",
+      "RELEASE"
+     ],
      "doc": "One of: `MOVE`, `RELEASE`.",
      "name": "action_type",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "PENDING",
+      "DISCOVERING",
+      "PROCESSING",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED",
+      "SKIPPED"
+     ],
      "doc": "One of: `PENDING`, `DISCOVERING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`, `SKIPPED`.",
      "name": "status",
      "type": "string"
@@ -10776,6 +11000,15 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "PENDING",
+      "DISCOVERING",
+      "PROCESSING",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED",
+      "SKIPPED"
+     ],
      "doc": "One of: `PENDING`, `DISCOVERING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`, `SKIPPED`.",
      "name": "status",
      "type": "string"
@@ -10935,25 +11168,25 @@
      "api_name": null,
      "doc": "Start of the time range (RFC3339). Takes precedence over from_date.",
      "name": "start",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "End of the time range (RFC3339). Takes precedence over to_date.",
      "name": "end",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Deprecated, use `start` instead. Start date in YYYY-MM-DD format.",
      "name": "from_date",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Deprecated, use `end` instead. End date in YYYY-MM-DD format.",
      "name": "to_date",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "email"
@@ -11097,6 +11330,12 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "EMAIL",
+      "DOMAIN",
+      "IP",
+      "UNKNOWN"
+     ],
      "doc": "Type of pattern matching. Note: UNKNOWN is deprecated and cannot be used when creating or updating policies, but may be returned for existing entries. One of: `EMAIL`, `DOMAIN`, `IP`, `UNKNOWN`.",
      "name": "pattern_type",
      "type": "string"
@@ -11183,6 +11422,12 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "EMAIL",
+      "DOMAIN",
+      "IP",
+      "UNKNOWN"
+     ],
      "doc": "Filter by pattern type.",
      "name": "pattern_type",
      "type": "string"
@@ -11353,6 +11598,13 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "DIRECT",
+      "BCC",
+      "JOURNAL",
+      "API",
+      "RETRO_SCAN"
+     ],
      "doc": "Delivery mode to filter by.",
      "name": "allowed_delivery_mode",
      "type": "string"
@@ -11365,6 +11617,13 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "DIRECT",
+      "BCC",
+      "JOURNAL",
+      "API",
+      "RETRO_SCAN"
+     ],
      "doc": "Currently active delivery mode to filter by.",
      "name": "active_delivery_mode",
      "type": "string"
@@ -11377,6 +11636,12 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "pending",
+      "active",
+      "failed",
+      "timeout"
+     ],
      "doc": "Filters response to domains with the provided status.",
      "name": "status",
      "type": "string"
@@ -11481,6 +11746,12 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "A1S_INTERNAL",
+      "SNOOPY-CASB_OFFICE_365",
+      "SNOOPY-OFFICE_365",
+      "SNOOPY-GOOGLE_DIRECTORY"
+     ],
      "doc": "One of: `A1S_INTERNAL`, `SNOOPY-CASB_OFFICE_365`, `SNOOPY-OFFICE_365`, `SNOOPY-GOOGLE_DIRECTORY`.",
      "name": "provenance",
      "type": "string"
@@ -11849,16 +12120,20 @@
      "api_name": null,
      "doc": "The beginning of the search date range. Defaults to `now - 30 days`.",
      "name": "start",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "The end of the search date range. Defaults to `now`.",
      "name": "end",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "TEAM",
+      "USER"
+     ],
      "doc": "One of: `TEAM`, `USER`.",
      "name": "type",
      "type": "string"
@@ -11871,18 +12146,42 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "MALICIOUS",
+      "SUSPICIOUS",
+      "SPOOF",
+      "SPAM",
+      "BULK",
+      "NONE"
+     ],
      "doc": "One of: `MALICIOUS`, `SUSPICIOUS`, `SPOOF`, `SPAM`, `BULK`, `NONE`.",
      "name": "original_disposition",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "MALICIOUS",
+      "SUSPICIOUS",
+      "SPOOF",
+      "SPAM",
+      "BULK",
+      "NONE"
+     ],
      "doc": "One of: `MALICIOUS`, `SUSPICIOUS`, `SPOOF`, `SPAM`, `BULK`, `NONE`.",
      "name": "requested_disposition",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "MALICIOUS",
+      "SUSPICIOUS",
+      "SPOOF",
+      "SPAM",
+      "BULK",
+      "NONE"
+     ],
      "doc": "One of: `MALICIOUS`, `SUSPICIOUS`, `SPOOF`, `SPAM`, `BULK`, `NONE`.",
      "name": "outcome_disposition",
      "type": "string"
@@ -11969,7 +12268,7 @@
    "query_params": [
     {
      "api_name": null,
-     "doc": "Filter by verified destination addresses. One of: `True`, `False`.",
+     "doc": "Filter by verified destination addresses.",
      "name": "verified",
      "type": "bool"
     }
@@ -11992,7 +12291,7 @@
      "type": "string"
     },
     {
-     "doc": "Routing rule status. One of: `True`, `False`.",
+     "doc": "Routing rule status.",
      "name": "enabled",
      "source": null,
      "type": "bool"
@@ -12049,7 +12348,7 @@
    "query_params": [
     {
      "api_name": null,
-     "doc": "Filter by enabled routing rules. One of: `True`, `False`.",
+     "doc": "Filter by enabled routing rules.",
      "name": "enabled",
      "type": "bool"
     }
@@ -12824,6 +13123,17 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "SERIAL",
+      "URL",
+      "DOMAIN",
+      "EMAIL",
+      "IP",
+      "CATEGORY",
+      "LOCATION",
+      "DEVICE",
+      "AAGUID"
+     ],
      "doc": "Specify the list type. One of: `SERIAL`, `URL`, `DOMAIN`, `EMAIL`, `IP`, `CATEGORY`, `LOCATION`, `DEVICE`, `AAGUID`.",
      "name": "type",
      "type": "string"
@@ -13600,7 +13910,7 @@
    "description": "List Account Permission Groups",
    "doc": "List all the permissions groups for an account.",
    "kind": "list",
-   "name": "permission_groups_2",
+   "name": "account_permission_groups",
    "pagination": "page",
    "path": "/accounts/{account_id}/iam/permission_groups",
    "path_params": [
@@ -13908,25 +14218,25 @@
      "api_name": null,
      "doc": "Date and time at which the target was created before (inclusive)",
      "name": "created_before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Date and time at which the target was created after (inclusive)",
      "name": "created_after",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Date and time at which the target was modified before (inclusive)",
      "name": "modified_before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Date and time at which the target was modified after (inclusive)",
      "name": "modified_after",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -15076,18 +15386,35 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "success",
+      "failure"
+     ],
      "doc": "Filters by whether the action was successful or not.",
      "name": "action_result",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "create",
+      "delete",
+      "view",
+      "update"
+     ],
      "doc": "Filters by the action type.",
      "name": "action_type",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "api_key",
+      "api_token",
+      "dash",
+      "oauth",
+      "origin_ca_key"
+     ],
      "doc": "Filters by the actor context.",
      "name": "actor_context",
      "type": "string"
@@ -15124,6 +15451,12 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "account",
+      "cloudflare_admin",
+      "system",
+      "user"
+     ],
      "doc": "Filters by the actor type.",
      "name": "actor_type",
      "type": "string"
@@ -15184,6 +15517,12 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "accounts",
+      "user",
+      "zones",
+      "memberships"
+     ],
      "doc": "Filters by the resource scope, specifying whether the resource is associated with an user, an account, a zone, or a membership.",
      "name": "resource_scope",
      "type": "string"
@@ -15208,18 +15547,35 @@
     },
     {
      "api_name": "action_result.not",
+     "choices": [
+      "success",
+      "failure"
+     ],
      "doc": "Filters out audit logs by whether the action was successful or not.",
      "name": "action_result_not",
      "type": "string"
     },
     {
      "api_name": "action_type.not",
+     "choices": [
+      "create",
+      "delete",
+      "view",
+      "update"
+     ],
      "doc": "Filters out audit logs by the action type.",
      "name": "action_type_not",
      "type": "string"
     },
     {
      "api_name": "actor_context.not",
+     "choices": [
+      "api_key",
+      "api_token",
+      "dash",
+      "oauth",
+      "origin_ca_key"
+     ],
      "doc": "Filters out audit logs by the actor context.",
      "name": "actor_context_not",
      "type": "string"
@@ -15256,6 +15612,12 @@
     },
     {
      "api_name": "actor_type.not",
+     "choices": [
+      "account",
+      "cloudflare_admin",
+      "system",
+      "user"
+     ],
      "doc": "Filters out audit logs by the actor type.",
      "name": "actor_type_not",
      "type": "string"
@@ -15316,6 +15678,12 @@
     },
     {
      "api_name": "resource_scope.not",
+     "choices": [
+      "accounts",
+      "user",
+      "zones",
+      "memberships"
+     ],
      "doc": "Filters out audit logs by the resource scope, specifying whether the resource is associated with an user, an account, a zone, or a membership.",
      "name": "resource_scope_not",
      "type": "string"
@@ -15336,13 +15704,13 @@
      "api_name": null,
      "doc": "Limits the returned results to logs newer than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs older than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "logs"
@@ -15414,19 +15782,19 @@
      "api_name": null,
      "doc": "RFC3339 timestamp of the source audit log entry's action time. Used to narrow the source-entry lookup window. Provide the `action.time` value from the audit log identified by `id`.",
      "name": "action_time",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs newer than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs older than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "logs"
@@ -16402,6 +16770,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "NONE",
+      "ZERO_TRUST_LIST"
+     ],
      "doc": "Specify type of destination, omit to return all.",
      "name": "destination_type",
      "type": "string"
@@ -16918,6 +17290,65 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "aws_customer_gateway",
+      "aws_egress_only_internet_gateway",
+      "aws_internet_gateway",
+      "aws_instance",
+      "aws_network_interface",
+      "aws_route",
+      "aws_route_table",
+      "aws_route_table_association",
+      "aws_subnet",
+      "aws_vpc",
+      "aws_vpc_ipv4_cidr_block_association",
+      "aws_vpn_connection",
+      "aws_vpn_connection_route",
+      "aws_vpn_gateway",
+      "aws_security_group",
+      "aws_vpc_security_group_ingress_rule",
+      "aws_vpc_security_group_egress_rule",
+      "aws_ec2_managed_prefix_list",
+      "aws_ec2_transit_gateway",
+      "aws_ec2_transit_gateway_prefix_list_reference",
+      "aws_ec2_transit_gateway_vpc_attachment",
+      "azurerm_application_security_group",
+      "azurerm_lb",
+      "azurerm_lb_backend_address_pool",
+      "azurerm_lb_nat_pool",
+      "azurerm_lb_nat_rule",
+      "azurerm_lb_rule",
+      "azurerm_local_network_gateway",
+      "azurerm_network_interface",
+      "azurerm_network_interface_application_security_group_association",
+      "azurerm_network_interface_backend_address_pool_association",
+      "azurerm_network_interface_security_group_association",
+      "azurerm_network_security_group",
+      "azurerm_public_ip",
+      "azurerm_route",
+      "azurerm_route_table",
+      "azurerm_subnet",
+      "azurerm_subnet_route_table_association",
+      "azurerm_virtual_machine",
+      "azurerm_virtual_network_gateway_connection",
+      "azurerm_virtual_network",
+      "azurerm_virtual_network_gateway",
+      "google_compute_network",
+      "google_compute_subnetwork",
+      "google_compute_vpn_gateway",
+      "google_compute_vpn_tunnel",
+      "google_compute_route",
+      "google_compute_address",
+      "google_compute_global_address",
+      "google_compute_router",
+      "google_compute_interconnect_attachment",
+      "google_compute_ha_vpn_gateway",
+      "google_compute_forwarding_rule",
+      "google_compute_network_firewall_policy",
+      "google_compute_network_firewall_policy_rule",
+      "cloudflare_static_route",
+      "cloudflare_ipsec_tunnel"
+     ],
      "doc": "",
      "name": "resource_type",
      "type": "string"
@@ -17088,6 +17519,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "MANAGED",
+      "LICENSED"
+     ],
      "doc": "Filter connectors by device type.",
      "name": "device_type",
      "type": "string"
@@ -17638,6 +18073,11 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "accepted",
+      "pending",
+      "rejected"
+     ],
      "doc": "A member's status in the account. One of: `accepted`, `pending`, `rejected`.",
      "name": "status",
      "type": "string"
@@ -17696,13 +18136,13 @@
      "api_name": null,
      "doc": "Cursor for pagination. Returns relays created strictly before this RFC 3339 timestamp (typically the `created` value of the first item on the current page, to fetch the previous page).",
      "name": "created_before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Cursor for pagination. Returns relays created strictly after this RFC 3339 timestamp (typically the `created` value of the last item on the current page, to fetch the next page).",
      "name": "created_after",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -17798,6 +18238,11 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "custom",
+      "gateway_managed",
+      "access_managed"
+     ],
      "doc": "Filters results by certificate type. Multiple types can be comma-separated.",
      "name": "type",
      "type": "string"
@@ -18034,7 +18479,7 @@
    "description": "List account organizations",
    "doc": "Retrieve a list of the organizations that \"contain\" this account or are\nmanaging it.\n\nThe returned list will be in order from \"root\" to \"leaf\", where the \"leaf\"\nwill be the organization that _immediately_ contains the specified\naccount.",
    "kind": "list",
-   "name": "organizations_3",
+   "name": "account_organizations",
    "pagination": "none",
    "path": "/accounts/{account_id}/organizations",
    "path_params": [
@@ -18293,6 +18738,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "production",
+      "preview"
+     ],
      "doc": "What type of deployments to fetch. One of: `production`, `preview`.",
      "name": "env",
      "type": "string"
@@ -18502,13 +18951,13 @@
      "api_name": null,
      "doc": "Start date for the usage query (ISO 8601).",
      "name": "from",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "End date for the usage query (ISO 8601).",
      "name": "to",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "billing"
@@ -19079,6 +19528,11 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "registry_created_at",
+      "registry_expires_at",
+      "name"
+     ],
      "doc": "Column to sort results by. Defaults to registration date (`registry_created_at`) when omitted.",
      "name": "sort_by",
      "type": "string"
@@ -19547,6 +20001,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "host",
+      "created"
+     ],
      "doc": "The property used to sort the list of results. One of: `host`, `created`.",
      "name": "order_by",
      "type": "string"
@@ -19913,6 +20371,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "status",
+      "user_classification"
+     ],
      "doc": "Filter by the field that was changed.",
      "name": "field_changed",
      "type": "string"
@@ -19927,13 +20389,13 @@
      "api_name": null,
      "doc": "Filter entries changed at or after this timestamp (RFC 3339).",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Filter entries changed before this timestamp (RFC 3339).",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "security"
@@ -19999,7 +20461,7 @@
    "description": "Retrieves Issue Audit Log",
    "doc": "Lists audit log entries for a specific Security Center insight, showing changes to its status and classification over time.",
    "kind": "list",
-   "name": "insights_audit_log_2",
+   "name": "account_insights_audit_log",
    "pagination": "cursor",
    "path": "/accounts/{account_id}/security-center/insights/{issue_id}/audit-log",
    "path_params": [
@@ -20015,6 +20477,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "status",
+      "user_classification"
+     ],
      "doc": "Filter by the field that was changed.",
      "name": "field_changed",
      "type": "string"
@@ -20029,13 +20495,13 @@
      "api_name": null,
      "doc": "Filter entries changed at or after this timestamp (RFC 3339).",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Filter entries changed before this timestamp (RFC 3339).",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "security"
@@ -20511,6 +20977,15 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "pendingupload",
+      "downloading",
+      "queued",
+      "inprogress",
+      "ready",
+      "error",
+      "live-inprogress"
+     ],
      "doc": "Specifies the processing status for all quality levels for a video. One of: `pendingupload`, `downloading`, `queued`, `inprogress`, `ready`, `error`, `live-inprogress`.",
      "name": "status",
      "type": "string"
@@ -20543,13 +21018,13 @@
      "api_name": null,
      "doc": "Lists videos created after the specified date.",
      "name": "start",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Lists videos created before the specified date.",
      "name": "end",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -20579,13 +21054,13 @@
      "api_name": null,
      "doc": "Alias for 'end'. Returns videos created before this date/time (RFC 3339 format).",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Alias for 'start'. Returns videos created after this date/time (RFC 3339 format).",
      "name": "after",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "stream"
@@ -20903,6 +21378,35 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "access_application",
+      "access_application_policy",
+      "access_group",
+      "account",
+      "ai_gateway",
+      "alerting_policy",
+      "alerting_webhook",
+      "api_gateway_operation",
+      "cloudflared_tunnel",
+      "custom_certificate",
+      "custom_hostname",
+      "d1_database",
+      "dns_record",
+      "durable_object_namespace",
+      "gateway_list",
+      "gateway_rule",
+      "image",
+      "kv_namespace",
+      "managed_client_certificate",
+      "queue",
+      "r2_bucket",
+      "resource_share",
+      "stream_live_input",
+      "stream_video",
+      "worker",
+      "worker_version",
+      "zone"
+     ],
      "doc": "Filter by resource type. Can be repeated to filter by multiple types (OR logic). Example: ?type=zone&type=worker.",
      "name": "type",
      "type": "string"
@@ -20989,7 +21493,7 @@
    "description": "List Tokens",
    "doc": "List all Account Owned API tokens created for this account.",
    "kind": "list",
-   "name": "tokens_2",
+   "name": "account_tokens",
    "pagination": "page",
    "path": "/accounts/{account_id}/tokens",
    "path_params": [
@@ -21038,7 +21542,7 @@
    "description": "List Permission Groups",
    "doc": "Find all available permission groups for Account Owned API Tokens",
    "kind": "list",
-   "name": "permission_groups_3",
+   "name": "tokens_permission_groups",
    "pagination": "none",
    "path": "/accounts/{account_id}/tokens/permission_groups",
    "path_params": [
@@ -22278,11 +22782,17 @@
     {
      "api_name": null,
      "doc": "",
+     "ge": 5,
+     "le": 50,
      "name": "perPage",
      "type": "float64"
     },
     {
      "api_name": null,
+     "choices": [
+      "created",
+      "updated"
+     ],
      "doc": "One of: `created`, `updated`.",
      "name": "orderBy",
      "type": "string"
@@ -22370,11 +22880,17 @@
     {
      "api_name": null,
      "doc": "",
+     "ge": 5,
+     "le": 50,
      "name": "perPage",
      "type": "float64"
     },
     {
      "api_name": null,
+     "choices": [
+      "created",
+      "updated"
+     ],
      "doc": "One of: `created`, `updated`.",
      "name": "orderBy",
      "type": "string"
@@ -22625,6 +23141,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "created_on",
+      "modified_on",
+      "name"
+     ],
      "doc": "Property to sort results by. Results are sorted in ascending order. One of: `created_on`, `modified_on`, `name`.",
      "name": "order_by",
      "type": "string"
@@ -22801,6 +23322,12 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "deployed_on",
+      "updated_on",
+      "created_on",
+      "name"
+     ],
      "doc": "Property to sort results by.",
      "name": "order_by",
      "type": "string"
@@ -22935,7 +23462,7 @@
    "description": "List Versions",
    "doc": "List all versions for a Worker.",
    "kind": "list",
-   "name": "versions_2",
+   "name": "account_versions",
    "pagination": "page",
    "path": "/accounts/{account_id}/workers/workers/{worker_id}/versions",
    "path_params": [
@@ -23114,6 +23641,17 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "queued",
+      "running",
+      "paused",
+      "errored",
+      "terminated",
+      "complete",
+      "waitingForPause",
+      "waiting",
+      "rollingBack"
+     ],
      "doc": "One of: `queued`, `running`, `paused`, `errored`, `terminated`, `complete`, `waitingForPause`, `waiting`, `rollingBack`.",
      "name": "status",
      "type": "string"
@@ -23122,13 +23660,13 @@
      "api_name": null,
      "doc": "Accepts ISO 8601 with no timezone offsets and in UTC.",
      "name": "date_start",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Accepts ISO 8601 with no timezone offsets and in UTC.",
      "name": "date_end",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "workers"
@@ -23421,6 +23959,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "accepted",
+      "pending",
+      "rejected"
+     ],
      "doc": "Status of this membership. One of: `accepted`, `pending`, `rejected`.",
      "name": "status",
      "type": "string"
@@ -23530,6 +24073,7 @@
      "api_name": null,
      "doc": "Only return organizations with the specified IDs (ex. id=foo&id=bar). Send multiple elements by repeating the query value.",
      "name": "id",
+     "pattern": "^[a-f0-9]{32}$",
      "type": "string"
     },
     {
@@ -23583,6 +24127,8 @@
     {
      "api_name": null,
      "doc": "The amount of items to return. Defaults to 10.",
+     "ge": 0,
+     "le": 1000,
      "name": "page_size",
      "type": "int64"
     }
@@ -23632,7 +24178,7 @@
    "description": "Get organization accounts",
    "doc": "Retrieve a list of accounts that belong to a specific organization. (Currently in Public Beta - see https://developers.cloudflare.com/fundamentals/organizations/)",
    "kind": "list",
-   "name": "accounts_2",
+   "name": "organization_accounts",
    "pagination": "none",
    "path": "/organizations/{organization_id}/accounts",
    "path_params": [
@@ -23681,6 +24227,9 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "account_name"
+     ],
      "doc": "Field to order results by. Currently supported values: `account_name`. When not specified, results are ordered by internal account ID.",
      "name": "order_by",
      "type": "string"
@@ -23694,6 +24243,8 @@
     {
      "api_name": null,
      "doc": "The amount of items to return. Defaults to 10.",
+     "ge": 0,
+     "le": 1000,
      "name": "page_size",
      "type": "int64"
     }
@@ -23926,13 +24477,13 @@
      "api_name": null,
      "doc": "Start date for the usage query (ISO 8601). Required if `to` is set. When omitted along with `to`, defaults to the start of the current month. Filters by charge period (when consumption happened), not billing period. The maximum date range is 31 days.",
      "name": "from",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "End date for the usage query (ISO 8601). Required if `from` is set. When omitted along with `from`, defaults to today. Filters by charge period (when consumption happened), not billing period. The maximum date range is 31 days.",
      "name": "to",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -24004,18 +24555,35 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "success",
+      "failure"
+     ],
      "doc": "Filters by whether the action was successful or not.",
      "name": "action_result",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "create",
+      "delete",
+      "view",
+      "update"
+     ],
      "doc": "Filters by the action type.",
      "name": "action_type",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "api_key",
+      "api_token",
+      "dash",
+      "oauth",
+      "origin_ca_key"
+     ],
      "doc": "Filters by the actor context.",
      "name": "actor_context",
      "type": "string"
@@ -24052,6 +24620,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "cloudflare_admin",
+      "system",
+      "user"
+     ],
      "doc": "Filters by the actor type.",
      "name": "actor_type",
      "type": "string"
@@ -24106,24 +24679,44 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "organizations"
+     ],
      "doc": "Filters by the resource scope, specifying whether the resource is associated with an organization.",
      "name": "resource_scope",
      "type": "string"
     },
     {
      "api_name": "action_result.not",
+     "choices": [
+      "success",
+      "failure"
+     ],
      "doc": "Filters out audit logs by whether the action was successful or not.",
      "name": "action_result_not",
      "type": "string"
     },
     {
      "api_name": "action_type.not",
+     "choices": [
+      "create",
+      "delete",
+      "view",
+      "update"
+     ],
      "doc": "Filters out audit logs by the action type.",
      "name": "action_type_not",
      "type": "string"
     },
     {
      "api_name": "actor_context.not",
+     "choices": [
+      "api_key",
+      "api_token",
+      "dash",
+      "oauth",
+      "origin_ca_key"
+     ],
      "doc": "Filters out audit logs by the actor context.",
      "name": "actor_context_not",
      "type": "string"
@@ -24160,6 +24753,11 @@
     },
     {
      "api_name": "actor_type.not",
+     "choices": [
+      "cloudflare_admin",
+      "system",
+      "user"
+     ],
      "doc": "Filters out audit logs by the actor type.",
      "name": "actor_type_not",
      "type": "string"
@@ -24214,6 +24812,9 @@
     },
     {
      "api_name": "resource_scope.not",
+     "choices": [
+      "organizations"
+     ],
      "doc": "Filters out audit logs by the resource scope, specifying whether the resource is associated with an organization.",
      "name": "resource_scope_not",
      "type": "string"
@@ -24222,13 +24823,13 @@
      "api_name": null,
      "doc": "Limits the returned results to logs newer than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs older than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "accounts"
@@ -24294,19 +24895,19 @@
      "api_name": null,
      "doc": "RFC3339 timestamp of the source audit log entry's action time. Used to narrow the source-entry lookup window. Provide the `action.time` value from the audit log identified by `id`.",
      "name": "action_time",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs newer than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs older than the specified date. This can be a date string 2019-04-30 (interpreted in UTC) or an absolute timestamp that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "accounts"
@@ -24360,7 +24961,7 @@
    "description": "List organization members",
    "doc": "List memberships for an Organization. (Currently in Public Beta - see https://developers.cloudflare.com/fundamentals/organizations/)",
    "kind": "list",
-   "name": "members_2",
+   "name": "organization_members",
    "pagination": "none",
    "path": "/organizations/{organization_id}/members",
    "path_params": [
@@ -24373,6 +24974,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "active",
+      "canceled"
+     ],
      "doc": "Filter the list of memberships by membership status.",
      "name": "status",
      "type": "string"
@@ -24404,6 +25009,8 @@
     {
      "api_name": null,
      "doc": "The amount of items to return. Defaults to 10.",
+     "ge": 0,
+     "le": 1000,
      "name": "page_size",
      "type": "int64"
     }
@@ -24586,7 +25193,7 @@
    "description": "List tenant accounts",
    "doc": "List of accounts for the Tenant.",
    "kind": "list",
-   "name": "accounts_3",
+   "name": "tenant_accounts",
    "pagination": "none",
    "path": "/tenants/{tenant_id}/accounts",
    "path_params": [
@@ -24629,7 +25236,7 @@
    "description": "List tenant memberships",
    "doc": "List of active members (Cloudflare users) for the Tenant.",
    "kind": "list",
-   "name": "memberships_2",
+   "name": "tenant_memberships",
    "pagination": "none",
    "path": "/tenants/{tenant_id}/memberships",
    "path_params": [
@@ -24865,13 +25472,13 @@
      "api_name": null,
      "doc": "Limits the returned results to logs newer than the specified date. A `full-date` that conforms to RFC3339.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Limits the returned results to logs older than the specified date. A `full-date` that conforms to RFC3339.",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": "zone.name",
@@ -25393,7 +26000,7 @@
      "api_name": null,
      "doc": "End date and time of requesting data period in the ISO8601 format.",
      "name": "until",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -25417,7 +26024,7 @@
      "api_name": null,
      "doc": "Start date and time of requesting data period in the ISO8601 format.",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
@@ -25477,7 +26084,7 @@
    "description": "List Organizations",
    "doc": "Lists organizations the user is associated with.",
    "kind": "list",
-   "name": "organizations_2",
+   "name": "user_organizations",
    "pagination": "page",
    "path": "/user/organizations",
    "path_params": [],
@@ -25490,6 +26097,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "member",
+      "invited"
+     ],
      "doc": "Whether the user is a member of the organization or has an inivitation pending.",
      "name": "status",
      "type": "string"
@@ -25854,12 +26465,24 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "initializing",
+      "pending",
+      "active",
+      "moved"
+     ],
      "doc": "Specify a zone status to filter by. One of: `initializing`, `pending`, `active`, `moved`.",
      "name": "status",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "full",
+      "partial",
+      "secondary",
+      "internal"
+     ],
      "doc": "Zone types to filter by. Multiple types can be specified as a comma-separated list (e.g., ?type=full,partial,secondary). When this parameter is not provided, zones with type \"internal\" are excluded from the results.",
      "name": "type",
      "type": "string"
@@ -26002,7 +26625,7 @@
    "description": "List custom pages",
    "doc": "Fetches all the custom pages at the zone level.",
    "kind": "list",
-   "name": "custom_pages_2",
+   "name": "zone_custom_pages",
    "pagination": "none",
    "path": "/zones/{zone_identifier}/custom_pages",
    "path_params": [
@@ -26057,7 +26680,7 @@
    "description": "List custom assets",
    "doc": "Fetches all the custom assets at the zone level.",
    "kind": "list",
-   "name": "assets_2",
+   "name": "zone_assets",
    "pagination": "page",
    "path": "/zones/{zone_identifier}/custom_pages/assets",
    "path_params": [
@@ -26232,7 +26855,7 @@
    "description": "List Access Applications",
    "doc": "List all Access Applications in a zone.",
    "kind": "list",
-   "name": "apps_2",
+   "name": "zone_apps",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/apps",
    "path_params": [
@@ -26384,7 +27007,7 @@
    "description": "List Access policies",
    "doc": "Lists Access policies configured for an application.",
    "kind": "list",
-   "name": "apps_policies_2",
+   "name": "zone_apps_policies",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/apps/{app_id}/policies",
    "path_params": [
@@ -26455,7 +27078,7 @@
    "description": "List mTLS certificates",
    "doc": "Lists all mTLS certificates.",
    "kind": "list",
-   "name": "certificates_2",
+   "name": "zone_certificates",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/certificates",
    "path_params": [
@@ -26565,7 +27188,7 @@
    "description": "List Access groups",
    "doc": "Lists all Access groups.",
    "kind": "list",
-   "name": "groups_2",
+   "name": "zone_groups",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/groups",
    "path_params": [
@@ -26620,7 +27243,7 @@
    "description": "List Access identity providers",
    "doc": "Lists all configured identity providers.",
    "kind": "list",
-   "name": "identity_providers_2",
+   "name": "zone_identity_providers",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/identity_providers",
    "path_params": [
@@ -26693,7 +27316,7 @@
    "description": "List service tokens",
    "doc": "Lists all service tokens.",
    "kind": "list",
-   "name": "service_tokens_2",
+   "name": "zone_service_tokens",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/service_tokens",
    "path_params": [
@@ -26924,12 +27547,22 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "ML",
+      "SessionIdentifier",
+      "LabelDiscovery"
+     ],
      "doc": "Filter results to only include discovery results sourced from a particular discovery engine * `ML` - Discovered operations that were sourced using ML API Discovery * `SessionIdentifier` - Discovered operations that were sourced using Session Identifier API Discovery.",
      "name": "origin",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "review",
+      "saved",
+      "ignored"
+     ],
      "doc": "Filter results to only include discovery results in a particular state. States are as follows * `review` - Discovered operations that are not saved into API Shield Endpoint Management * `saved` - Discovered operations that are already saved into API Shield Endpoint Management * `ignored` - Discover\u2026",
      "name": "state",
      "type": "string"
@@ -26998,7 +27631,7 @@
    "description": "Retrieve a discovered operation",
    "doc": "Retrieve a single discovered operation by ID",
    "kind": "list",
-   "name": "discovery_operations_2",
+   "name": "zone_discovery_operations",
    "pagination": "none",
    "path": "/zones/{zone_id}/api_gateway/discovery/operations/{discovery_id}",
    "path_params": [
@@ -27081,6 +27714,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "user",
+      "managed"
+     ],
      "doc": "Filter for labels with source.",
      "name": "source",
      "type": "string"
@@ -27179,6 +27816,11 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "thresholds",
+      "parameter_schemas",
+      "schema_info"
+     ],
      "doc": "Add feature(s) to the results. The feature name that is given here corresponds to the resulting feature object. Have a look at the top-level object description for more details on the specific meaning.",
      "name": "feature",
      "type": "string"
@@ -27374,6 +28016,11 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "thresholds",
+      "parameter_schemas",
+      "schema_info"
+     ],
      "doc": "Add feature(s) to the results. The feature name that is given here corresponds to the resulting feature object. Have a look at the top-level object description for more details on the specific meaning.",
      "name": "feature",
      "type": "string"
@@ -27398,6 +28045,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "new",
+      "existing"
+     ],
      "doc": "Filter results by whether operations exist in API Shield Endpoint Management or not. `new` will just return operations from the schema that do not exist in API Shield Endpoint Management. `existing` will just return operations from the schema that already exist in API Shield Endpoint Management.",
      "name": "operation_status",
      "type": "string"
@@ -27538,6 +28189,13 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "all",
+      "active",
+      "pending_reactivation",
+      "pending_revocation",
+      "revoked"
+     ],
      "doc": "Client Certitifcate Status to filter results by. One of: `all`, `active`, `pending_reactivation`, `pending_revocation`, `revoked`.",
      "name": "status",
      "type": "string"
@@ -27715,6 +28373,13 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "active",
+      "expired",
+      "deleted",
+      "pending",
+      "initializing"
+     ],
      "doc": "Status of the zone's custom SSL. One of: `active`, `expired`, `deleted`, `pending`, `initializing`.",
      "name": "status",
      "type": "string"
@@ -27801,7 +28466,7 @@
    "description": "List Custom CSRs",
    "doc": "List all custom Certificate Signing Requests (CSRs) for a zone.",
    "kind": "list",
-   "name": "custom_csrs_2",
+   "name": "zone_custom_csrs",
    "pagination": "page",
    "path": "/zones/{zone_id}/custom_csrs",
    "path_params": [
@@ -27928,18 +28593,64 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "initializing",
+      "pending_validation",
+      "deleted",
+      "pending_issuance",
+      "pending_deployment",
+      "pending_deletion",
+      "pending_expiration",
+      "expired",
+      "active",
+      "initializing_timed_out",
+      "validation_timed_out",
+      "issuance_timed_out",
+      "deployment_timed_out",
+      "deletion_timed_out",
+      "pending_cleanup",
+      "staging_deployment",
+      "staging_active",
+      "deactivating",
+      "inactive",
+      "backup_issued",
+      "holding_deployment"
+     ],
      "doc": "Filter by SSL certificate status. One of: `initializing`, `pending_validation`, `deleted`, `pending_issuance`, `pending_deployment`, `pending_deletion`, `pending_expiration`, `expired`, `active`, `initializing_timed_out`, `validation_timed_out`, `issuance_timed_out`, \u2026.",
      "name": "ssl_status",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "active",
+      "pending",
+      "active_redeploying",
+      "moved",
+      "pending_deletion",
+      "deleted",
+      "pending_blocked",
+      "pending_migration",
+      "pending_provisioned",
+      "test_pending",
+      "test_active",
+      "test_active_apex",
+      "test_blocked",
+      "test_failed",
+      "provisioned",
+      "blocked"
+     ],
      "doc": "Filter by the hostname's activation status. One of: `active`, `pending`, `active_redeploying`, `moved`, `pending_deletion`, `deleted`, `pending_blocked`, `pending_migration`, `pending_provisioned`, `test_pending`, `test_active`, `test_active_apex`, \u2026.",
      "name": "hostname_status",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "google",
+      "lets_encrypt",
+      "ssl_com"
+     ],
      "doc": "Filter by the certificate authority that issued the SSL certificate. One of: `google`, `lets_encrypt`, `ssl_com`.",
      "name": "certificate_authority",
      "type": "string"
@@ -27959,6 +28670,8 @@
     {
      "api_name": null,
      "doc": "Whether to filter hostnames based on if they have SSL enabled. One of: `0`, `1`.",
+     "ge": 0,
+     "le": 1,
      "name": "ssl",
      "type": "int64"
     }
@@ -28104,6 +28817,29 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "A",
+      "AAAA",
+      "CAA",
+      "CERT",
+      "CNAME",
+      "DNSKEY",
+      "DS",
+      "HTTPS",
+      "LOC",
+      "MX",
+      "NAPTR",
+      "NS",
+      "OPENPGPKEY",
+      "PTR",
+      "SMIMEA",
+      "SRV",
+      "SSHFP",
+      "SVCB",
+      "TLSA",
+      "TXT",
+      "URI"
+     ],
      "doc": "Record type. One of: `A`, `AAAA`, `CAA`, `CERT`, `CNAME`, `DNSKEY`, `DS`, `HTTPS`, `LOC`, `MX`, `NAPTR`, `NS`, \u2026.",
      "name": "type",
      "type": "string"
@@ -28401,7 +29137,7 @@
      "type": "string"
     },
     {
-     "doc": "Routing rule status. One of: `True`, `False`.",
+     "doc": "Routing rule status.",
      "name": "enabled",
      "source": null,
      "type": "bool"
@@ -28452,7 +29188,7 @@
    "query_params": [
     {
      "api_name": null,
-     "doc": "Filter by enabled routing rules. One of: `True`, `False`.",
+     "doc": "Filter by enabled routing rules.",
      "name": "enabled",
      "type": "bool"
     }
@@ -28695,7 +29431,7 @@
    "description": "List zone email suppressions",
    "doc": "",
    "kind": "list",
-   "name": "sending_suppression_2",
+   "name": "zone_sending_suppression",
    "pagination": "page",
    "path": "/zones/{zone_id}/email/sending/suppression",
    "path_params": [
@@ -28852,6 +29588,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "on",
+      "off"
+     ],
      "doc": "Defines the state of the rules contained in the rule group. When `on`, the rules in the group are configurable/usable.",
      "name": "mode",
      "type": "string"
@@ -28942,6 +29682,12 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "DIS",
+      "CHL",
+      "BLK",
+      "SIM"
+     ],
      "doc": "Defines the action/mode a rule has been overridden to perform. One of: `DIS`, `CHL`, `BLK`, `SIM`.",
      "name": "mode",
      "type": "string"
@@ -29010,7 +29756,7 @@
    "description": "List TLS setting for hostnames",
    "doc": "List the requested TLS setting for the hostnames under this zone.",
    "kind": "list",
-   "name": "settings_2",
+   "name": "zone_settings",
    "pagination": "none",
    "path": "/zones/{zone_id}/hostnames/settings/{setting_id}",
    "path_params": [
@@ -29382,7 +30128,7 @@
    "description": "List Logpush jobs for a dataset",
    "doc": "Lists Logpush jobs for a zone for a dataset.",
    "kind": "list",
-   "name": "datasets_jobs_2",
+   "name": "zone_datasets_jobs",
    "pagination": "none",
    "path": "/zones/{zone_id}/logpush/datasets/{dataset_id}/jobs",
    "path_params": [
@@ -29593,7 +30339,7 @@
    "description": "List Logpush jobs",
    "doc": "Lists Logpush jobs for a zone.",
    "kind": "list",
-   "name": "jobs_2",
+   "name": "zone_jobs",
    "pagination": "none",
    "path": "/zones/{zone_id}/logpush/jobs",
    "path_params": [
@@ -29912,6 +30658,15 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "active",
+      "pending_deployment",
+      "pending_deletion",
+      "deleted",
+      "deployment_timed_out",
+      "deletion_timed_out",
+      "all"
+     ],
      "doc": "Filter associations by status. Use comma-separated values to filter by multiple statuses, or \"all\" to include every status. Defaults to \"active\" if not provided.",
      "name": "status",
      "type": "string"
@@ -30113,6 +30868,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "first_seen_at",
+      "last_seen_at"
+     ],
      "doc": "The field used to sort returned connections. One of: `first_seen_at`, `last_seen_at`.",
      "name": "order_by",
      "type": "string"
@@ -30143,6 +30902,9 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "csv"
+     ],
      "doc": "Export the list of connections as a file, limited to 50000 entries. One of: `csv`.",
      "name": "export",
      "type": "string"
@@ -30265,6 +31027,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "first_seen_at",
+      "last_seen_at"
+     ],
      "doc": "The field used to sort returned cookies. One of: `first_seen_at`, `last_seen_at`.",
      "name": "order_by",
      "type": "string"
@@ -30277,6 +31043,9 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "csv"
+     ],
      "doc": "Export the list of cookies as a file, limited to 50000 entries. One of: `csv`.",
      "name": "export",
      "type": "string"
@@ -30301,12 +31070,21 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "lax",
+      "strict",
+      "none"
+     ],
      "doc": "Filters the returned cookies that match the specified same_site attribute. One of: `lax`, `strict`, `none`.",
      "name": "same_site",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "first_party",
+      "unknown"
+     ],
      "doc": "Filters the returned cookies that match the specified type attribute. One of: `first_party`, `unknown`.",
      "name": "type",
      "type": "string"
@@ -30556,6 +31334,10 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "first_seen_at",
+      "last_seen_at"
+     ],
      "doc": "The field used to sort returned scripts. One of: `first_seen_at`, `last_seen_at`.",
      "name": "order_by",
      "type": "string"
@@ -30592,6 +31374,9 @@
     },
     {
      "api_name": null,
+     "choices": [
+      "csv"
+     ],
      "doc": "Export the list of scripts as a file, limited to 50000 entries. One of: `csv`.",
      "name": "export",
      "type": "string"
@@ -30666,6 +31451,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "active",
+      "disabled"
+     ],
      "doc": "The status of the Page Rule. One of: `active`, `disabled`.",
      "name": "status",
      "type": "string"
@@ -30746,6 +31535,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "status",
+      "user_classification"
+     ],
      "doc": "Filter by the field that was changed.",
      "name": "field_changed",
      "type": "string"
@@ -30760,13 +31553,13 @@
      "api_name": null,
      "doc": "Filter entries changed at or after this timestamp (RFC 3339).",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Filter entries changed before this timestamp (RFC 3339).",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "security"
@@ -30826,7 +31619,7 @@
    "description": "Retrieves Zone Issue Audit Log",
    "doc": "Lists audit log entries for a specific Security Center insight within a zone, showing changes to its status and classification over time.",
    "kind": "list",
-   "name": "insights_audit_log_3",
+   "name": "zone_insights_audit_log",
    "pagination": "cursor",
    "path": "/zones/{zone_id}/security-center/insights/{issue_id}/audit-log",
    "path_params": [
@@ -30842,6 +31635,10 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "status",
+      "user_classification"
+     ],
      "doc": "Filter by the field that was changed.",
      "name": "field_changed",
      "type": "string"
@@ -30856,13 +31653,13 @@
      "api_name": null,
      "doc": "Filter entries changed at or after this timestamp (RFC 3339).",
      "name": "since",
-     "type": "timestamp"
+     "type": "string"
     },
     {
      "api_name": null,
      "doc": "Filter entries changed before this timestamp (RFC 3339).",
      "name": "before",
-     "type": "timestamp"
+     "type": "string"
     }
    ],
    "schema": "security"
@@ -30877,7 +31674,7 @@
    ],
    "columns": [
     {
-     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level). One of: `True`, `False`.",
+     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level).",
      "name": "editable",
      "source": null,
      "type": "bool"
@@ -30983,12 +31780,23 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "id",
+      "user_id",
+      "description",
+      "created_at",
+      "updated_at"
+     ],
      "doc": "The field to sort by. Default is updated_at.",
      "name": "sortField",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "DESC",
+      "ASC"
+     ],
      "doc": "Sorting order. Default is DESC.",
      "name": "sortOrder",
      "type": "string"
@@ -31178,6 +31986,29 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "asia-east1",
+      "asia-northeast1",
+      "asia-northeast2",
+      "asia-south1",
+      "asia-southeast1",
+      "australia-southeast1",
+      "europe-north1",
+      "europe-southwest1",
+      "europe-west1",
+      "europe-west2",
+      "europe-west3",
+      "europe-west4",
+      "europe-west8",
+      "europe-west9",
+      "me-west1",
+      "southamerica-east1",
+      "us-central1",
+      "us-east1",
+      "us-east4",
+      "us-south1",
+      "us-west1"
+     ],
      "doc": "A test region. One of: `asia-east1`, `asia-northeast1`, `asia-northeast2`, `asia-south1`, `asia-southeast1`, `australia-southeast1`, `europe-north1`, `europe-southwest1`, `europe-west1`, `europe-west2`, `europe-west3`, `europe-west4`, \u2026.",
      "name": "region",
      "type": "string"
@@ -31288,12 +32119,19 @@
    "query_params": [
     {
      "api_name": null,
+     "choices": [
+      "all"
+     ],
      "doc": "Include Certificate Packs of all statuses, not just active ones.",
      "name": "status",
      "type": "string"
     },
     {
      "api_name": null,
+     "choices": [
+      "staging",
+      "production"
+     ],
      "doc": "Specify the deployment environment for the certificate packs. One of: `staging`, `production`.",
      "name": "deploy",
      "type": "string"
@@ -31374,7 +32212,7 @@
    "query_params": [
     {
      "api_name": null,
-     "doc": "Immediately retry SSL Verification. One of: `True`.",
+     "doc": "Immediately retry SSL Verification.",
      "name": "retry",
      "type": "bool"
     }
@@ -31550,7 +32388,7 @@
    "description": "List waiting rooms for zone",
    "doc": "Lists waiting rooms for zone.",
    "kind": "list",
-   "name": "waiting_rooms_2",
+   "name": "zone_waiting_rooms",
    "pagination": "page",
    "path": "/zones/{zone_id}/waiting_rooms",
    "path_params": [
@@ -31754,7 +32592,7 @@
    "description": "List Waiting Room Rules",
    "doc": "Lists rules for a waiting room.",
    "kind": "list",
-   "name": "rules_2",
+   "name": "zone_rules",
    "pagination": "none",
    "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/rules",
    "path_params": [
@@ -33611,7 +34449,7 @@
      "type": "int64"
     },
     {
-     "doc": "One of: `True`.",
+     "doc": "",
      "name": "reusable",
      "source": null,
      "type": "bool"
@@ -37990,7 +38828,7 @@
      "api_name": null,
      "doc": "",
      "name": "include_domain_id",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "",
@@ -38053,7 +38891,7 @@
      "api_name": null,
      "doc": "",
      "name": "include_domain_id",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "",
@@ -38862,7 +39700,7 @@
      "api_name": "groupByDate",
      "doc": "Whether to group results by date (daily aggregation)",
      "name": "group_by_date",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": "limit",
@@ -39832,13 +40670,13 @@
      "api_name": "includeTags",
      "doc": "Whether to include full tag details for each indicator. Defaults to true.",
      "name": "include_tags",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": "includeTotalCount",
      "doc": "Whether to compute accurate total count via COUNT(*). Defaults to false for performance. When false, total_count is an approximation.",
      "name": "include_total_count",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "",
@@ -41399,7 +42237,7 @@
    "description": "Get a rule",
    "doc": "Get a single rule by ID.",
    "kind": "item",
-   "name": "rules_2",
+   "name": "rule",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/rules/{id}",
    "path_params": [
@@ -42516,7 +43354,7 @@
      "api_name": null,
      "doc": "If specified, only show slots with a specific occupied/unoccupied state.",
      "name": "occupied",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": "limit",
@@ -45093,7 +45931,7 @@
    "description": "Get Endpoint Health Check",
    "doc": "Get a single Endpoint Health Check.",
    "kind": "item",
-   "name": "endpoint_healthchecks_2",
+   "name": "endpoint_healthcheck",
    "pagination": "none",
    "path": "/accounts/{account_id}/diagnostics/endpoint-healthchecks/{id}",
    "path_params": [
@@ -47769,7 +48607,7 @@
      "api_name": null,
      "doc": "When true, search the submissions datastore only. When false or omitted, search the regular datastore only.",
      "name": "submission",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -50705,13 +51543,13 @@
      "api_name": null,
      "doc": "Skip DNS resolution lookups for faster response.",
      "name": "skip_dns",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "Skip the domain ranking lookup for faster responses. Defaults to `false` (ranking is included). Set to `true` to opt out \u2014 primarily used by callers like Cloudflare Radar that need to avoid a circular dependency when building the domain details page. Note: the bulk endpoint (`/intel/domain/bulk`) u\u2026",
      "name": "skip_ranking",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -52637,25 +53475,25 @@
      "api_name": null,
      "doc": "",
      "name": "status",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "",
      "name": "vpcs",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "",
      "name": "post_apply_resources",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "",
      "name": "planned_resources",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -52776,7 +53614,7 @@
      "api_name": null,
      "doc": "",
      "name": "status",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -52993,7 +53831,7 @@
      "api_name": null,
      "doc": "",
      "name": "v2",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -55651,13 +56489,13 @@
      "api_name": null,
      "doc": "Whether to include namespace UUIDs in the response. Set to true to receive the namespace_uuids array.",
      "name": "return_uuids",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "Whether to include additional metadata (timestamps). When true, response includes created_at and updated_at arrays.",
      "name": "return_details",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -55738,13 +56576,13 @@
      "api_name": null,
      "doc": "Whether to include table UUIDs in the response. Set to true to receive the table_uuids array.",
      "name": "return_uuids",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "Whether to include additional metadata (timestamps, locations). When true, response includes created_at, updated_at, metadata_locations, and locations arrays.",
      "name": "return_details",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -56196,7 +57034,7 @@
      "api_name": null,
      "doc": "Exclude the RealtimeKit meetings that are livestreamed.",
      "name": "exclude_meetings",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
@@ -57908,7 +58746,7 @@
      "api_name": null,
      "doc": "Includes the total number of videos associated with the submitted query parameters.",
      "name": "include_counts",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -58699,7 +59537,7 @@
    "description": "Verify Token",
    "doc": "Test whether a token works.",
    "kind": "item",
-   "name": "verify_2",
+   "name": "account_verify",
    "pagination": "none",
    "path": "/accounts/{account_id}/tokens/verify",
    "path_params": [
@@ -58785,7 +59623,7 @@
    "description": "Token Details",
    "doc": "Get information about a specific Account Owned API token.",
    "kind": "item",
-   "name": "token_2",
+   "name": "account_token",
    "pagination": "none",
    "path": "/accounts/{account_id}/tokens/{token_id}",
    "path_params": [
@@ -58925,13 +59763,13 @@
      "api_name": null,
      "doc": "Return only scans created by account.",
      "name": "account_scans",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
      "doc": "Filter scans by malicious verdict.",
      "name": "is_malicious",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -58974,7 +59812,7 @@
      "api_name": null,
      "doc": "Whether to return full report (scan summary and network log).",
      "name": "full",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -59432,7 +60270,7 @@
    "description": "Get WARP Connector HA configuration",
    "doc": "Gets the high-availability configuration for a WARP Connector tunnel.",
    "kind": "item",
-   "name": "configurations_2",
+   "name": "account_configurations",
    "pagination": "none",
    "path": "/accounts/{account_id}/warp_connector/{tunnel_id}/configurations",
    "path_params": [
@@ -59709,7 +60547,7 @@
      "api_name": null,
      "doc": "Flag that indicates whether the secret name is URL encoded.",
      "name": "url_encoded",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -60436,7 +61274,7 @@
      "api_name": null,
      "doc": "Flag that indicates whether the secret name is URL encoded.",
      "name": "url_encoded",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -60718,7 +61556,7 @@
      "api_name": null,
      "doc": "Only return versions that can be used in a deployment. Ignores pagination.",
      "name": "deployable",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -61096,7 +61934,7 @@
    "description": "Get Version",
    "doc": "Get details about a specific version.",
    "kind": "item",
-   "name": "versions_version_2",
+   "name": "account_versions_version",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/workers/{worker_id}/versions/{version_id}",
    "path_params": [
@@ -62317,7 +63155,7 @@
    "description": "Get organization profile",
    "doc": "Get an organizations profile if it exists. (Currently in Public Beta - see https://developers.cloudflare.com/fundamentals/organizations/)",
    "kind": "item",
-   "name": "profile_2",
+   "name": "organization_profile",
    "pagination": "none",
    "path": "/organizations/{organization_id}/profile",
    "path_params": [
@@ -66044,7 +66882,7 @@
    "description": "Get AS112 DNS queries by IP version time series",
    "doc": "Retrieves the distribution of AS112 DNS queries by IP version over time.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "timeseries_groups_ip_versions",
    "pagination": "none",
    "path": "/radar/as112/timeseries_groups/ip_version",
    "path_params": [],
@@ -67690,7 +68528,7 @@
    "description": "Get layer 3 attacks by IP version summary",
    "doc": "Retrieves the distribution of layer 3 attacks by IP version.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "layer3_summary_ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer3/summary/ip_version",
    "path_params": [],
@@ -68668,7 +69506,7 @@
    "description": "Get layer 3 attacks by IP version time series",
    "doc": "Retrieves the distribution of layer 3 attacks by IP version over time.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "layer3_timeseries_groups_ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer3/timeseries_groups/ip_version",
    "path_params": [],
@@ -69942,7 +70780,7 @@
    "description": "Get layer 7 attacks by HTTP version summary",
    "doc": "Retrieves the distribution of layer 7 attacks by HTTP version.",
    "kind": "item",
-   "name": "http_versions",
+   "name": "summary_http_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer7/summary/http_version",
    "path_params": [],
@@ -70277,7 +71115,7 @@
    "description": "Get layer 7 attacks by IP version summary",
    "doc": "Retrieves the distribution of layer 7 attacks by IP version.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "layer7_summary_ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer7/summary/ip_version",
    "path_params": [],
@@ -71476,7 +72314,7 @@
    "description": "Get layer 7 attacks by HTTP version time series",
    "doc": "Retrieves the distribution of layer 7 attacks by HTTP version over time.",
    "kind": "item",
-   "name": "http_versions",
+   "name": "layer7_timeseries_groups_http_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer7/timeseries_groups/http_version",
    "path_params": [],
@@ -71855,7 +72693,7 @@
    "description": "Get layer 7 attacks by IP version time series",
    "doc": "Retrieves the distribution of layer 7 attacks by IP version used over time.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "layer7_timeseries_groups_ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer7/timeseries_groups/ip_version",
    "path_params": [],
@@ -73930,7 +74768,7 @@
      "api_name": "includeDelay",
      "doc": "Includes data delay meta information.",
      "name": "include_delay",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -74234,7 +75072,7 @@
      "api_name": null,
      "doc": "Lookup only RPKI invalid MOASes.",
      "name": "invalid_only",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -74297,7 +75135,7 @@
      "api_name": "longestPrefixMatch",
      "doc": "Return only results with the longest prefix match for the given prefix. For example, specify a /32 prefix to lookup the origin ASN for an IPv4 address.",
      "name": "longest_prefix_match",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -74447,7 +75285,7 @@
      "api_name": "includeAsnInfo",
      "doc": "Include ASN metadata (name, country) in response.",
      "name": "include_asn_info",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -74511,7 +75349,7 @@
      "api_name": "includeAsnInfo",
      "doc": "Include ASN metadata (name, country) in response.",
      "name": "include_asn_info",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -77707,7 +78545,7 @@
    "description": "Get DNS queries by IP version summary",
    "doc": "Retrieves the distribution of DNS queries by IP version.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "summary_ip_versions",
    "pagination": "none",
    "path": "/radar/dns/summary/ip_version",
    "path_params": [],
@@ -80531,7 +81369,7 @@
    "description": "Get DNS queries by IP version time series",
    "doc": "Retrieves the distribution of DNS queries by IP version over time.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "dns_timeseries_groups_ip_versions",
    "pagination": "none",
    "path": "/radar/dns/timeseries_groups/ip_version",
    "path_params": [],
@@ -83259,7 +84097,7 @@
    "description": "Get email IP version summary",
    "doc": "Retrieves the distribution of emails by IP version.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "routing_summary_ip_versions",
    "pagination": "none",
    "path": "/radar/email/routing/summary/ip_version",
    "path_params": [],
@@ -84144,7 +84982,7 @@
    "description": "Get email IP version time series",
    "doc": "Retrieves the distribution of emails by IP version over time.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "routing_timeseries_groups_ip_versions",
    "pagination": "none",
    "path": "/radar/email/routing/timeseries_groups/ip_version",
    "path_params": [],
@@ -85456,7 +86294,7 @@
    "description": "Get email TLS version summary",
    "doc": "Retrieves the distribution of emails by TLS version.",
    "kind": "item",
-   "name": "tls_versions",
+   "name": "summary_tls_versions",
    "pagination": "none",
    "path": "/radar/email/security/summary/tls_version",
    "path_params": [],
@@ -86698,7 +87536,7 @@
    "description": "Get email TLS version time series",
    "doc": "Retrieves the distribution of emails by TLS version over time.",
    "kind": "item",
-   "name": "tls_versions",
+   "name": "security_timeseries_groups_tls_versions",
    "pagination": "none",
    "path": "/radar/email/security/timeseries_groups/tls_version",
    "path_params": [],
@@ -88673,7 +89511,7 @@
    "description": "Get HTTP requests by IP version summary",
    "doc": "Retrieves the distribution of HTTP requests by IP version.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "http_summary_ip_versions",
    "pagination": "none",
    "path": "/radar/http/summary/ip_version",
    "path_params": [],
@@ -90722,7 +91560,7 @@
    "description": "Get HTTP requests by HTTP version time series",
    "doc": "Retrieves the distribution of HTTP requests by HTTP version over time.",
    "kind": "item",
-   "name": "http_versions",
+   "name": "timeseries_groups_http_versions",
    "pagination": "none",
    "path": "/radar/http/timeseries_groups/http_version",
    "path_params": [],
@@ -90901,7 +91739,7 @@
    "description": "Get HTTP requests by IP version time series",
    "doc": "Retrieves the distribution of HTTP requests by IP version over time.",
    "kind": "item",
-   "name": "ip_versions",
+   "name": "http_timeseries_groups_ip_versions",
    "pagination": "none",
    "path": "/radar/http/timeseries_groups/ip_version",
    "path_params": [],
@@ -91446,7 +92284,7 @@
    "description": "Get HTTP requests by TLS version time series",
    "doc": "Retrieves the distribution of HTTP requests by TLS version over time.",
    "kind": "item",
-   "name": "tls_versions",
+   "name": "timeseries_groups_tls_versions",
    "pagination": "none",
    "path": "/radar/http/timeseries_groups/tls_version",
    "path_params": [],
@@ -97138,7 +97976,7 @@
    "description": "Get Origin details",
    "doc": "Retrieves the requested origin information with its regions.",
    "kind": "item",
-   "name": "origins_2",
+   "name": "origin_by_slug",
    "pagination": "none",
    "path": "/radar/origins/{slug}",
    "path_params": [
@@ -97538,7 +98376,7 @@
      "api_name": null,
      "doc": "Enables interpolation for all series (using the average).",
      "name": "interpolation",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
@@ -97785,7 +98623,7 @@
      "api_name": null,
      "doc": "Reverses the order of results.",
      "name": "reverse",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -97876,7 +98714,7 @@
      "api_name": null,
      "doc": "Reverses the order of results.",
      "name": "reverse",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -97946,7 +98784,7 @@
      "api_name": "includeTopLocations",
      "doc": "Includes top locations in the response.",
      "name": "include_top_locations",
-     "type": "string"
+     "type": "bool"
     },
     {
      "api_name": null,
@@ -100093,7 +100931,7 @@
    "description": "Get a custom page",
    "doc": "Fetches the details of a custom page.",
    "kind": "item",
-   "name": "custom_pages_by_id_2",
+   "name": "custom_page",
    "pagination": "none",
    "path": "/zones/{zone_identifier}/custom_pages/{identifier}",
    "path_params": [
@@ -100891,7 +101729,7 @@
    "description": "Get your Zero Trust organization",
    "doc": "Returns the configuration for your Zero Trust organization.",
    "kind": "item",
-   "name": "organizations_2",
+   "name": "zone_organizations",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/organizations",
    "path_params": [
@@ -101257,7 +102095,7 @@
      "api_name": null,
      "doc": "Include `mapped_resources` for each label.",
      "name": "with_mapped_resource_counts",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -101330,7 +102168,7 @@
      "api_name": null,
      "doc": "Include `mapped_resources` for each label.",
      "name": "with_mapped_resource_counts",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -101414,7 +102252,7 @@
      "api_name": null,
      "doc": "When true, includes OpenAPI schemas (both uploaded and learned) for the operation in the response. Due to the conversion overhead, this parameter is only supported on single-operation retrieval.",
      "name": "with_schemas",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -101611,7 +102449,7 @@
      "api_name": null,
      "doc": "Omit the source-files of schemas and only retrieve their meta-data.",
      "name": "omit_source",
-     "type": "string"
+     "type": "bool"
     }
    ],
    "result_path": "result",
@@ -102701,7 +103539,7 @@
    "description": "Custom CSR Details",
    "doc": "Retrieve details for a specific custom Certificate Signing Request (CSR).",
    "kind": "item",
-   "name": "custom_csr_2",
+   "name": "zone_custom_csr",
    "pagination": "none",
    "path": "/zones/{zone_id}/custom_csrs/{custom_csr_id}",
    "path_params": [
@@ -102942,7 +103780,7 @@
      "type": "string"
     },
     {
-     "doc": "Whether the API call was successful. One of: `True`.",
+     "doc": "Whether the API call was successful.",
      "name": "success",
      "source": null,
      "type": "bool"
@@ -103285,7 +104123,7 @@
    "description": "Get DNS Record Usage",
    "doc": "Get the current DNS record usage for a zone, including the number of records and the quota limit.",
    "kind": "item",
-   "name": "usage_2",
+   "name": "zone_usage",
    "pagination": "none",
    "path": "/zones/{zone_id}/dns_records/usage",
    "path_params": [
@@ -103503,7 +104341,7 @@
    "description": "Show DNS Settings",
    "doc": "Show DNS settings for a zone",
    "kind": "item",
-   "name": "settings_2",
+   "name": "zone_settings",
    "pagination": "none",
    "path": "/zones/{zone_id}/dns_settings",
    "path_params": [
@@ -103798,7 +104636,7 @@
      "type": "timestamp"
     },
     {
-     "doc": "State of the zone settings for Email Routing. One of: `True`, `False`.",
+     "doc": "State of the zone settings for Email Routing.",
      "name": "enabled",
      "source": null,
      "type": "bool"
@@ -103822,7 +104660,7 @@
      "type": "string"
     },
     {
-     "doc": "Flag to check if the user skipped the configuration wizard. One of: `True`, `False`.",
+     "doc": "Flag to check if the user skipped the configuration wizard.",
      "name": "skip_wizard",
      "source": null,
      "type": "bool"
@@ -103834,7 +104672,7 @@
      "type": "string"
     },
     {
-     "doc": "Whether subaddressing (plus-addressing) is honored when matching incoming mail against routing rules. One of: `True`, `False`.",
+     "doc": "Whether subaddressing (plus-addressing) is honored when matching incoming mail against routing rules.",
      "name": "support_subaddress",
      "source": null,
      "type": "bool"
@@ -103878,7 +104716,7 @@
      "type": "string"
     },
     {
-     "doc": "Routing rule status. One of: `True`, `False`.",
+     "doc": "Routing rule status.",
      "name": "enabled",
      "source": null,
      "type": "bool"
@@ -103940,7 +104778,7 @@
      "type": "string"
     },
     {
-     "doc": "Routing rule status. One of: `True`, `False`.",
+     "doc": "Routing rule status.",
      "name": "enabled",
      "source": null,
      "type": "bool"
@@ -105230,7 +106068,7 @@
    "description": "Get Certificate Details",
    "doc": "Retrieves details for a specific client certificate used in zone-level authenticated origin pulls.",
    "kind": "item",
-   "name": "certificate_2",
+   "name": "zone_certificate",
    "pagination": "none",
    "path": "/zones/{zone_id}/origin_tls_client_auth/{certificate_id}",
    "path_params": [
@@ -105647,7 +106485,7 @@
    ],
    "columns": [
     {
-     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level). One of: `True`, `False`.",
+     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level).",
      "name": "editable",
      "source": null,
      "type": "bool"
@@ -105941,7 +106779,7 @@
    ],
    "columns": [
     {
-     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level). One of: `True`, `False`.",
+     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level).",
      "name": "editable",
      "source": null,
      "type": "bool"
@@ -106305,7 +107143,7 @@
    ],
    "columns": [
     {
-     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level). One of: `True`, `False`.",
+     "doc": "Whether or not this setting can be modified for this zone (based on your Cloudflare plan level).",
      "name": "editable",
      "source": null,
      "type": "bool"
@@ -107304,7 +108142,7 @@
    "description": "Get tags for a zone-level resource",
    "doc": "Retrieves tags for a specific zone-level resource.",
    "kind": "item",
-   "name": "tags_2",
+   "name": "zone_tags",
    "pagination": "none",
    "path": "/zones/{zone_id}/tags",
    "path_params": [

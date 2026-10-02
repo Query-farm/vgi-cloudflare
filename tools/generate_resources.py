@@ -96,6 +96,8 @@ class Spec:
             text += "."
         hints = self._hints(sch, seen, depth)
         enum = hints.get("enum")
+        if enum and all(isinstance(v, bool) for v in enum):
+            enum = None  # a boolean's type already says it (and "One of: True, False" reads as a list)
         if enum and not any(str(v) in text for v in enum[:3]):
             shown = ", ".join(f"`{v}`" for v in enum[:12]) + (", …" if len(enum) > 12 else "")
             text = f"{text} One of: {shown}." if text else f"One of: {shown}."
@@ -284,6 +286,35 @@ SQL_RESERVED = set(
 _ITEM_SKIP_QUERY = (CONTROL_PARAMS - {"limit", "offset"}) | {"format"}
 
 
+def query_param_typing(spec: Spec, pr: dict[str, Any]) -> dict[str, Any]:
+    """A query param's argument type and the constraints its spec declares.
+
+    Spec enums, numeric bounds, and regex patterns become machine-readable argument
+    constraints (``choices`` / ``ge`` / ``le`` / ``pattern``). An enumerated array
+    parameter takes one value per call.
+    """
+    schema = spec.deref(pr.get("schema") or {}, frozenset(), 0) or {}
+    is_array = schema.get("type") == "array"
+    leaf = (spec.deref(schema.get("items") or {}, frozenset(), 0) or {}) if is_array else schema
+    ot, _fmt = spec.leaf_type(leaf)
+    kinds = {"integer": "int64", "number": "float64", "boolean": "bool"}
+    out: dict[str, Any] = {"type": "string" if is_array else kinds.get(ot or "", "string")}
+    enum = spec._hints(leaf, frozenset(), 0).get("enum")
+    if enum and all(isinstance(v, str) for v in enum):
+        out["choices"] = list(enum)
+    if out["type"] in ("int64", "float64"):
+        for key, bound in (("ge", "minimum"), ("le", "maximum")):
+            if isinstance(leaf.get(bound), (int, float)):
+                out[key] = leaf[bound]
+        numeric_enum = [v for v in (enum or []) if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        if numeric_enum:  # an enumerated number is bounded by its smallest and largest value
+            out.setdefault("ge", min(numeric_enum))
+            out.setdefault("le", max(numeric_enum))
+    if isinstance(leaf.get("pattern"), str):
+        out["pattern"] = leaf["pattern"]
+    return out
+
+
 def item_query_params(spec: Spec, params: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Optional query parameters of a get endpoint, exposed as named function arguments."""
     out = []
@@ -298,32 +329,14 @@ def item_query_params(spec: Spec, params: list[dict[str, Any]]) -> list[dict[str
         # named argument (`limit := 10` doesn't parse): both get a trailing underscore.
         if keyword.iskeyword(arg) or arg in SQL_RESERVED or not arg.isidentifier():
             arg += "_"
-        schema = spec.deref(pr.get("schema") or {}, frozenset(), 0) or {}
-        is_array = schema.get("type") == "array"
-        leaf = (spec.deref(schema.get("items") or {}, frozenset(), 0) or {}) if is_array else schema
-        ot, _fmt = spec.leaf_type(leaf)
-        q: dict[str, Any] = {
-            "name": arg,
-            "type": "int64"
-            if ot == "integer" and not is_array
-            else "float64"
-            if ot == "number" and not is_array
-            else "string",
-            "doc": truncate(spec.describe(pr) or spec.describe(pr.get("schema")), 300),
-            "api_name": nm if arg != nm else None,
-        }
-        # Constraints the spec declares become machine-readable argument constraints. An
-        # enumerated array parameter takes one value per call.
-        enum = spec._hints(leaf, frozenset(), 0).get("enum")
-        if enum and all(isinstance(v, str) for v in enum):
-            q["choices"] = list(enum)
-        if q["type"] != "string":
-            for key, bound in (("ge", "minimum"), ("le", "maximum")):
-                if isinstance(leaf.get(bound), (int, float)):
-                    q[key] = leaf[bound]
-        if isinstance(leaf.get("pattern"), str):
-            q["pattern"] = leaf["pattern"]
-        out.append(q)
+        out.append(
+            {
+                "name": arg,
+                "doc": truncate(spec.describe(pr) or spec.describe(pr.get("schema")), 300),
+                "api_name": nm if arg != nm else None,
+                **query_param_typing(spec, pr),
+            }
+        )
     return out
 
 
@@ -574,13 +587,12 @@ def build_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any
                 continue
             if "." in nm and nm.rsplit(".", 1)[1] in OPERATOR_SUFFIXES:
                 continue
-            ot, fmt = spec.leaf_type(pr.get("schema", {}))
             query_params.append(
                 {
                     "name": sanitize(nm),
-                    "type": arrow_type(ot, fmt),
                     "doc": truncate(spec.describe(pr) or spec.describe(pr.get("schema")), 300),
                     "api_name": nm if sanitize(nm) != nm else None,
+                    **query_param_typing(spec, pr),
                 }
             )
 
@@ -657,13 +669,78 @@ def _item_name_parts(path: str, area: str, area_idx: int, nonparam: list[str]) -
     return parts or [area]
 
 
+#: First path segments that set a resource's scope, as the noun used in a qualified name.
+SCOPE_ROOTS = {
+    "zones": "zone",
+    "accounts": "account",
+    "user": "user",
+    "organizations": "organization",
+    "tenants": "tenant",
+}
+
+
+def _snake(name: str) -> str:
+    return re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", name).lower()
+
+
+def _scope_and_area(path: str) -> tuple[str | None, str | None]:
+    """The segments a name drops: the scope noun (``zone``) and the product area."""
+    segs = [sanitize(s) for s in path.strip("/").split("/") if not s.startswith("{")]
+    if len(segs) > 1 and segs[0] in SCOPE_ROOTS:
+        return SCOPE_ROOTS[segs[0]], segs[1]
+    return None, segs[0] if segs else None
+
+
+def _generic_item_noun(path: str) -> str | None:
+    """For a lookup ending in a generic ``{id}``/``{slug}``: the singular of the segment before it."""
+    raw = path.rstrip("/").split("/")
+    if len(raw) < 2 or not raw[-1].startswith("{") or raw[-2].startswith("{"):
+        return None
+    param = sanitize(_URL_PARAM_RE.findall(raw[-1])[-1]).strip("_")
+    for suf in _STRIP_SUFFIXES:
+        param = param.removesuffix(suf)
+    if param and param not in _GENERIC_PARAM:
+        return None
+    prev = sanitize(raw[-2])
+    if prev.endswith("ies"):
+        return prev[:-3] + "y"
+    return prev[:-1] if prev.endswith("s") and not prev.endswith("ss") else None
+
+
+def _finish_name(d: dict[str, Any], candidate: str, lists: set[str]) -> str:
+    """Final form of a candidate name (applied before the uniqueness check)."""
+    candidate = _snake(candidate)
+    for verb in ("list_", "get_"):  # retrieval verbs add nothing (vgi-lint VGI142)
+        if candidate.startswith(verb) and len(candidate) > len(verb):
+            candidate = candidate[len(verb) :]
+    if d["kind"] == "item":
+        if candidate in lists:
+            candidate += "_by_id"
+        if not d["path_params"] and candidate.endswith("version"):
+            # Parameterless ``*_version`` endpoints are breakdowns *across* versions
+            # (radar ``http/summary/tls_version``); the plural says so and avoids
+            # reading as a diagnostic version() function (vgi-lint VGI328).
+            candidate += "s"
+    return candidate
+
+
+def _take_name(d: dict[str, Any], name: str, used: set[str], lists: set[str]) -> None:
+    used.add(name)
+    if d["kind"] == "list":
+        lists.add(name)
+    d["name"] = name
+
+
 def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
     """Assign names unique *within each schema*, shortened to drop the schema prefix.
 
-    Lists (tables) are plural nouns and are named first; items (lookups) are the
-    singular noun (``record``, ``zone``). An item whose noun is already a table name
-    (uncountables like ``settings``) becomes ``<noun>_by_id``; a clash with another
-    item takes more of the path (``report_bytime``), then a numeric suffix.
+    Lists are plural nouns and are named first, shallowest path first, so the most
+    general endpoint gets the bare name (``workers.scripts``). Items (lookups) are the
+    singular noun (``record``); one whose noun is already a list name becomes
+    ``<noun>_by_id``. A name that would otherwise collide is qualified by what tells
+    it apart — the noun before a generic ``{id}``, its scope (``zone_apps`` beside
+    ``apps``), or its product area (``iam_permission_groups``) — and only as a last
+    resort numbered.
     """
     from collections import defaultdict
 
@@ -673,43 +750,50 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
 
     for schema, group in by_schema.items():
         used: set[str] = set()
-        tables: set[str] = set()
+        lists: set[str] = set()
+
         group.sort(key=lambda d: (d["kind"] == "item", d["path"].count("/"), d["path"]))
+        deferred: list[dict[str, Any]] = []
         for d in group:
-            parts = d.pop("_name_parts") or ["item"]
-            is_item = d["kind"] == "item"
-            chosen: str | None = None
+            parts = d["_name_parts"] = d.pop("_name_parts") or ["item"]
             for n in range(1, len(parts) + 1):
-                candidate = shorten("_".join(parts[-n:]), schema)
-                candidate = re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", candidate).lower()  # snake_case
-                for verb in ("list_", "get_"):  # retrieval verbs add nothing (vgi-lint VGI142)
-                    if candidate.startswith(verb) and len(candidate) > len(verb):
-                        candidate = candidate[len(verb) :]
-                if candidate == "list" and n < len(parts):
+                if "_".join(parts[-n:]) == "list" and n < len(parts):
                     continue  # "list" alone reads as a verb (list_by_id); take more of the path
-                if is_item and candidate in tables:
-                    candidate += "_by_id"
+                candidate = _finish_name(d, shorten("_".join(parts[-n:]), schema), lists)
                 if candidate and candidate not in used:
-                    chosen = candidate
+                    _take_name(d, candidate, used, lists)
                     break
-            if chosen is None:
-                base = shorten("_".join(parts), schema) or "item"
-                if is_item and base in tables:
-                    base += "_by_id"
-                k = 2
-                chosen = f"{base}_{k}"
-                while chosen in used:
+            else:
+                deferred.append(d)
+
+        # Second pass: qualify what collided instead of numbering it.
+        for d in deferred:
+            parts = d.pop("_name_parts")
+            base = shorten("_".join(parts), schema) or "item"
+            scope, area = _scope_and_area(d["path"])
+            area_q = shorten(area or "", schema) if area and area != schema else ""
+            candidates = []
+            if d["kind"] == "item" and (noun := _generic_item_noun(d["path"])):
+                param = sanitize(_URL_PARAM_RE.findall(d["path"])[-1]).strip("_")
+                candidates += [noun, f"{noun}_by_{param}"]
+            if scope:
+                candidates.append(f"{scope}_{base}")
+            if area_q and area_q not in base:
+                candidates.append(f"{area_q}_{base}")
+                if scope:
+                    candidates.append(f"{scope}_{area_q}_{base}")
+            for c in candidates:
+                c = _finish_name(d, c, lists)
+                if c not in used:
+                    _take_name(d, c, used, lists)
+                    break
+            else:
+                stem, k = _finish_name(d, base, lists), 2
+                while f"{stem}_{k}" in used:
                     k += 1
-                    chosen = f"{base}_{k}"
-            if is_item and not d["path_params"] and chosen.endswith("version"):
-                # Parameterless ``*_version`` endpoints are breakdowns *across* versions
-                # (radar ``http/summary/tls_version``); the plural says so and avoids
-                # reading as a diagnostic version() function (vgi-lint VGI328).
-                chosen += "s"
-            used.add(chosen)
-            if not is_item:
-                tables.add(chosen)
-            d["name"] = chosen
+                _take_name(d, f"{stem}_{k}", used, lists)
+        for d in group:
+            d.pop("_name_parts", None)
 
 
 def _result_object_node(spec: Spec, schema: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:

@@ -36,18 +36,15 @@ def test_merged_catalog_has_unique_names_and_handwritten_wins() -> None:
     dns = next(d for d in merged if d.schema == "dns" and d.name == "records")
     assert dns.columns[0].name == "id"
     assert "proxiable" in {c.name for c in dns.columns}
-    # Catalog assembles without error: every descriptor is a function; list-kind
-    # descriptors are also scannable tables (items are function-only), and those
-    # with path params also get a lateral ``<name>_by_<parent>`` function.
+    # Catalog assembles without error: every descriptor is exactly one function. Tables
+    # exist only for unscoped lists and parameterless lookups; a list scoped by URL ids
+    # is a function of those ids instead.
     cat = build_catalog(merged)
-    lists = [d for d in merged if d.kind == "list"]
-    lateral = sum(1 for d in lists if d.path_params)
     total_funcs = sum(len(s.functions) for s in cat.schemas)
     total_tables = sum(len(s.tables) for s in cat.schemas)
-    assert lateral > 0
-    assert total_funcs == len(merged) + lateral
-    singletons = sum(1 for d in merged if d.kind == "item" and not d.path_params)
-    assert total_tables == len(lists) + singletons  # parameterless lookups are tables too
+    assert total_funcs == len(merged)
+    unscoped = sum(1 for d in merged if not d.path_params)
+    assert total_tables == unscoped
     for schema in cat.schemas:
         names = [f.Meta.name for f in schema.functions]
         assert len(names) == len(set(names)), schema.path

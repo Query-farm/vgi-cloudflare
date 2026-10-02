@@ -50,6 +50,8 @@ codegen:
 test-stdio:
 	@IDS="$$(.venv/bin/python tools/live_test_ids.py)"; \
 		export CLOUDFLARE_TEST_ZONE_ID="$${IDS%% *}" CLOUDFLARE_TEST_ACCOUNT_ID="$${IDS##* }"; \
+		export CLOUDFLARE_TEST_SINCE="$$(.venv/bin/python -c 'import datetime as d; print(d.date.today() - d.timedelta(days=1))')"; \
+		export CLOUDFLARE_TEST_UNTIL="$$(.venv/bin/python -c 'import datetime as d; print(d.date.today())')"; \
 		VGI_CLOUDFLARE_WORKER="$(WORKER_STDIO)" $(TEST_RUNNER) --test-dir "$(TEST_DIR)" "$(TEST_PATTERN)"
 
 # The vgi extension doesn't pass its environment to the worker, so the mock's

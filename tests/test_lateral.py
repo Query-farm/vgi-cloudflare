@@ -1,4 +1,4 @@
-"""Tests for lateral (RowTransformFunction) lookup and `_by_<parent>` fan-out functions."""
+"""Tests for the lateral (RowTransformFunction) lookup and scoped-list functions."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from vgi_cloudflare.descriptor import Column, Pagination, PathParam, ResourceDes
 from vgi_cloudflare.generated import GENERATED_RESOURCES
 from vgi_cloudflare.items import ITEM_RESOURCES, ZONE
 from vgi_cloudflare.resources import CORE_RESOURCES
-from vgi_cloudflare.runtime import lateral_list_name, make_item_function, make_lateral_list_function
+from vgi_cloudflare.runtime import make_item_function, make_lateral_list_function
 
 DNS_RECORDS = next(d for d in CORE_RESOURCES if d.schema == "dns" and d.name == "records")
 
@@ -99,7 +99,7 @@ class TestLateralItem:
 class TestLateralList:
     def test_name_and_shape(self) -> None:
         fn = make_lateral_list_function(DNS_RECORDS)
-        assert fn.Meta.name == "records_by_zone"
+        assert fn.Meta.name == "records"
         assert fn.get_metadata().input_from_args
 
     def test_fans_out_each_input_row_across_pages(self) -> None:
@@ -146,40 +146,43 @@ class TestRateLimit:
         assert table.num_rows == 1
 
 
+@pytest.fixture(scope="module")
+def catalog():  # noqa: ANN201
+    return build_catalog(merge_resources(CORE_RESOURCES + ITEM_RESOURCES, GENERATED_RESOURCES))
+
+
 class TestNaming:
-    def _list(self, path: str, *params: str) -> ResourceDescriptor:
-        return ResourceDescriptor(
-            name="things",
-            schema="s",
-            path=path,
-            path_params=tuple(PathParam(p) for p in params),
-            columns=(Column("id", pa.string()),),
-        )
+    def test_generated_names_are_unique_and_unnumbered(self) -> None:
+        import collections
+        import re
+
+        names = collections.Counter((d.schema, d.name) for d in GENERATED_RESOURCES)
+        assert [k for k, n in names.items() if n > 1] == []  # a duplicate would silently drop an endpoint
+        assert [d.name for d in GENERATED_RESOURCES if re.search(r"_\d+$", d.name)] == []
 
     @pytest.mark.parametrize(
-        ("path", "params", "expected"),
+        ("path", "name"),
         [
-            ("/zones/{zone_id}/things", ("zone_id",), "things_by_zone"),
-            ("/accounts/{account_identifier}/things", ("account_identifier",), "things_by_account"),
-            ("/accounts/{a}/workers/scripts/{script_name}/things", ("a", "script_name"), "things_by_script"),
-            ("/accounts/{a}/policies/{id}/things", ("a", "id"), "things_by_policy"),
-            ("/accounts/{a}/categories/{name}/things", ("a", "name"), "things_by_category"),
+            ("/organizations/{organization_id}/accounts", "organization_accounts"),
+            ("/tenants/{tenant_id}/accounts", "tenant_accounts"),
+            ("/zones/{zone_id}/access/apps", "zone_apps"),
+            ("/accounts/{account_id}/access/apps", "apps"),
+            ("/radar/origins/{slug}", "origin_by_slug"),
         ],
     )
-    def test_fan_out_named_by_most_specific_parent(
-        self, path: str, params: tuple[str, ...], expected: str
-    ) -> None:
-        assert lateral_list_name(self._list(path, *params)) == expected
+    def test_collisions_are_qualified_by_what_differs(self, path: str, name: str) -> None:
+        assert next(d.name for d in GENERATED_RESOURCES if d.path == path) == name
 
-    def test_catalog_names(self) -> None:
-        cat = build_catalog(merge_resources(CORE_RESOURCES + ITEM_RESOURCES, GENERATED_RESOURCES))
-        names = {(s.path[0], f.Meta.name) for s in cat.schemas for f in s.functions}
-        for expected in [
-            ("dns", "record"),
-            ("dns", "records_by_zone"),
-            ("zones", "zone"),
-            ("accounts", "user"),
-        ]:
+    def test_scoped_lists_are_functions_of_their_ids(self, catalog) -> None:  # noqa: ANN001
+        schema = next(s for s in catalog.schemas if s.path[0] == "dns")
+        records = next(f for f in schema.functions if f.Meta.name == "records")
+        params = [p.name for p in records.get_metadata().parameters]
+        assert params[0] == "zone_id" and "type" in params  # path id positional, query params named
+        assert "records" not in {t.name for t in schema.tables}
+
+    def test_catalog_names(self, catalog) -> None:  # noqa: ANN001
+        names = {(s.path[0], f.Meta.name) for s in catalog.schemas for f in s.functions}
+        for expected in [("dns", "record"), ("dns", "records"), ("zones", "zone"), ("accounts", "user")]:
             assert expected in names
         # No verb prefixes ("list" alone is a real Cloudflare noun, e.g. Rules lists).
         assert not any(n.startswith("get_") for _, n in names)

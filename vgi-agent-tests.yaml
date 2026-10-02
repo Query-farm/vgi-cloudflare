@@ -46,7 +46,7 @@ tasks:
       SELECT row_number() OVER (ORDER BY v DESC) AS rank, k AS http_method FROM (SELECT e.key AS k, e.value::DOUBLE AS v FROM cloudflare.radar.http_method(), unnest(map_entries(summary_0::JSON::MAP(VARCHAR, VARCHAR))) AS t(e)) ORDER BY rank LIMIT 3
   - name: "radar_a_l7_http_versions"
     reference_sql: |
-      SELECT k AS http_version FROM (SELECT e.key AS k, e.value::DOUBLE AS v FROM cloudflare.radar.http_versions(), unnest(map_entries(summary_0::JSON::MAP(VARCHAR, VARCHAR))) AS t(e)) ORDER BY v DESC
+      SELECT k AS http_version FROM (SELECT e.key AS k, e.value::DOUBLE AS v FROM cloudflare.radar.summary_http_versions(), unnest(map_entries(summary_0::JSON::MAP(VARCHAR, VARCHAR))) AS t(e)) ORDER BY v DESC
   - name: "radar_a_l7_top_industry_vertical"
     reference_sql: |
       SELECT (SELECT json_extract_string(top_0, '$[0].name') FROM cloudflare.radar.layer7_top_industry()) AS top_industry,
@@ -366,15 +366,12 @@ tasks:
   - name: "radar_b_l3_top_origin_countries"
     reference_sql: |
       SELECT (t->>'rank')::INTEGER AS rank, t->>'originCountryName' AS country_name FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.origin(date_range := '12w')) ORDER BY rank
-  - name: "radar_b_l3_top_target_countries"
-    reference_sql: |
-      SELECT (t->>'rank')::INTEGER AS rank, t->>'targetCountryAlpha2' AS country_code, round((t->>'value')::DOUBLE,1) AS share_pct FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.target(date_range := '12w')) ORDER BY rank
   - name: "radar_b_l3_protocol_mix"
     reference_sql: |
       SELECT e.key AS protocol, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.layer3_summary_protocol(date_range := '12w')) ORDER BY share_pct DESC, protocol
   - name: "radar_b_l3_ip_version_mix"
     reference_sql: |
-      SELECT e.key AS ip_version, round(e.value,2) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.ip_versions(date_range := '12w')) ORDER BY share_pct DESC, ip_version
+      SELECT e.key AS ip_version, round(e.value,2) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.layer3_summary_ip_versions(date_range := '12w')) ORDER BY share_pct DESC, ip_version
   - name: "radar_b_l3_top_vectors"
     reference_sql: |
       SELECT e.key AS vector, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.vector(date_range := '12w')) WHERE e.key <> 'other' ORDER BY share_pct DESC, vector LIMIT 3
@@ -434,7 +431,7 @@ tasks:
       SELECT e.key AS status, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.routing_summary_dimension('ENCRYPTED', date_range := '12w')) ORDER BY share_pct DESC, status
   - name: "radar_b_email_tls_versions"
     reference_sql: |
-      SELECT e.key AS tls_version, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.tls_versions(date_range := '12w')) ORDER BY share_pct DESC, tls_version
+      SELECT e.key AS tls_version, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.summary_tls_versions(date_range := '12w')) ORDER BY share_pct DESC, tls_version
   - name: "radar_b_email_threat_categories"
     reference_sql: |
       SELECT e.key AS threat_category, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.threat_category(date_range := '12w')) ORDER BY share_pct DESC, threat_category LIMIT 5
@@ -450,12 +447,6 @@ tasks:
   - name: "radar_b_ai_crawl_purpose"
     reference_sql: |
       SELECT e.key AS crawl_purpose, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.ai_bots_summary_dimension('CRAWL_PURPOSE', date_range := '12w')) ORDER BY share_pct DESC, crawl_purpose
-  - name: "radar_b_ai_bot_user_agents"
-    reference_sql: |
-      SELECT e.key AS user_agent, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.user_agent(date_range := '12w')) WHERE e.key <> 'other' ORDER BY share_pct DESC, user_agent LIMIT 5
-  - name: "radar_b_ai_inference_tasks"
-    reference_sql: |
-      SELECT e.key AS task, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.task(date_range := '12w')) ORDER BY share_pct DESC, task LIMIT 3
   - name: "radar_b_leaked_creds_bot_class"
     reference_sql: |
       SELECT e.key AS bot_class, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.summary_bot_class(date_range := '12w')) ORDER BY share_pct DESC, bot_class
@@ -518,7 +509,7 @@ tasks:
       SELECT o->>'slug' AS provider, json_array_length(o->'regions')::INTEGER AS region_count FROM (SELECT unnest(CAST(origins::JSON AS JSON[])) AS o FROM cloudflare.radar.origins()) ORDER BY region_count DESC, provider
   - name: "radar_b_cloud_origin_google_regions"
     reference_sql: |
-      SELECT count(*) AS region_count, min(r) AS first_region FROM (SELECT unnest(CAST(origin::JSON->'regions' AS JSON[]))->>'region' AS r FROM cloudflare.radar.origins_2('GOOGLE'))
+      SELECT count(*) AS region_count, min(r) AS first_region FROM (SELECT unnest(CAST(origin::JSON->'regions' AS JSON[]))->>'region' AS r FROM cloudflare.radar.origin_by_slug('GOOGLE'))
   - name: "radar_b_pq_origin_key_agreement"
     reference_sql: |
       SELECT e.key AS key_agreement, round(e.value,0) AS support_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.origin_summary_dimension('KEY_AGREEMENT', date_range := '12w')) ORDER BY support_pct DESC, key_agreement
@@ -555,9 +546,6 @@ tasks:
   - name: "radar_b_ts_duration"
     reference_sql: |
       SELECT e.key AS duration_bucket, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_duration(date_range := '12w')) WHERE e.key <> 'timestamps' AND e.key <> 'other' ORDER BY avg_share_pct DESC, duration_bucket LIMIT 3
-  - name: "radar_b_ts_vector"
-    reference_sql: |
-      SELECT e.key AS vector, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_vector(date_range := '12w')) WHERE e.key <> 'timestamps' AND e.key <> 'other' ORDER BY avg_share_pct DESC, vector LIMIT 3
   - name: "radar_b_ts_industry"
     reference_sql: |
       SELECT e.key AS industry, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_industry(date_range := '12w')) WHERE e.key <> 'timestamps' AND e.key <> 'other' ORDER BY avg_share_pct DESC, industry LIMIT 3
@@ -672,9 +660,6 @@ tasks:
   - name: "radar_b_tsd_origin"
     reference_sql: |
       SELECT e.key AS key_agreement, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_value FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.origin_timeseries_groups_dimension('KEY_AGREEMENT', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_value DESC, key_agreement
-  - name: "radar_b_tsd_performance"
-    reference_sql: |
-      SELECT e.key AS percentile, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_value FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.performance_timeseries_groups_dimension('LATENCY', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_value DESC, percentile
   - name: "radar_b_cloud_origin_request_share"
     reference_sql: |
       SELECT e.key AS provider, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.origins_summary_dimension('ORIGIN', metric := 'REQUESTS', date_range := '12w')) ORDER BY share_pct DESC, provider
@@ -683,115 +668,115 @@ tasks:
       SELECT e.key AS provider, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.origins_timeseries_groups_dimension('ORIGIN', metric := 'REQUESTS', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_share_pct DESC, provider
   - name: "idsec_access_apps"
     reference_sql: |
-      SELECT x.name, x.type, x.domain, x.app_launcher_visible FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) x ORDER BY x.name
+      SELECT x.name, x.type, x.domain, x.app_launcher_visible FROM cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) x ORDER BY x.name
   - name: "idsec_access_apps_table"
     reference_sql: |
-      SELECT count(*) FILTER (WHERE type = 'self_hosted') AS self_hosted_apps, count(*) FILTER (WHERE type = 'self_hosted' AND NOT app_launcher_visible) AS hidden_from_launcher FROM cloudflare.access.apps WHERE account_id = 'bb68a133a66d26a310231495b13479a1'
+      SELECT count(*) FILTER (WHERE type = 'self_hosted') AS self_hosted_apps, count(*) FILTER (WHERE type = 'self_hosted' AND NOT app_launcher_visible) AS hidden_from_launcher FROM cloudflare.access.apps('bb68a133a66d26a310231495b13479a1')
   - name: "idsec_app_policies"
     reference_sql: |
-      SELECT p.name AS app_name, q.name AS policy_name, q.decision, json_array_length(q.include) AS include_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q ORDER BY app_name, policy_name
+      SELECT p.name AS app_name, q.name AS policy_name, q.decision, json_array_length(q.include) AS include_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.apps_policies(a.id, p.id) q ORDER BY app_name, policy_name
   - name: "idsec_app_policy_detail"
     reference_sql: |
-      SELECT p.name AS app_name, c.name AS policy_name, c.decision, json_array_length(c.exclude) AS exclude_rule_count, json_array_length(c.require) AS require_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q, cloudflare.access.policies_policy(a.id, p.id, q.id) c ORDER BY app_name, policy_name
+      SELECT p.name AS app_name, c.name AS policy_name, c.decision, json_array_length(c.exclude) AS exclude_rule_count, json_array_length(c.require) AS require_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.apps_policies(a.id, p.id) q, cloudflare.access.policies_policy(a.id, p.id, q.id) c ORDER BY app_name, policy_name
   - name: "idsec_zone_scoped_apps"
     reference_sql: |
-      SELECT z.name AS zone_name, c.name AS app_name, c.session_duration FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.app(z.id, p.id) c ORDER BY zone_name, app_name
+      SELECT z.name AS zone_name, c.name AS app_name, c.session_duration FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.app(z.id, p.id) c ORDER BY zone_name, app_name
   - name: "idsec_zone_scoped_app_policies"
     reference_sql: |
-      SELECT p.name AS app_name, c.name AS policy_name, c.decision FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_2_by_app(z.id, p.id) c WHERE z.name = 'query.farm' ORDER BY app_name, policy_name
+      SELECT p.name AS app_name, c.name AS policy_name, c.decision FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.zone_apps_policies(z.id, p.id) c WHERE z.name = 'query.farm' ORDER BY app_name, policy_name
   - name: "idsec_identity_providers"
     reference_sql: |
-      SELECT c.name, c.type, CAST(json_extract(c.scim_config, '$.enabled') AS BOOLEAN) AS scim_enabled FROM cloudflare.accounts.accounts a, cloudflare.access.identity_providers_by_account(a.id) p, cloudflare.access.identity_provider(a.id, p.id) c ORDER BY c.name
+      SELECT c.name, c.type, CAST(json_extract(c.scim_config, '$.enabled') AS BOOLEAN) AS scim_enabled FROM cloudflare.accounts.accounts a, cloudflare.access.identity_providers(a.id) p, cloudflare.access.identity_provider(a.id, p.id) c ORDER BY c.name
   - name: "idsec_identity_providers_table"
     reference_sql: |
-      SELECT type, count(*) AS provider_count FROM cloudflare.access.identity_providers WHERE account_id = 'bb68a133a66d26a310231495b13479a1' GROUP BY type ORDER BY type
+      SELECT type, count(*) AS provider_count FROM cloudflare.access.identity_providers('bb68a133a66d26a310231495b13479a1')  GROUP BY type ORDER BY type
   - name: "idsec_zone_identity_providers"
     reference_sql: |
-      SELECT z.name AS zone_name, x.name AS idp_name, x.type AS idp_type FROM cloudflare.zones.zones z, cloudflare.access.identity_providers_2_by_zone(z.id) x ORDER BY zone_name, idp_name
+      SELECT z.name AS zone_name, x.name AS idp_name, x.type AS idp_type FROM cloudflare.zones.zones z, cloudflare.access.zone_identity_providers(z.id) x ORDER BY zone_name, idp_name
   - name: "idsec_yubikey_aaguids"
     reference_sql: |
-      SELECT x.aaguid, x.name FROM cloudflare.accounts.accounts a, cloudflare.access.authenticator_device_aaguids_by_account(a.id) x WHERE x.name LIKE 'YubiKey 5 Series with NFC%' ORDER BY x.name, x.aaguid
+      SELECT x.aaguid, x.name FROM cloudflare.accounts.accounts a, cloudflare.access.authenticator_device_aaguids(a.id) x WHERE x.name LIKE 'YubiKey 5 Series with NFC%' ORDER BY x.name, x.aaguid
   - name: "idsec_access_user_seats"
     reference_sql: |
-      SELECT count(*) AS total_users, count(*) FILTER (WHERE x.access_seat) AS access_seat_users, count(*) FILTER (WHERE x.gateway_seat) AS gateway_seat_users FROM cloudflare.accounts.accounts a, cloudflare.access.users_by_account(a.id) x
+      SELECT count(*) AS total_users, count(*) FILTER (WHERE x.access_seat) AS access_seat_users, count(*) FILTER (WHERE x.gateway_seat) AS gateway_seat_users FROM cloudflare.accounts.accounts a, cloudflare.access.users(a.id) x
   - name: "idsec_access_user_details"
     reference_sql: |
-      SELECT CAST(c.created_at AS DATE) AS created_date, c.access_seat FROM cloudflare.accounts.accounts a, cloudflare.access.users_by_account(a.id) p, cloudflare.access.user(a.id, p.id) c ORDER BY c.created_at
+      SELECT CAST(c.created_at AS DATE) AS created_date, c.access_seat FROM cloudflare.accounts.accounts a, cloudflare.access.users(a.id) p, cloudflare.access.user(a.id, p.id) c ORDER BY c.created_at
   - name: "idsec_zt_organization"
     reference_sql: |
       SELECT c.name, c.auth_domain, c.deny_unmatched_requests FROM cloudflare.accounts.accounts a, cloudflare.access.organizations(a.id) c
   - name: "idsec_zone_zt_organization"
     reference_sql: |
-      SELECT z.name AS zone_name, c.name AS org_name, c.auth_domain FROM cloudflare.zones.zones z, cloudflare.access.organizations_2(z.id) c ORDER BY zone_name
+      SELECT z.name AS zone_name, c.name AS org_name, c.auth_domain FROM cloudflare.zones.zones z, cloudflare.access.zone_organizations(z.id) c ORDER BY zone_name
   - name: "idsec_access_key_rotation"
     reference_sql: |
       SELECT c.key_rotation_interval_days FROM cloudflare.accounts.accounts a, cloudflare.access.keys(a.id) c
   - name: "idsec_members_roles"
     reference_sql: |
-      SELECT m.status, m.two_factor_enabled, r.value->>'name' AS role_name FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m, json_each(m.roles) r ORDER BY role_name, status
+      SELECT m.status, m.two_factor_enabled, r.value->>'name' AS role_name FROM cloudflare.accounts.accounts a, cloudflare.accounts.members(a.id) m, json_each(m.roles) r ORDER BY role_name, status
   - name: "idsec_member_lookup"
     reference_sql: |
-      SELECT c.status, count(*) AS member_count FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m, cloudflare.accounts.member(a.id, m.id) c GROUP BY c.status ORDER BY c.status
+      SELECT c.status, count(*) AS member_count FROM cloudflare.accounts.accounts a, cloudflare.accounts.members(a.id) m, cloudflare.accounts.member(a.id, m.id) c GROUP BY c.status ORDER BY c.status
   - name: "idsec_dns_roles"
     reference_sql: |
-      SELECT c.name, c.description FROM cloudflare.accounts.accounts a, cloudflare.accounts.roles_by_account(a.id) p, cloudflare.accounts.role(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
+      SELECT c.name, c.description FROM cloudflare.accounts.accounts a, cloudflare.accounts.roles(a.id) p, cloudflare.accounts.role(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
   - name: "idsec_dns_permission_groups"
     reference_sql: |
-      SELECT c.name, c.meta->>'label' AS label, c.meta->>'category' AS category FROM cloudflare.accounts.accounts a, cloudflare.accounts.permission_groups_2_by_account(a.id) p, cloudflare.accounts.permission_group(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
+      SELECT c.name, c.meta->>'label' AS label, c.meta->>'category' AS category FROM cloudflare.accounts.accounts a, cloudflare.accounts.account_permission_groups(a.id) p, cloudflare.accounts.permission_group(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
   - name: "idsec_resource_groups"
     reference_sql: |
-      SELECT count(*) AS resource_group_count, count(*) FILTER (WHERE c.scope->'objects'->0->>'key' = '*') AS wildcard_groups, count(*) FILTER (WHERE c.meta->>'editable' = 'false') AS non_editable_groups FROM cloudflare.accounts.accounts a, cloudflare.accounts.resource_groups_by_account(a.id) p, cloudflare.accounts.resource_group(a.id, p.id) c
+      SELECT count(*) AS resource_group_count, count(*) FILTER (WHERE c.scope->'objects'->0->>'key' = '*') AS wildcard_groups, count(*) FILTER (WHERE c.meta->>'editable' = 'false') AS non_editable_groups FROM cloudflare.accounts.accounts a, cloudflare.accounts.resource_groups(a.id) p, cloudflare.accounts.resource_group(a.id, p.id) c
   - name: "idsec_account_details"
     reference_sql: |
       SELECT c.type, CAST(c.created_on AS DATE) AS created_date, a.enforce_twofactor FROM cloudflare.accounts.accounts a, cloudflare.accounts.account(a.id) c
   - name: "idsec_app_type_categories"
     reference_sql: |
-      SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.app_types_by_account(a.id) x WHERE x.application_type_id IS NULL ORDER BY x.id LIMIT 10
+      SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.app_types(a.id) x WHERE x.application_type_id IS NULL ORDER BY x.id LIMIT 10
   - name: "idsec_gateway_free_categories"
     reference_sql: |
-      SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.categories_by_account(a.id) x WHERE x.class = 'free' ORDER BY x.id
+      SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.categories(a.id) x WHERE x.class = 'free' ORDER BY x.id
   - name: "idsec_gateway_certificates"
     reference_sql: |
-      SELECT c.type, c.binding_status, c.in_use, c.issuer_org, CAST(c.expires_on AS DATE) AS expires_date FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.certificates_by_account(a.id) p, cloudflare.zero_trust.certificate(a.id, p.id) c ORDER BY expires_date, c.id
+      SELECT c.type, c.binding_status, c.in_use, c.issuer_org, CAST(c.expires_on AS DATE) AS expires_date FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.certificates(a.id) p, cloudflare.zero_trust.certificate(a.id, p.id) c ORDER BY expires_date, c.id
   - name: "idsec_dns_destination_ips"
     reference_sql: |
-      SELECT x.pair_type, x.primary_ip, x.backup_ip FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.dns_destination_ips_by_account(a.id) x ORDER BY x.primary_ip
+      SELECT x.pair_type, x.primary_ip, x.backup_ip FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.dns_destination_ips(a.id) x ORDER BY x.primary_ip
   - name: "idsec_dlp_financial_entries"
     reference_sql: |
-      SELECT e.name AS entry_name, e.enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles_by_account(a.id) p, cloudflare.zero_trust.entries_by_account(a.id) e WHERE p.name = 'Financial Information' AND e.profile_id = p.id ORDER BY entry_name
+      SELECT e.name AS entry_name, e.enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles(a.id) p, cloudflare.zero_trust.entries(a.id) e WHERE p.name = 'Financial Information' AND e.profile_id = p.id ORDER BY entry_name
   - name: "idsec_dlp_aws_entries"
     reference_sql: |
-      SELECT c.name, c.type, c.enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.entries_by_account(a.id) p, cloudflare.zero_trust.entries_entry(a.id, p.id) c WHERE p.name LIKE 'Amazon AWS%' ORDER BY c.name
+      SELECT c.name, c.type, c.enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.entries(a.id) p, cloudflare.zero_trust.entries_entry(a.id, p.id) c WHERE p.name LIKE 'Amazon AWS%' ORDER BY c.name
   - name: "idsec_dlp_profiles"
     reference_sql: |
-      SELECT x.name, x.type, x.allowed_match_count, x.ocr_enabled, json_array_length(x.entries) AS entry_count FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles_by_account(a.id) x ORDER BY x.name
+      SELECT x.name, x.type, x.allowed_match_count, x.ocr_enabled, json_array_length(x.entries) AS entry_count FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles(a.id) x ORDER BY x.name
   - name: "idsec_dlp_predefined_profiles"
     reference_sql: |
-      SELECT c.name, json_array_length(c.entries) AS entry_count, CAST(json_extract(c.context_awareness, '$.enabled') AS BOOLEAN) AS context_awareness_enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles_by_account(a.id) p, cloudflare.zero_trust.predefined_profile(a.id, p.id) c ORDER BY c.name
+      SELECT c.name, json_array_length(c.entries) AS entry_count, CAST(json_extract(c.context_awareness, '$.enabled') AS BOOLEAN) AS context_awareness_enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles(a.id) p, cloudflare.zero_trust.predefined_profile(a.id, p.id) c ORDER BY c.name
   - name: "idsec_dlp_profile_config"
     reference_sql: |
-      SELECT c.name, json_array_length(c.enabled_entries) AS enabled_entry_count, c.open_access FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles_by_account(a.id) p, cloudflare.zero_trust.config(a.id, p.id) c ORDER BY c.name
+      SELECT c.name, json_array_length(c.enabled_entries) AS enabled_entry_count, c.open_access FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles(a.id) p, cloudflare.zero_trust.config(a.id, p.id) c ORDER BY c.name
   - name: "idsec_dlp_profile_lookup"
     reference_sql: |
-      SELECT c.name, c.type, c.ai_context_enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles_by_account(a.id) p, cloudflare.zero_trust.profiles_profile(a.id, p.id) c ORDER BY c.name
+      SELECT c.name, c.type, c.ai_context_enabled FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.profiles(a.id) p, cloudflare.zero_trust.profiles_profile(a.id, p.id) c ORDER BY c.name
   - name: "idsec_target_environments"
     reference_sql: |
-      SELECT x.target_environment, x.display_name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.target_environments_by_account(a.id) x ORDER BY x.target_environment
+      SELECT x.target_environment, x.display_name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.target_environments(a.id) x ORDER BY x.target_environment
   - name: "idsec_classification_templates"
     reference_sql: |
-      SELECT x.name, json_array_length(x.levels) AS level_count FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.templates_by_account(a.id) x ORDER BY x.name
+      SELECT x.name, json_array_length(x.levels) AS level_count FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.templates(a.id) x ORDER BY x.name
   - name: "idsec_tlp_levels"
     reference_sql: |
-      SELECT CAST(l.key AS INTEGER) + 1 AS level_position, l.value->>'name' AS level_name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.templates_by_account(a.id) p, cloudflare.zero_trust.templates_template(a.id, p.id) c, json_each(c.levels) l WHERE p.name = 'Traffic Light Protocol (TLP)' ORDER BY level_position
+      SELECT CAST(l.key AS INTEGER) + 1 AS level_position, l.value->>'name' AS level_name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.templates(a.id) p, cloudflare.zero_trust.templates_template(a.id, p.id) c, json_each(c.levels) l WHERE p.name = 'Traffic Light Protocol (TLP)' ORDER BY level_position
   - name: "idsec_insights_status_changes"
     reference_sql: |
-      SELECT x.current_value AS new_status, count(*) AS change_count FROM cloudflare.accounts.accounts a, cloudflare.security.audit_log_by_account(a.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
+      SELECT x.current_value AS new_status, count(*) AS change_count FROM cloudflare.accounts.accounts a, cloudflare.security.audit_log(a.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
   - name: "idsec_zone_insights_changes"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) AS change_count FROM cloudflare.zones.zones z, cloudflare.security.insights_audit_log_by_zone(z.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
+      SELECT z.name AS zone_name, count(*) AS change_count FROM cloudflare.zones.zones z, cloudflare.security.insights_audit_log(z.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
   - name: "idsec_threat_feeds"
     reference_sql: |
-      SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.security.view_by_account(a.id) x WHERE x.is_attributable AND x.is_downloadable ORDER BY x.id
+      SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.security.view(a.id) x WHERE x.is_attributable AND x.is_downloadable ORDER BY x.id
   - name: "idsec_gateway_logging"
     reference_sql: |
       SELECT k.rule_type, CAST(c.settings_by_rule_type->k.rule_type->>'log_all' AS BOOLEAN) AS log_all, CAST(c.settings_by_rule_type->k.rule_type->>'log_blocks' AS BOOLEAN) AS log_blocks, c.redact_pii FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.logging(a.id) c, (VALUES ('dns'), ('http'), ('l4')) k(rule_type) ORDER BY k.rule_type
@@ -806,7 +791,7 @@ tasks:
       SELECT coalesce(c.public_key, '') <> '' AS has_public_key, CAST(c.created_at AS DATE) AS created_date FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.audit_ssh_settings(a.id) c
   - name: "idsec_gateway_config_cert"
     reference_sql: |
-      SELECT c.settings->'certificate'->>'id' AS certificate_id, (c.settings->'certificate'->>'id') IN (SELECT x.id FROM cloudflare.accounts.accounts a2, cloudflare.zero_trust.certificates_by_account(a2.id) x WHERE x.in_use) AS matches_in_use_cert FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.configuration(a.id) c
+      SELECT c.settings->'certificate'->>'id' AS certificate_id, (c.settings->'certificate'->>'id') IN (SELECT x.id FROM cloudflare.accounts.accounts a2, cloudflare.zero_trust.certificates(a2.id) x WHERE x.in_use) AS matches_in_use_cert FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.configuration(a.id) c
   - name: "idsec_zone_bot_management"
     reference_sql: |
       SELECT z.name AS zone_name, c.ai_bots_protection, c.fight_mode, c.enable_js FROM cloudflare.zones.zones z, cloudflare.security.bot_management(z.id) c ORDER BY zone_name
@@ -818,10 +803,10 @@ tasks:
       SELECT CAST(c.quota->>'available' AS INTEGER) AS scans_available, CAST(c.quota->>'used' AS INTEGER) AS scans_used FROM cloudflare.accounts.accounts a, cloudflare.security.scans_by_id(a.id) c
   - name: "idsec_reusable_policy_usage"
     reference_sql: |
-      SELECT c.name AS policy_name, c.app_count, c.reusable FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q, cloudflare.access.policy(a.id, q.id) c ORDER BY policy_name
+      SELECT c.name AS policy_name, c.app_count, c.reusable FROM cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.apps_policies(a.id, p.id) q, cloudflare.access.policy(a.id, q.id) c ORDER BY policy_name
   - name: "idsec_zone_policy_lookup"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) AS policy_count FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q, cloudflare.access.apps_policies_policy(z.id, p.id, q.id) c GROUP BY z.name ORDER BY zone_name
+      SELECT z.name AS zone_name, count(*) AS policy_count FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.apps_policies(a.id, p.id) q, cloudflare.access.apps_policies_policy(z.id, p.id, q.id) c GROUP BY z.name ORDER BY zone_name
   - name: "idsec_zone_insights_scan_quota"
     reference_sql: |
       SELECT z.name AS zone_name, CAST(c.quota->>'available' AS INTEGER) AS scans_available FROM cloudflare.zones.zones z, cloudflare.security.insights_scans(z.id) c ORDER BY zone_name
@@ -836,88 +821,88 @@ tasks:
       SELECT status FROM cloudflare.accounts.verify
   - name: "idsec_my_organizations"
     reference_sql: |
-      SELECT status, count(*) AS organization_count FROM cloudflare.accounts.organizations_2 GROUP BY status ORDER BY status
+      SELECT status, count(*) AS organization_count FROM cloudflare.accounts.user_organizations GROUP BY status ORDER BY status
   - name: "idsec_members_table"
     reference_sql: |
-      SELECT status, count(*) FILTER (WHERE NOT two_factor_enabled) AS members_without_2fa FROM cloudflare.accounts.members WHERE account_id = 'bb68a133a66d26a310231495b13479a1' GROUP BY status ORDER BY status
+      SELECT status, count(*) FILTER (WHERE NOT two_factor_enabled) AS members_without_2fa FROM cloudflare.accounts.members('bb68a133a66d26a310231495b13479a1')  GROUP BY status ORDER BY status
   - name: "idsec_dlp_entries_table"
     reference_sql: |
-      SELECT type, count(*) AS entry_count, count(*) FILTER (WHERE enabled) AS enabled_count FROM cloudflare.zero_trust.entries WHERE account_id = 'bb68a133a66d26a310231495b13479a1' GROUP BY type ORDER BY type
+      SELECT type, count(*) AS entry_count, count(*) FILTER (WHERE enabled) AS enabled_count FROM cloudflare.zero_trust.entries('bb68a133a66d26a310231495b13479a1')  GROUP BY type ORDER BY type
   - name: "platform_scheduled_workers_scripts"
     reference_sql: |
-      SELECT s.id AS script_name, s.compatibility_date FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s WHERE s.handlers LIKE '%"scheduled"%' AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
+      SELECT s.id AS script_name, s.compatibility_date FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s WHERE s.handlers LIKE '%"scheduled"%' AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
   - name: "platform_scripts_with_static_assets"
     reference_sql: |
-      SELECT s.id AS script_name FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s WHERE s.has_assets AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
+      SELECT s.id AS script_name FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s WHERE s.has_assets AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
   - name: "platform_oldest_worker_scripts"
     reference_sql: |
-      SELECT s.script_name, s.id AS script_id FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_search_by_account(a.id) s ORDER BY s.created_on, s.script_name LIMIT 5
+      SELECT s.script_name, s.id AS script_id FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_search(a.id) s ORDER BY s.created_on, s.script_name LIMIT 5
   - name: "platform_workers_created_march_2026"
     reference_sql: |
-      SELECT w.name FROM cloudflare.accounts.accounts a, cloudflare.workers.workers_by_account(a.id) w WHERE w.created_on >= TIMESTAMPTZ '2026-03-01 00:00:00+00' AND w.created_on < TIMESTAMPTZ '2026-04-01 00:00:00+00' ORDER BY w.created_on, w.name
+      SELECT w.name FROM cloudflare.accounts.accounts a, cloudflare.workers.workers(a.id) w WHERE w.created_on >= TIMESTAMPTZ '2026-03-01 00:00:00+00' AND w.created_on < TIMESTAMPTZ '2026-04-01 00:00:00+00' ORDER BY w.created_on, w.name
   - name: "platform_custom_domains_github_receiver"
     reference_sql: |
-      SELECT d.hostname, d.zone_name, d.environment FROM cloudflare.accounts.accounts a, cloudflare.workers.domains_by_account(a.id) d WHERE d.service = 'github-webhook-receiver' ORDER BY d.hostname
+      SELECT d.hostname, d.zone_name, d.environment FROM cloudflare.accounts.accounts a, cloudflare.workers.domains(a.id) d WHERE d.service = 'github-webhook-receiver' ORDER BY d.hostname
   - name: "platform_durable_object_classes_per_script"
     reference_sql: |
-      SELECT n.script, count(*) AS namespace_count FROM cloudflare.accounts.accounts a, cloudflare.workers.durable_objects_namespaces_by_account(a.id) n GROUP BY n.script HAVING count(*) > 1 ORDER BY namespace_count DESC, n.script
+      SELECT n.script, count(*) AS namespace_count FROM cloudflare.accounts.accounts a, cloudflare.workers.durable_objects_namespaces(a.id) n GROUP BY n.script HAVING count(*) > 1 ORDER BY namespace_count DESC, n.script
   - name: "platform_durable_objects_without_sqlite"
     reference_sql: |
-      SELECT n.name, n.class FROM cloudflare.accounts.accounts a, cloudflare.workers.durable_objects_namespaces_by_account(a.id) n WHERE NOT n.use_sqlite ORDER BY n.name
+      SELECT n.name, n.class FROM cloudflare.accounts.accounts a, cloudflare.workers.durable_objects_namespaces(a.id) n WHERE NOT n.use_sqlite ORDER BY n.name
   - name: "platform_pipelines_status"
     reference_sql: |
-      SELECT p.name, p.status, p.sql FROM cloudflare.accounts.accounts a, cloudflare.workers.pipelines_by_account(a.id) p ORDER BY p.name
+      SELECT p.name, p.status, p.sql FROM cloudflare.accounts.accounts a, cloudflare.workers.pipelines(a.id) p ORDER BY p.name
   - name: "platform_queues_with_consumers"
     reference_sql: |
-      SELECT q.queue_name, CAST(q.consumers_total_count AS INTEGER) AS consumers_total_count FROM cloudflare.accounts.accounts a, cloudflare.workers.queues_by_account(a.id) q WHERE q.consumers_total_count > 0 ORDER BY q.queue_name
+      SELECT q.queue_name, CAST(q.consumers_total_count AS INTEGER) AS consumers_total_count FROM cloudflare.accounts.accounts a, cloudflare.workers.queues(a.id) q WHERE q.consumers_total_count > 0 ORDER BY q.queue_name
   - name: "platform_queue_retention"
     reference_sql: |
-      SELECT q.queue_name, CAST(json_extract(q.settings, '$.message_retention_period') AS INTEGER) // 86400 AS retention_days FROM cloudflare.accounts.accounts a, cloudflare.workers.queues_by_account(a.id) q ORDER BY q.queue_name
+      SELECT q.queue_name, CAST(json_extract(q.settings, '$.message_retention_period') AS INTEGER) // 86400 AS retention_days FROM cloudflare.accounts.accounts a, cloudflare.workers.queues(a.id) q ORDER BY q.queue_name
   - name: "platform_container_registries"
     reference_sql: |
-      SELECT r.domain, r.kind FROM cloudflare.accounts.accounts a, cloudflare.workers.registries_by_account(a.id) r ORDER BY r.domain
+      SELECT r.domain, r.kind FROM cloudflare.accounts.accounts a, cloudflare.workers.registries(a.id) r ORDER BY r.domain
   - name: "platform_worker_routes_by_zone"
     reference_sql: |
-      SELECT z.name AS zone_name, r.pattern, r.script FROM cloudflare.zones.zones z, cloudflare.workers.routes_by_zone(z.id) r ORDER BY zone_name, r.pattern
+      SELECT z.name AS zone_name, r.pattern, r.script FROM cloudflare.zones.zones z, cloudflare.workers.routes(z.id) r ORDER BY zone_name, r.pattern
   - name: "platform_pipeline_sinks"
     reference_sql: |
-      SELECT s.name, s.type, json_extract_string(s.format, '$.type') AS file_format, json_extract_string(s.format, '$.compression') AS compression FROM cloudflare.accounts.accounts a, cloudflare.workers.sinks_by_account(a.id) s ORDER BY s.name
+      SELECT s.name, s.type, json_extract_string(s.format, '$.type') AS file_format, json_extract_string(s.format, '$.compression') AS compression FROM cloudflare.accounts.accounts a, cloudflare.workers.sinks(a.id) s ORDER BY s.name
   - name: "platform_pipeline_streams"
     reference_sql: |
-      SELECT s.name, json_extract_string(s.format, '$.type') AS input_format, s.version FROM cloudflare.accounts.accounts a, cloudflare.workers.streams_by_account(a.id) s ORDER BY s.name
+      SELECT s.name, json_extract_string(s.format, '$.type') AS input_format, s.version FROM cloudflare.accounts.accounts a, cloudflare.workers.streams(a.id) s ORDER BY s.name
   - name: "platform_d1_databases_before_july"
     reference_sql: |
-      SELECT d.name, d.version FROM cloudflare.accounts.accounts a, cloudflare.storage.database_by_account(a.id) d WHERE d.created_at < TIMESTAMPTZ '2026-07-01 00:00:00+00' ORDER BY d.created_at, d.name
+      SELECT d.name, d.version FROM cloudflare.accounts.accounts a, cloudflare.storage.database(a.id) d WHERE d.created_at < TIMESTAMPTZ '2026-07-01 00:00:00+00' ORDER BY d.created_at, d.name
   - name: "platform_kv_namespaces"
     reference_sql: |
-      SELECT n.title, n.supports_url_encoding FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces_by_account(a.id) n ORDER BY n.title
+      SELECT n.title, n.supports_url_encoding FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces(a.id) n ORDER BY n.title
   - name: "platform_public_ai_finetunes"
     reference_sql: |
-      SELECT p.name, p.model FROM cloudflare.accounts.accounts a, cloudflare.ai.public_by_account(a.id) p ORDER BY p.name
+      SELECT p.name, p.model FROM cloudflare.accounts.accounts a, cloudflare.ai.public(a.id) p ORDER BY p.name
   - name: "platform_ai_markdown_mime_types"
     reference_sql: |
-      SELECT s.mimeType AS mime_type, count(*) AS extension_count FROM cloudflare.accounts.accounts a, cloudflare.ai.supported_by_account(a.id) s GROUP BY s.mimeType HAVING count(*) > 1 ORDER BY extension_count DESC, mime_type
+      SELECT s.mimeType AS mime_type, count(*) AS extension_count FROM cloudflare.accounts.accounts a, cloudflare.ai.supported(a.id) s GROUP BY s.mimeType HAVING count(*) > 1 ORDER BY extension_count DESC, mime_type
   - name: "platform_alert_policies"
     reference_sql: |
-      SELECT p.name, p.alert_type, p.enabled FROM cloudflare.accounts.accounts a, cloudflare.alerting.policies_by_account(a.id) p ORDER BY p.name
+      SELECT p.name, p.alert_type, p.enabled FROM cloudflare.accounts.accounts a, cloudflare.alerting.policies(a.id) p ORDER BY p.name
   - name: "platform_billing_cost_by_family_sept"
     reference_sql: |
-      SELECT u.ServiceFamilyName AS service_family, round(sum(u.ContractedCost), 2) AS total_cost FROM cloudflare.accounts.accounts a, cloudflare.billing.paygo_usage_by_account(a.id) u WHERE u.ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND u.ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY total_cost DESC, service_family
+      SELECT u.ServiceFamilyName AS service_family, round(sum(u.ContractedCost), 2) AS total_cost FROM cloudflare.accounts.accounts a, cloudflare.billing.paygo_usage(a.id) u WHERE u.ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND u.ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY total_cost DESC, service_family
   - name: "platform_container_applications"
     reference_sql: |
-      SELECT c.name, c.max_instances FROM cloudflare.accounts.accounts a, cloudflare.workers.applications_by_account(a.id) c ORDER BY c.name
+      SELECT c.name, c.max_instances FROM cloudflare.accounts.accounts a, cloudflare.workers.applications(a.id) c ORDER BY c.name
   - name: "platform_secrets_store_inventory"
     reference_sql: |
-      SELECT s.name AS store_name, x.name AS secret_name, x.comment FROM cloudflare.accounts.accounts a, cloudflare.workers.stores_by_account(a.id) s, cloudflare.workers.secrets_by_store(a.id, s.id) x WHERE x.name LIKE '%attestation%' ORDER BY secret_name
+      SELECT s.name AS store_name, x.name AS secret_name, x.comment FROM cloudflare.accounts.accounts a, cloudflare.workers.stores(a.id) s, cloudflare.workers.secrets(a.id, s.id) x WHERE x.name LIKE '%attestation%' ORDER BY secret_name
   - name: "platform_queue_consumer_dlq"
     reference_sql: |
-      SELECT c.queue_name, c.dead_letter_queue, CAST(json_extract(c.settings, '$.batch_size') AS INTEGER) AS batch_size, CAST(json_extract(c.settings, '$.max_retries') AS INTEGER) AS max_retries FROM cloudflare.accounts.accounts a, cloudflare.workers.queues_by_account(a.id) q, cloudflare.workers.consumers_by_queue(a.id, q.queue_id) c ORDER BY c.queue_name
+      SELECT c.queue_name, c.dead_letter_queue, CAST(json_extract(c.settings, '$.batch_size') AS INTEGER) AS batch_size, CAST(json_extract(c.settings, '$.max_retries') AS INTEGER) AS max_retries FROM cloudflare.accounts.accounts a, cloudflare.workers.queues(a.id) q, cloudflare.workers.consumers(a.id, q.queue_id) c ORDER BY c.queue_name
   - name: "platform_queue_producers_detail"
     reference_sql: |
-      SELECT d.queue_name, json_extract_string(p.value, '$.script') AS producer_script FROM cloudflare.accounts.accounts a, cloudflare.workers.queues_by_account(a.id) q, cloudflare.workers.queue(a.id, q.queue_id) d, json_each(d.producers) p ORDER BY d.queue_name, producer_script
+      SELECT d.queue_name, json_extract_string(p.value, '$.script') AS producer_script FROM cloudflare.accounts.accounts a, cloudflare.workers.queues(a.id) q, cloudflare.workers.queue(a.id, q.queue_id) d, json_each(d.producers) p ORDER BY d.queue_name, producer_script
   - name: "platform_pipeline_detail_tables"
     reference_sql: |
-      SELECT d.name, CAST(json_array_length(d.tables) AS INTEGER) AS table_count FROM cloudflare.accounts.accounts a, cloudflare.workers.pipelines_by_account(a.id) p, cloudflare.workers.pipeline(a.id, p.id) d ORDER BY d.name
+      SELECT d.name, CAST(json_array_length(d.tables) AS INTEGER) AS table_count FROM cloudflare.accounts.accounts a, cloudflare.workers.pipelines(a.id) p, cloudflare.workers.pipeline(a.id, p.id) d ORDER BY d.name
   - name: "platform_workers_account_defaults"
     reference_sql: |
       SELECT s.subdomain, w.default_usage_model, w.green_compute FROM cloudflare.accounts.accounts a, cloudflare.workers.subdomain(a.id) s, cloudflare.workers.account_settings(a.id) w
@@ -935,55 +920,55 @@ tasks:
       SELECT c.amount AS topup_amount, c.threshold AS topup_threshold FROM cloudflare.accounts.accounts a, cloudflare.ai.config(a.id) c
   - name: "platform_cron_triggers"
     reference_sql: |
-      SELECT s.id AS script_name, json_extract_string(c.value, '$.cron') AS cron FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.schedules(a.id, s.id) sc, json_each(sc.schedules) c WHERE s.handlers LIKE '%"scheduled"%' ORDER BY script_name, cron
+      SELECT s.id AS script_name, json_extract_string(c.value, '$.cron') AS cron FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s, cloudflare.workers.schedules(a.id, s.id) sc, json_each(sc.schedules) c WHERE s.handlers LIKE '%"scheduled"%' ORDER BY script_name, cron
   - name: "platform_scripts_workersdev_enabled"
     reference_sql: |
-      SELECT s.id AS script_name, d.previews_enabled FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.scripts_subdomain(a.id, s.id) d WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND d.enabled ORDER BY script_name
+      SELECT s.id AS script_name, d.previews_enabled FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s, cloudflare.workers.scripts_subdomain(a.id, s.id) d WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND d.enabled ORDER BY script_name
   - name: "platform_scripts_observability_off"
     reference_sql: |
-      SELECT s.id AS script_name, st.logpush FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.script_settings(a.id, s.id) st WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND coalesce(CAST(json_extract(st.observability, '$.enabled') AS BOOLEAN), false) = false ORDER BY script_name
+      SELECT s.id AS script_name, st.logpush FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s, cloudflare.workers.script_settings(a.id, s.id) st WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND coalesce(CAST(json_extract(st.observability, '$.enabled') AS BOOLEAN), false) = false ORDER BY script_name
   - name: "platform_script_secret_counts"
     reference_sql: |
-      SELECT s.id AS script_name, count(*) AS secret_count FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.scripts_secrets_by_script(a.id, s.id) x WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY s.id ORDER BY secret_count DESC, script_name LIMIT 5
+      SELECT s.id AS script_name, count(*) AS secret_count FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts(a.id) s, cloudflare.workers.scripts_secrets(a.id, s.id) x WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY s.id ORDER BY secret_count DESC, script_name LIMIT 5
   - name: "platform_haybarn_status_secrets"
     reference_sql: |
-      SELECT x.name, x.type FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_secrets_by_script(a.id, 'haybarn-status') x ORDER BY x.name
+      SELECT x.name, x.type FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_secrets(a.id, 'haybarn-status') x ORDER BY x.name
   - name: "platform_latest_deployment_haybarn_status"
     reference_sql: |
       SELECT json_extract_string(d.value, '$.source') AS source, json_extract_string(d.value, '$.strategy') AS strategy, CAST(json_extract(d.value, '$.versions[0].percentage') AS INTEGER) AS version_percentage FROM cloudflare.accounts.accounts a, cloudflare.workers.deployments(a.id, 'haybarn-status') x, json_each(x.deployments) d ORDER BY CAST(json_extract_string(d.value, '$.created_on') AS TIMESTAMPTZ) DESC LIMIT 1
   - name: "platform_pipeline_sink_destinations"
     reference_sql: |
-      SELECT d.name, json_extract_string(d.config, '$.bucket') AS bucket, json_extract_string(d.config, '$.path') AS path, CAST(json_extract(d.config, '$.rolling_policy.interval_seconds') AS INTEGER) AS interval_seconds FROM cloudflare.accounts.accounts a, cloudflare.workers.sinks_by_account(a.id) s, cloudflare.workers.sink(a.id, s.id) d ORDER BY d.name
+      SELECT d.name, json_extract_string(d.config, '$.bucket') AS bucket, json_extract_string(d.config, '$.path') AS path, CAST(json_extract(d.config, '$.rolling_policy.interval_seconds') AS INTEGER) AS interval_seconds FROM cloudflare.accounts.accounts a, cloudflare.workers.sinks(a.id) s, cloudflare.workers.sink(a.id, s.id) d ORDER BY d.name
   - name: "platform_pipeline_stream_http"
     reference_sql: |
-      SELECT d.name, CAST(json_extract(d.http, '$.enabled') AS BOOLEAN) AS http_enabled, CAST(json_extract(d.http, '$.authentication') AS BOOLEAN) AS http_authentication FROM cloudflare.accounts.accounts a, cloudflare.workers.streams_by_account(a.id) s, cloudflare.workers.stream(a.id, s.id) d ORDER BY d.name
+      SELECT d.name, CAST(json_extract(d.http, '$.enabled') AS BOOLEAN) AS http_enabled, CAST(json_extract(d.http, '$.authentication') AS BOOLEAN) AS http_authentication FROM cloudflare.accounts.accounts a, cloudflare.workers.streams(a.id) s, cloudflare.workers.stream(a.id, s.id) d ORDER BY d.name
   - name: "platform_custom_domain_details_query_farm"
     reference_sql: |
-      SELECT d.hostname, d.service FROM cloudflare.accounts.accounts a, cloudflare.workers.domains_by_account(a.id) l, cloudflare.workers.domain(a.id, l.id) d WHERE d.zone_name = 'query.farm' ORDER BY d.hostname
+      SELECT d.hostname, d.service FROM cloudflare.accounts.accounts a, cloudflare.workers.domains(a.id) l, cloudflare.workers.domain(a.id, l.id) d WHERE d.zone_name = 'query.farm' ORDER BY d.hostname
   - name: "platform_worker_detail_observability_march"
     reference_sql: |
-      SELECT d.name, CAST(json_extract(d.observability, '$.enabled') AS BOOLEAN) AS observability_enabled FROM cloudflare.accounts.accounts a, cloudflare.workers.workers_by_account(a.id) w, cloudflare.workers.worker(a.id, w.id) d WHERE w.created_on >= TIMESTAMPTZ '2026-03-01 00:00:00+00' AND w.created_on < TIMESTAMPTZ '2026-04-01 00:00:00+00' ORDER BY d.name
+      SELECT d.name, CAST(json_extract(d.observability, '$.enabled') AS BOOLEAN) AS observability_enabled FROM cloudflare.accounts.accounts a, cloudflare.workers.workers(a.id) w, cloudflare.workers.worker(a.id, w.id) d WHERE w.created_on >= TIMESTAMPTZ '2026-03-01 00:00:00+00' AND w.created_on < TIMESTAMPTZ '2026-04-01 00:00:00+00' ORDER BY d.name
   - name: "platform_haybarn_status_versions_may"
     reference_sql: |
-      SELECT count(*) AS version_count, min(v.number) AS first_number, max(v.number) AS last_number FROM cloudflare.accounts.accounts a, cloudflare.workers.workers_by_account(a.id) w, cloudflare.workers.versions_2_by_worker(a.id, w.id) v WHERE w.name = 'haybarn-status' AND v.created_on >= TIMESTAMPTZ '2026-05-01 00:00:00+00' AND v.created_on < TIMESTAMPTZ '2026-06-01 00:00:00+00'
+      SELECT count(*) AS version_count, min(v.number) AS first_number, max(v.number) AS last_number FROM cloudflare.accounts.accounts a, cloudflare.workers.workers(a.id) w, cloudflare.workers.account_versions(a.id, w.id) v WHERE w.name = 'haybarn-status' AND v.created_on >= TIMESTAMPTZ '2026-05-01 00:00:00+00' AND v.created_on < TIMESTAMPTZ '2026-06-01 00:00:00+00'
   - name: "platform_haybarn_status_deployable_versions"
     reference_sql: |
       SELECT CAST(json_array_length(x.items) AS INTEGER) AS deployable_version_count FROM cloudflare.accounts.accounts a, cloudflare.workers.versions_by_id(a.id, 'haybarn-status', deployable := true) x
   - name: "platform_container_app_resources"
     reference_sql: |
-      SELECT d.name, CAST(json_extract(d.configuration, '$.vcpu') AS DOUBLE) AS vcpu, CAST(json_extract(d.configuration, '$.memory_mib') AS INTEGER) AS memory_mib, CAST(json_extract(d.configuration, '$.disk.size_mb') AS INTEGER) AS disk_mb FROM cloudflare.accounts.accounts a, cloudflare.workers.applications_by_account(a.id) c, cloudflare.workers.application(a.id, c.id) d ORDER BY d.name
+      SELECT d.name, CAST(json_extract(d.configuration, '$.vcpu') AS DOUBLE) AS vcpu, CAST(json_extract(d.configuration, '$.memory_mib') AS INTEGER) AS memory_mib, CAST(json_extract(d.configuration, '$.disk.size_mb') AS INTEGER) AS disk_mb FROM cloudflare.accounts.accounts a, cloudflare.workers.applications(a.id) c, cloudflare.workers.application(a.id, c.id) d ORDER BY d.name
   - name: "platform_container_app_rollout_versions"
     reference_sql: |
-      SELECT c.name, v.version, v.percentage FROM cloudflare.accounts.accounts a, cloudflare.workers.applications_by_account(a.id) c, cloudflare.workers.applications_versions_by_application(a.id, c.id) v ORDER BY c.name, v.version
+      SELECT c.name, v.version, v.percentage FROM cloudflare.accounts.accounts a, cloudflare.workers.applications(a.id) c, cloudflare.workers.applications_versions(a.id, c.id) v ORDER BY c.name, v.version
   - name: "platform_kv_namespace_lookup_key_registry"
     reference_sql: |
-      SELECT d.title, d.id FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces_by_account(a.id) n, cloudflare.storage.namespace(a.id, n.id) d WHERE d.title LIKE 'KEY_REGISTRY%' ORDER BY d.title
+      SELECT d.title, d.id FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces(a.id) n, cloudflare.storage.namespace(a.id, n.id) d WHERE d.title LIKE 'KEY_REGISTRY%' ORDER BY d.title
   - name: "platform_kv_keys_egress_config"
     reference_sql: |
-      SELECT k.name AS key_name FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces_by_account(a.id) n, cloudflare.storage.keys_by_namespace(a.id, n.id) k WHERE n.title = 'vgi-egress-proxy-config' ORDER BY key_name
+      SELECT k.name AS key_name FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces(a.id) n, cloudflare.storage.keys(a.id, n.id) k WHERE n.title = 'vgi-egress-proxy-config' ORDER BY key_name
   - name: "platform_alert_policy_detail"
     reference_sql: |
-      SELECT d.name, d.description, (SELECT string_agg(k, ',' ORDER BY k) FROM (SELECT unnest(json_keys(d.mechanisms)) AS k)) AS mechanism_types FROM cloudflare.accounts.accounts a, cloudflare.alerting.policies_by_account(a.id) p, cloudflare.alerting.policy(a.id, p.id) d ORDER BY d.name
+      SELECT d.name, d.description, (SELECT string_agg(k, ',' ORDER BY k) FROM (SELECT unnest(json_keys(d.mechanisms)) AS k)) AS mechanism_types FROM cloudflare.accounts.accounts a, cloudflare.alerting.policies(a.id) p, cloudflare.alerting.policy(a.id, p.id) d ORDER BY d.name
   - name: "platform_haybarn_status_bindings"
     reference_sql: |
       SELECT json_extract_string(b.value, '$.name') AS name, json_extract_string(b.value, '$.type') AS type FROM cloudflare.accounts.accounts a, cloudflare.workers.settings(a.id, 'haybarn-status') s, json_each(s.bindings) b ORDER BY name
@@ -992,34 +977,34 @@ tasks:
       WITH latest AS (SELECT a.id AS account_id, json_extract_string(d.value, '$.id') AS deployment_id FROM cloudflare.accounts.accounts a, cloudflare.workers.deployments(a.id, 'haybarn-status') x, json_each(x.deployments) d ORDER BY CAST(json_extract_string(d.value, '$.created_on') AS TIMESTAMPTZ) DESC LIMIT 1) SELECT dep.source AS deployment_source, CAST(v.number AS INTEGER) AS version_number, CAST(json_extract(dep.versions, '$[0].percentage') AS INTEGER) AS percentage FROM latest l, cloudflare.workers.deployment(l.account_id, 'haybarn-status', l.deployment_id) dep, cloudflare.workers.versions_version(l.account_id, 'haybarn-status', json_extract_string(dep.versions, '$[0].version_id')) v
   - name: "platform_acct_scripts_queue_handlers"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.scripts WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT id AS script_name, handlers FROM t WHERE handlers LIKE '%"queue"%' ORDER BY script_name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.scripts('bb68a133a66d26a310231495b13479a1') ) SELECT id AS script_name, handlers FROM t WHERE handlers LIKE '%"queue"%' ORDER BY script_name
   - name: "platform_acct_custom_domains_per_zone"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.domains WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT zone_name, count(*) AS domain_count FROM t WHERE service LIKE 'vgi-%' GROUP BY zone_name ORDER BY zone_name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.domains('bb68a133a66d26a310231495b13479a1') ) SELECT zone_name, count(*) AS domain_count FROM t WHERE service LIKE 'vgi-%' GROUP BY zone_name ORDER BY zone_name
   - name: "platform_acct_stockgate_d1"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.storage.database WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT name, uuid FROM t WHERE name LIKE 'stockgate%' ORDER BY name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.storage.database('bb68a133a66d26a310231495b13479a1') ) SELECT name, uuid FROM t WHERE name LIKE 'stockgate%' ORDER BY name
   - name: "platform_acct_dead_letter_queues"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.queues WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT queue_name, substr(created_on, 1, 10) AS created_date FROM t WHERE queue_name LIKE '%-dlq' ORDER BY queue_name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.queues('bb68a133a66d26a310231495b13479a1') ) SELECT queue_name, substr(created_on, 1, 10) AS created_date FROM t WHERE queue_name LIKE '%-dlq' ORDER BY queue_name
   - name: "platform_zone_routes_query_farm_services"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.routes WHERE zone_id = '9b3308c61327a270a88bfe105f239e37') SELECT pattern, script FROM t ORDER BY pattern
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.routes('9b3308c61327a270a88bfe105f239e37') ) SELECT pattern, script FROM t ORDER BY pattern
   - name: "platform_acct_do_namespaces_stockgate"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.durable_objects_namespaces WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT class, use_sqlite FROM t WHERE script = 'stockgate-dev' ORDER BY class
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.durable_objects_namespaces('bb68a133a66d26a310231495b13479a1') ) SELECT class, use_sqlite FROM t WHERE script = 'stockgate-dev' ORDER BY class
   - name: "platform_acct_workers_d1_grainlift"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.workers WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT name, strftime(created_on AT TIME ZONE 'UTC', '%Y-%m-%d') AS created_date FROM t WHERE name LIKE 'grainlift%' ORDER BY name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.workers('bb68a133a66d26a310231495b13479a1') ) SELECT name, strftime(created_on AT TIME ZONE 'UTC', '%Y-%m-%d') AS created_date FROM t WHERE name LIKE 'grainlift%' ORDER BY name
   - name: "platform_acct_billing_r2_storage_sept"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.billing.paygo_usage WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT ServiceName AS service_name, round(sum(ConsumedQuantity), 2) AS consumed_quantity FROM t WHERE ServiceFamilyName = 'R2' AND ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY service_name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.billing.paygo_usage('bb68a133a66d26a310231495b13479a1') ) SELECT ServiceName AS service_name, round(sum(ConsumedQuantity), 2) AS consumed_quantity FROM t WHERE ServiceFamilyName = 'R2' AND ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY service_name
   - name: "platform_acct_ai_public_finetune_dates"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.ai.public WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT name, strftime(created_at AT TIME ZONE 'UTC', '%Y-%m-%d') AS created_date FROM t ORDER BY created_date, name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.ai.public('bb68a133a66d26a310231495b13479a1') ) SELECT name, strftime(created_at AT TIME ZONE 'UTC', '%Y-%m-%d') AS created_date FROM t ORDER BY created_date, name
   - name: "platform_acct_scripts_search_count_2025"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.scripts_search WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT count(*) AS script_count FROM t WHERE created_on >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND created_on < TIMESTAMPTZ '2026-01-01 00:00:00+00'
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.scripts_search('bb68a133a66d26a310231495b13479a1') ) SELECT count(*) AS script_count FROM t WHERE created_on >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND created_on < TIMESTAMPTZ '2026-01-01 00:00:00+00'
   - name: "net_zones_by_creation"
     reference_sql: |
       SELECT name AS zone_name, status, created_on FROM cloudflare.zones.zones ORDER BY created_on, name
@@ -1028,25 +1013,25 @@ tasks:
       SELECT x.name AS zone_name, x.activated_on, x.paused FROM cloudflare.zones.zones z, cloudflare.zones.zone(z.id) x ORDER BY x.name
   - name: "net_page_rules_targets"
     reference_sql: |
-      SELECT z.name AS zone_name, json_extract_string(p.targets, '$[0].constraint.value') AS url_pattern, p.priority, p.status FROM cloudflare.zones.zones z, cloudflare.zones.pagerules_by_zone(z.id) p ORDER BY z.name, p.priority, url_pattern
+      SELECT z.name AS zone_name, json_extract_string(p.targets, '$[0].constraint.value') AS url_pattern, p.priority, p.status FROM cloudflare.zones.zones z, cloudflare.zones.pagerules(z.id) p ORDER BY z.name, p.priority, url_pattern
   - name: "net_page_rule_action_count"
     reference_sql: |
-      SELECT z.name AS zone_name, json_extract_string(x.targets, '$[0].constraint.value') AS url_pattern, json_array_length(x.actions) AS action_count FROM cloudflare.zones.zones z, cloudflare.zones.pagerules_by_zone(z.id) p, cloudflare.zones.pagerule(z.id, p.id) x ORDER BY zone_name, url_pattern
+      SELECT z.name AS zone_name, json_extract_string(x.targets, '$[0].constraint.value') AS url_pattern, json_array_length(x.actions) AS action_count FROM cloudflare.zones.zones z, cloudflare.zones.pagerules(z.id) p, cloudflare.zones.pagerule(z.id, p.id) x ORDER BY zone_name, url_pattern
   - name: "net_page_rules_qfs_literal"
     reference_sql: |
-      SELECT count(*) AS total_rules, count(*) FILTER (WHERE status = 'active') AS active_rules FROM cloudflare.zones.pagerules WHERE zone_id = '9b3308c61327a270a88bfe105f239e37'
+      SELECT count(*) AS total_rules, count(*) FILTER (WHERE status = 'active') AS active_rules FROM cloudflare.zones.pagerules('9b3308c61327a270a88bfe105f239e37')
   - name: "net_speed_pages"
     reference_sql: |
-      SELECT z.name AS zone_name, p.url AS page_url, json_extract_string(p.region, '$.label') AS region_label FROM cloudflare.zones.zones z, cloudflare.zones.pages_by_zone(z.id) p ORDER BY zone_name, page_url
+      SELECT z.name AS zone_name, p.url AS page_url, json_extract_string(p.region, '$.label') AS region_label FROM cloudflare.zones.zones z, cloudflare.zones.pages(z.id) p ORDER BY zone_name, page_url
   - name: "net_speed_pages_qf_literal"
     reference_sql: |
-      SELECT url AS page_url, json_extract_string(region, '$.value') AS region_code FROM cloudflare.zones.pages WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' ORDER BY page_url
+      SELECT url AS page_url, json_extract_string(region, '$.value') AS region_code FROM cloudflare.zones.pages('f762db64a4e321f026a26321acf2b65b')  ORDER BY page_url
   - name: "net_settings_on_count"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) FILTER (WHERE s.value = 'on') AS settings_on, count(*) FILTER (WHERE NOT s.editable) AS not_editable FROM cloudflare.zones.zones z, cloudflare.zones.settings_by_zone(z.id) s GROUP BY z.name ORDER BY z.name
+      SELECT z.name AS zone_name, count(*) FILTER (WHERE s.value = 'on') AS settings_on, count(*) FILTER (WHERE NOT s.editable) AS not_editable FROM cloudflare.zones.zones z, cloudflare.zones.settings(z.id) s GROUP BY z.name ORDER BY z.name
   - name: "net_settings_qf_tls_literal"
     reference_sql: |
-      SELECT id AS setting_id, value FROM cloudflare.zones.settings WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND id IN ('min_tls_version', 'tls_1_3', 'ssl', 'always_use_https') ORDER BY setting_id
+      SELECT id AS setting_id, value FROM cloudflare.zones.settings('f762db64a4e321f026a26321acf2b65b') WHERE  id IN ('min_tls_version', 'tls_1_3', 'ssl', 'always_use_https') ORDER BY setting_id
   - name: "net_setting_lookup_ssl_mode"
     reference_sql: |
       SELECT z.name AS zone_name, s.value AS ssl_mode, m.value AS min_tls_version FROM cloudflare.zones.zones z, cloudflare.zones.setting(z.id, 'ssl') s, cloudflare.zones.setting(z.id, 'min_tls_version') m ORDER BY zone_name
@@ -1079,52 +1064,52 @@ tasks:
       SELECT k AS vendor, json_array_length(json_extract(x.vendors, '$.' || k)) AS region_count FROM cloudflare.zones.zones z, cloudflare.zones.cloud_regions_supported_regions(z.id) x, unnest(json_keys(x.vendors)) AS u(k) WHERE z.name = 'query.farm' ORDER BY vendor
   - name: "net_rum_sites"
     reference_sql: |
-      SELECT count(*) AS total_sites, count(*) FILTER (WHERE s.auto_install) AS auto_installed_sites FROM cloudflare.accounts.accounts a, cloudflare.zones.site_info_list_by_account(a.id) s
+      SELECT count(*) AS total_sites, count(*) FILTER (WHERE s.auto_install) AS auto_installed_sites FROM cloudflare.accounts.accounts a, cloudflare.zones.site_info_list(a.id) s
   - name: "net_rum_sites_zone_literal"
     reference_sql: |
-      SELECT json_extract_string(ruleset, '$.zone_name') AS zone_name, json_extract(ruleset, '$.lite')::BOOLEAN AS lite FROM cloudflare.zones.site_info_list WHERE account_id = 'bb68a133a66d26a310231495b13479a1' AND auto_install = true ORDER BY zone_name
+      SELECT json_extract_string(ruleset, '$.zone_name') AS zone_name, json_extract(ruleset, '$.lite')::BOOLEAN AS lite FROM cloudflare.zones.site_info_list('bb68a133a66d26a310231495b13479a1') WHERE  auto_install = true ORDER BY zone_name
   - name: "net_rum_site_lookup"
     reference_sql: |
-      SELECT x.auto_install, count(*) AS sites, count(x.ruleset) AS sites_with_ruleset FROM cloudflare.accounts.accounts a, cloudflare.zones.site_info_list_by_account(a.id) s, cloudflare.zones.site(a.id, s.site_tag) x GROUP BY x.auto_install ORDER BY x.auto_install
+      SELECT x.auto_install, count(*) AS sites, count(x.ruleset) AS sites_with_ruleset FROM cloudflare.accounts.accounts a, cloudflare.zones.site_info_list(a.id) s, cloudflare.zones.site(a.id, s.site_tag) x GROUP BY x.auto_install ORDER BY x.auto_install
   - name: "net_rules_lists"
     reference_sql: |
-      SELECT l.name AS list_name, l.kind, l.num_items::INTEGER AS num_items FROM cloudflare.accounts.accounts a, cloudflare.zones.lists_by_account(a.id) l ORDER BY list_name
+      SELECT l.name AS list_name, l.kind, l.num_items::INTEGER AS num_items FROM cloudflare.accounts.accounts a, cloudflare.zones.lists(a.id) l ORDER BY list_name
   - name: "net_rules_lists_literal"
     reference_sql: |
-      SELECT kind, count(*) AS list_count, sum(num_items)::INTEGER AS total_items FROM cloudflare.zones.lists WHERE account_id = 'bb68a133a66d26a310231495b13479a1' GROUP BY kind ORDER BY kind
+      SELECT kind, count(*) AS list_count, sum(num_items)::INTEGER AS total_items FROM cloudflare.zones.lists('bb68a133a66d26a310231495b13479a1')  GROUP BY kind ORDER BY kind
   - name: "net_redirect_list_items"
     reference_sql: |
-      SELECT l.name AS list_name, json_extract_string(i.redirect, '$.source_url') AS source_url, json_extract_string(i.redirect, '$.target_url') AS target_url, json_extract(i.redirect, '$.include_subdomains')::BOOLEAN AS include_subdomains FROM cloudflare.accounts.accounts a, cloudflare.zones.lists_by_account(a.id) l, cloudflare.zones.items_by_list(a.id, l.id) i WHERE l.kind = 'redirect' ORDER BY list_name, source_url
+      SELECT l.name AS list_name, json_extract_string(i.redirect, '$.source_url') AS source_url, json_extract_string(i.redirect, '$.target_url') AS target_url, json_extract(i.redirect, '$.include_subdomains')::BOOLEAN AS include_subdomains FROM cloudflare.accounts.accounts a, cloudflare.zones.lists(a.id) l, cloudflare.zones.items(a.id, l.id) i WHERE l.kind = 'redirect' ORDER BY list_name, source_url
   - name: "net_list_item_lookup"
     reference_sql: |
-      SELECT l.name AS list_name, json_extract(x.redirect, '$.status_code')::INTEGER AS status_code, json_extract(x.redirect, '$.preserve_path_suffix')::BOOLEAN AS preserve_path_suffix FROM cloudflare.accounts.accounts a, cloudflare.zones.lists_by_account(a.id) l, cloudflare.zones.items_by_list(a.id, l.id) i, cloudflare.zones.item(a.id, l.id, i.id) x ORDER BY list_name, status_code
+      SELECT l.name AS list_name, json_extract(x.redirect, '$.status_code')::INTEGER AS status_code, json_extract(x.redirect, '$.preserve_path_suffix')::BOOLEAN AS preserve_path_suffix FROM cloudflare.accounts.accounts a, cloudflare.zones.lists(a.id) l, cloudflare.zones.items(a.id, l.id) i, cloudflare.zones.item(a.id, l.id, i.id) x ORDER BY list_name, status_code
   - name: "net_list_detail_lookup"
     reference_sql: |
-      SELECT x.name AS list_name, x.kind, x.num_items::INTEGER AS num_items, x.num_referencing_filters::INTEGER AS num_referencing_filters FROM cloudflare.accounts.accounts a, cloudflare.zones.lists_by_account(a.id) l, cloudflare.zones.lists_list(a.id, l.id) x ORDER BY list_name
+      SELECT x.name AS list_name, x.kind, x.num_items::INTEGER AS num_items, x.num_referencing_filters::INTEGER AS num_referencing_filters FROM cloudflare.accounts.accounts a, cloudflare.zones.lists(a.id) l, cloudflare.zones.lists_list(a.id, l.id) x ORDER BY list_name
   - name: "net_custom_pages_zone"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) AS page_count, count(*) FILTER (WHERE c.state = 'default') AS default_pages FROM cloudflare.zones.zones z, cloudflare.zones.custom_pages_2_by_zone(z.id) c GROUP BY z.name ORDER BY zone_name
+      SELECT z.name AS zone_name, count(*) AS page_count, count(*) FILTER (WHERE c.state = 'default') AS default_pages FROM cloudflare.zones.zones z, cloudflare.zones.zone_custom_pages(z.id) c GROUP BY z.name ORDER BY zone_name
   - name: "net_custom_pages_account"
     reference_sql: |
-      SELECT c.id AS page_id, c.description FROM cloudflare.accounts.accounts a, cloudflare.zones.custom_pages_by_account(a.id) c WHERE c.required_tokens LIKE '%::CAPTCHA_BOX::%' ORDER BY page_id
+      SELECT c.id AS page_id, c.description FROM cloudflare.accounts.accounts a, cloudflare.zones.custom_pages(a.id) c WHERE c.required_tokens LIKE '%::CAPTCHA_BOX::%' ORDER BY page_id
   - name: "net_custom_page_lookup"
     reference_sql: |
       SELECT x.id AS page_id, x.description, x.state, x.preview_target FROM cloudflare.accounts.accounts a, (VALUES ('500_errors'), ('under_attack')) v(pid), cloudflare.zones.custom_pages_by_id(a.id, v.pid) x ORDER BY page_id
   - name: "net_dns_types_all_zones"
     reference_sql: |
-      SELECT r.type AS record_type, count(*) AS record_count FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r GROUP BY r.type ORDER BY record_count DESC, record_type
+      SELECT r.type AS record_type, count(*) AS record_count FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r GROUP BY r.type ORDER BY record_count DESC, record_type
   - name: "net_dns_proxied_per_zone"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) AS total_records, count(*) FILTER (WHERE r.proxied) AS proxied_records FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r GROUP BY z.name ORDER BY zone_name
+      SELECT z.name AS zone_name, count(*) AS total_records, count(*) FILTER (WHERE r.proxied) AS proxied_records FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r GROUP BY z.name ORDER BY zone_name
   - name: "net_dns_qf_types_literal"
     reference_sql: |
-      SELECT type AS record_type, count(*) AS record_count FROM cloudflare.dns.records WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' GROUP BY type ORDER BY record_type
+      SELECT type AS record_type, count(*) AS record_count FROM cloudflare.dns.records('f762db64a4e321f026a26321acf2b65b')  GROUP BY type ORDER BY record_type
   - name: "net_dns_mx_lookup"
     reference_sql: |
-      SELECT z.name AS zone_name, x.content AS mail_server, x.ttl, x.proxied FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r, cloudflare.dns.record(z.id, r.id) x WHERE r.type = 'MX' ORDER BY zone_name, mail_server
+      SELECT z.name AS zone_name, x.content AS mail_server, x.ttl, x.proxied FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r, cloudflare.dns.record(z.id, r.id) x WHERE r.type = 'MX' ORDER BY zone_name, mail_server
   - name: "net_dns_usage_vs_quota"
     reference_sql: |
-      SELECT z.name AS zone_name, u.record_usage, u.record_quota, round(u.record_usage * 100.0 / u.record_quota, 1) AS pct_used FROM cloudflare.zones.zones z, cloudflare.dns.usage_2(z.id) u ORDER BY record_usage DESC, zone_name
+      SELECT z.name AS zone_name, u.record_usage, u.record_quota, round(u.record_usage * 100.0 / u.record_quota, 1) AS pct_used FROM cloudflare.zones.zones z, cloudflare.dns.zone_usage(z.id) u ORDER BY record_usage DESC, zone_name
   - name: "net_dns_account_usage"
     reference_sql: |
       SELECT u.record_usage FROM cloudflare.accounts.accounts a, cloudflare.dns.usage(a.id) u
@@ -1136,28 +1121,28 @@ tasks:
       SELECT z.name AS zone_name, d.status AS dnssec_status FROM cloudflare.zones.zones z, cloudflare.dns.dnssec(z.id) d ORDER BY zone_name
   - name: "net_dns_zone_settings"
     reference_sql: |
-      SELECT z.name AS zone_name, s.zone_mode, s.ns_ttl::INTEGER AS ns_ttl, json_extract(s.soa, '$.min_ttl')::INTEGER AS soa_min_ttl, s.flatten_all_cnames FROM cloudflare.zones.zones z, cloudflare.dns.settings_2(z.id) s ORDER BY zone_name
+      SELECT z.name AS zone_name, s.zone_mode, s.ns_ttl::INTEGER AS ns_ttl, json_extract(s.soa, '$.min_ttl')::INTEGER AS soa_min_ttl, s.flatten_all_cnames FROM cloudflare.zones.zones z, cloudflare.dns.zone_settings(z.id) s ORDER BY zone_name
   - name: "net_dnssec_zsk"
     reference_sql: |
-      SELECT z.name AS zone_name, k.Name AS zsk_name FROM cloudflare.zones.zones z, cloudflare.dns.zsk_by_zone(z.id) k ORDER BY zone_name, zsk_name
+      SELECT z.name AS zone_name, k.Name AS zsk_name FROM cloudflare.zones.zones z, cloudflare.dns.zsk(z.id) k ORDER BY zone_name, zsk_name
   - name: "net_dnssec_zsk_literal"
     reference_sql: |
-      SELECT count(*) AS zsk_count FROM cloudflare.dns.zsk WHERE zone_id = '2773d099d622ee4f96691819eb2c1533'
+      SELECT count(*) AS zsk_count FROM cloudflare.dns.zsk('2773d099d622ee4f96691819eb2c1533')
   - name: "net_cert_packs_by_type"
     reference_sql: |
-      SELECT z.name AS zone_name, c.type AS pack_type, count(*) AS pack_count FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs_by_zone(z.id) c GROUP BY ALL ORDER BY zone_name, pack_type
+      SELECT z.name AS zone_name, c.type AS pack_type, count(*) AS pack_count FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs(z.id) c GROUP BY ALL ORDER BY zone_name, pack_type
   - name: "net_cert_packs_qf_literal"
     reference_sql: |
-      SELECT certificate_authority, count(*) AS pack_count FROM cloudflare.ssl.certificate_packs WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' GROUP BY 1 ORDER BY 1
+      SELECT certificate_authority, count(*) AS pack_count FROM cloudflare.ssl.certificate_packs('f762db64a4e321f026a26321acf2b65b')  GROUP BY 1 ORDER BY 1
   - name: "net_universal_cert_lookup"
     reference_sql: |
-      SELECT z.name AS zone_name, x.certificate_authority, x.status, x.validity_days FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs_by_zone(z.id) c, cloudflare.ssl.certificate_pack(z.id, c.id) x WHERE c.type = 'universal' ORDER BY zone_name
+      SELECT z.name AS zone_name, x.certificate_authority, x.status, x.validity_days FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs(z.id) c, cloudflare.ssl.certificate_pack(z.id, c.id) x WHERE c.type = 'universal' ORDER BY zone_name
   - name: "net_ssl_verification"
     reference_sql: |
-      SELECT z.name AS zone_name, v.certificate_status, v.validation_method FROM cloudflare.zones.zones z, cloudflare.ssl.verification_by_zone(z.id) v ORDER BY zone_name
+      SELECT z.name AS zone_name, v.certificate_status, v.validation_method FROM cloudflare.zones.zones z, cloudflare.ssl.verification(z.id) v ORDER BY zone_name
   - name: "net_ssl_verification_literal"
     reference_sql: |
-      SELECT cert_pack_uuid, certificate_status FROM cloudflare.ssl.verification WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' ORDER BY cert_pack_uuid
+      SELECT cert_pack_uuid, certificate_status FROM cloudflare.ssl.verification('f762db64a4e321f026a26321acf2b65b')  ORDER BY cert_pack_uuid
   - name: "net_ssl_advanced_quota"
     reference_sql: |
       SELECT z.name AS zone_name, json_extract(q.advanced, '$.used')::INTEGER AS advanced_used FROM cloudflare.zones.zones z, cloudflare.ssl.quota(z.id) q ORDER BY advanced_used DESC, zone_name
@@ -1172,25 +1157,25 @@ tasks:
       SELECT z.name AS zone_name, u.uuid AS dcv_uuid FROM cloudflare.zones.zones z, cloudflare.ssl.uuid(z.id) u ORDER BY zone_name
   - name: "net_mtls_certs_services"
     reference_sql: |
-      SELECT m.type AS cert_type, m.ca AS is_ca, m.expires_on, s.service, s.status AS association_status FROM cloudflare.accounts.accounts a, cloudflare.ssl.mtls_certificates_by_account(a.id) m, cloudflare.ssl.associations_by_mtls_certificate(a.id, m.id) s ORDER BY expires_on, service
+      SELECT m.type AS cert_type, m.ca AS is_ca, m.expires_on, s.service, s.status AS association_status FROM cloudflare.accounts.accounts a, cloudflare.ssl.mtls_certificates(a.id) m, cloudflare.ssl.associations(a.id, m.id) s ORDER BY expires_on, service
   - name: "net_mtls_cert_lookup"
     reference_sql: |
-      SELECT x.type AS cert_type, x.ca AS is_ca, year(x.uploaded_on) AS uploaded_year, year(x.expires_on) AS expires_year FROM cloudflare.accounts.accounts a, cloudflare.ssl.mtls_certificates_by_account(a.id) m, cloudflare.ssl.mtls_certificate(a.id, m.id) x ORDER BY cert_type, uploaded_year
+      SELECT x.type AS cert_type, x.ca AS is_ca, year(x.uploaded_on) AS uploaded_year, year(x.expires_on) AS expires_year FROM cloudflare.accounts.accounts a, cloudflare.ssl.mtls_certificates(a.id) m, cloudflare.ssl.mtls_certificate(a.id, m.id) x ORDER BY cert_type, uploaded_year
   - name: "net_mtls_certs_literal"
     reference_sql: |
-      SELECT count(*) AS total_certs, count(*) FILTER (WHERE ca) AS ca_certs FROM cloudflare.ssl.mtls_certificates WHERE account_id = 'bb68a133a66d26a310231495b13479a1'
+      SELECT count(*) AS total_certs, count(*) FILTER (WHERE ca) AS ca_certs FROM cloudflare.ssl.mtls_certificates('bb68a133a66d26a310231495b13479a1')
   - name: "net_email_routing_dns_required"
     reference_sql: |
-      SELECT z.name AS zone_name, e.type AS record_type, count(*) AS record_count FROM cloudflare.zones.zones z, cloudflare.email.dns_by_zone(z.id) e GROUP BY ALL ORDER BY zone_name, record_type
+      SELECT z.name AS zone_name, e.type AS record_type, count(*) AS record_count FROM cloudflare.zones.zones z, cloudflare.email.dns(z.id) e GROUP BY ALL ORDER BY zone_name, record_type
   - name: "net_email_routing_dns_literal"
     reference_sql: |
-      SELECT priority::INTEGER AS mx_priority FROM cloudflare.email.dns WHERE zone_id = '2773d099d622ee4f96691819eb2c1533' AND type = 'MX' ORDER BY mx_priority
+      SELECT priority::INTEGER AS mx_priority FROM cloudflare.email.dns('2773d099d622ee4f96691819eb2c1533') WHERE  type = 'MX' ORDER BY mx_priority
   - name: "net_email_routing_rules"
     reference_sql: |
-      SELECT z.name AS zone_name, r.enabled, json_extract_string(r.matchers, '$[0].type') AS matcher_type, json_extract_string(r.actions, '$[0].type') AS action_type FROM cloudflare.zones.zones z, cloudflare.email.routing_rules_by_zone(z.id) r ORDER BY zone_name, matcher_type
+      SELECT z.name AS zone_name, r.enabled, json_extract_string(r.matchers, '$[0].type') AS matcher_type, json_extract_string(r.actions, '$[0].type') AS action_type FROM cloudflare.zones.zones z, cloudflare.email.routing_rules(z.id) r ORDER BY zone_name, matcher_type
   - name: "net_email_routing_rules_literal"
     reference_sql: |
-      SELECT count(*) AS total_rules, count(*) FILTER (WHERE enabled) AS enabled_rules FROM cloudflare.email.routing_rules WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b'
+      SELECT count(*) AS total_rules, count(*) FILTER (WHERE enabled) AS enabled_rules FROM cloudflare.email.routing_rules('f762db64a4e321f026a26321acf2b65b')
   - name: "net_email_catch_all_status"
     reference_sql: |
       SELECT z.name AS zone_name, r.status AS routing_status, r.enabled AS routing_enabled, c.enabled AS catch_all_enabled, json_extract_string(c.actions, '$[0].type') AS catch_all_action FROM cloudflare.zones.zones z, cloudflare.email.routing(z.id) r, cloudflare.email.catch_all(z.id) c ORDER BY zone_name
@@ -1202,31 +1187,31 @@ tasks:
       SELECT json_array_length(ipv4_cidrs) AS ipv4_ranges, json_array_length(ipv6_cidrs) AS ipv6_ranges FROM cloudflare.magic.ips
   - name: "net_regional_services_regions"
     reference_sql: |
-      SELECT r.key AS region_key, r.label FROM cloudflare.accounts.accounts a, cloudflare.magic.regions_by_account(a.id) r ORDER BY region_key
+      SELECT r.key AS region_key, r.label FROM cloudflare.accounts.accounts a, cloudflare.magic.regions(a.id) r ORDER BY region_key
   - name: "net_regional_regions_literal"
     reference_sql: |
-      SELECT count(*) AS region_count FROM cloudflare.magic.regions WHERE account_id = 'bb68a133a66d26a310231495b13479a1'
+      SELECT count(*) AS region_count FROM cloudflare.magic.regions('bb68a133a66d26a310231495b13479a1')
   - name: "net_addressing_services"
     reference_sql: |
-      SELECT s.name AS service_name FROM cloudflare.accounts.accounts a, cloudflare.magic.services_by_account(a.id) s ORDER BY service_name
+      SELECT s.name AS service_name FROM cloudflare.accounts.accounts a, cloudflare.magic.services(a.id) s ORDER BY service_name
   - name: "net_addressing_services_literal"
     reference_sql: |
-      SELECT count(*) AS service_count FROM cloudflare.magic.services WHERE account_id = 'bb68a133a66d26a310231495b13479a1'
+      SELECT count(*) AS service_count FROM cloudflare.magic.services('bb68a133a66d26a310231495b13479a1')
   - name: "net_cni_default_asn"
     reference_sql: |
       SELECT s.default_asn FROM cloudflare.accounts.accounts a, cloudflare.magic.settings(a.id) s
   - name: "net_api_labels_per_zone"
     reference_sql: |
-      SELECT z.name AS zone_name, l.source, count(*) AS label_count FROM cloudflare.zones.zones z, cloudflare.api_gateway.labels_by_zone(z.id) l GROUP BY ALL ORDER BY zone_name, source
+      SELECT z.name AS zone_name, l.source, count(*) AS label_count FROM cloudflare.zones.zones z, cloudflare.api_gateway.labels(z.id) l GROUP BY ALL ORDER BY zone_name, source
   - name: "net_api_labels_literal"
     reference_sql: |
-      SELECT name AS label_name, (created_at AT TIME ZONE 'UTC')::DATE AS created_date FROM cloudflare.api_gateway.labels WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND created_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' ORDER BY created_date, label_name
+      SELECT name AS label_name, (created_at AT TIME ZONE 'UTC')::DATE AS created_date FROM cloudflare.api_gateway.labels('f762db64a4e321f026a26321acf2b65b') WHERE  created_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' ORDER BY created_date, label_name
   - name: "net_api_managed_label_lookup"
     reference_sql: |
       SELECT x.name AS label_name, x.source, x.description FROM cloudflare.zones.zones z, cloudflare.api_gateway.managed(z.id, 'cf-log-in') x WHERE z.name = 'query.farm'
   - name: "net_http_daily_qf_week"
     reference_sql: |
-      SELECT date, requests, cached_requests, threats, unique_visitors FROM cloudflare.analytics.http_requests_daily WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-07' ORDER BY date
+      SELECT date, requests, cached_requests, threats, unique_visitors FROM cloudflare.analytics.http_requests_daily('f762db64a4e321f026a26321acf2b65b', since := DATE '2026-09-01', until := DATE '2026-09-07') ORDER BY date
   - name: "net_http_daily_qf_totals"
     reference_sql: |
-      SELECT sum(requests) AS total_requests, sum(threats) AS total_threats, max(unique_visitors) AS peak_unique_visitors, arg_max(date, threats) AS worst_threat_day FROM cloudflare.analytics.http_requests_daily WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-07'
+      SELECT sum(requests) AS total_requests, sum(threats) AS total_threats, max(unique_visitors) AS peak_unique_visitors, arg_max(date, threats) AS worst_threat_day FROM cloudflare.analytics.http_requests_daily('f762db64a4e321f026a26321acf2b65b', since := DATE '2026-09-01', until := DATE '2026-09-07')

@@ -18,8 +18,8 @@ class SchemaDoc:
     md_extra: str = ""  # extra human-facing notes for doc_md
 
 
-_ACCOUNT = "Most objects are scoped to an account: tables need an account_id filter, and the matching *_by_account functions take account ids per row, e.g. from cloudflare.accounts.accounts."
-_ZONE = "Most objects are scoped to a zone: tables need a zone_id filter, and the matching *_by_zone functions take zone ids per row, e.g. from cloudflare.zones.zones."
+_ACCOUNT = "Most objects are scoped to an account: they are functions of its account_id — pass an id, or take ids per row from cloudflare.accounts.accounts."
+_ZONE = "Most objects are scoped to a zone: they are functions of its zone_id — pass an id, or take ids per row from cloudflare.zones.zones."
 
 SCHEMA_DOCS: dict[str, SchemaDoc] = {
     "access": SchemaDoc(
@@ -52,7 +52,7 @@ SCHEMA_DOCS: dict[str, SchemaDoc] = {
     "analytics": SchemaDoc(
         "Cloudflare Analytics (GraphQL)",
         "Cloudflare traffic and security analytics from the GraphQL Analytics API: HTTP requests by day or hour, adaptive request samples, firewall events, health checks, and Workers invocations.",
-        "Use for time-series questions — traffic volume, bandwidth, threats, cache ratios, firewall actions, Worker errors. Each table needs a zone_id filter (account_id for Workers) and reads its time window from a range filter on its date or datetime column, defaulting to a recent trailing window. Large windows are split automatically so results aren't truncated.",
+        "Use for time-series questions — traffic volume, bandwidth, threats, cache ratios, firewall actions, Worker errors. Each is a function of a zone_id (account_id for Workers), a literal or per row of cloudflare.zones.zones, with a required window: since := … and until := …. Large windows are split automatically so results aren't truncated.",
         (
             "analytics",
             "traffic",
@@ -88,7 +88,7 @@ SCHEMA_DOCS: dict[str, SchemaDoc] = {
     "dns": SchemaDoc(
         "Cloudflare DNS",
         "Cloudflare DNS: records in each zone, DNSSEC, zone DNS settings, secondary DNS (zone transfers, peers, TSIG keys), DNS Firewall clusters, custom nameservers, and DNS analytics reports.",
-        "Use for anything about name resolution: which records exist and where they point (records, records_by_zone), whether they are proxied, DNSSEC status, secondary DNS transfer setup, and DNS Firewall. Record tables need a zone_id filter; DNS Firewall and secondary-DNS peers are account-scoped.",
+        "Use for anything about name resolution: which records exist and where they point (records), whether they are proxied, DNSSEC status, secondary DNS transfer setup, and DNS Firewall. Record functions take a zone_id; DNS Firewall and secondary-DNS peers take an account_id.",
         ("dns", "dns records", "nameservers", "dnssec", "secondary dns", "zone transfer", "dns firewall"),
     ),
     "email": SchemaDoc(
@@ -218,9 +218,9 @@ CATALOG_DOC_LLM = (
     "fetched live on each query with the caller's API token (a DuckDB secret of TYPE cloudflare). "
     "Objects are grouped by product into schemas (dns, zones, accounts, security, workers, zero_trust, "
     "analytics, radar, and more). Most data is scoped to an account or zone: start from "
-    "cloudflare.accounts.accounts or cloudflare.zones.zones to get ids. Plural tables need their scope id "
-    "as a filter; <table>_by_<parent> functions take the id per row instead, so a lateral join from "
-    "cloudflare.zones.zones to cloudflare.dns.records_by_zone covers every zone. Singular functions such as "
+    "cloudflare.accounts.accounts or cloudflare.zones.zones to get ids. Scoped lists are functions of "
+    "those ids — cloudflare.dns.records(zone_id) — taking a literal or, in a lateral join from "
+    "cloudflare.zones.zones, every zone at once; their API filters are named arguments. Singular functions such as "
     "cloudflare.dns.record fetch one object by id. Traffic and security time series are in "
     "cloudflare.analytics; Internet-wide trends are in cloudflare.radar."
 )
@@ -239,8 +239,8 @@ Data is fetched from Cloudflare at query time; nothing is cached or stored.
 
 | Shape | Naming | Called how |
 | --- | --- | --- |
-| Table | plural noun, e.g. `cloudflare.dns.records` | scanned; its scope ids are required filters |
-| Fan-out function | `<table>_by_<parent>`, e.g. `cloudflare.dns.records_by_zone` | one API call per input row, for lateral joins |
+| Table | plural noun, no ids, e.g. `cloudflare.zones.zones` | scanned like any table |
+| List function | plural noun, e.g. `cloudflare.dns.records` | its URL ids as arguments, literal or per row; API filters as named arguments |
 | Lookup function | singular noun, e.g. `cloudflare.dns.record` | path ids as arguments; 0 or 1 row |
 | Analytics table | `cloudflare.analytics.*` | GraphQL rollups; the time range comes from the filter |
 

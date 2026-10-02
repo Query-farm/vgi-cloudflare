@@ -398,26 +398,63 @@ def table_docs(desc: ResourceDescriptor, schema: pa.Schema, fanout: str | None) 
     return ObjectDocs(comment(desc), " ".join(llm), md, tuple(table_examples(desc)))
 
 
+def _query_arg_names(desc: ResourceDescriptor) -> list[str]:
+    """Named arguments a function sends upstream (the endpoint's query params)."""
+    from .runtime import _arg_name, _named_params  # local: runtime imports this module's peers
+
+    return [_arg_name(q) for q in _named_params(desc)]
+
+
+def list_function_examples(desc: ResourceDescriptor, name: str) -> list[Example]:
+    """A literal call, the lateral form from the parent table, and a named-argument filter."""
+    cols = ", ".join(_key_columns(desc))
+    args = ", ".join(_placeholder(p.name) for p in desc.path_params)
+    ids = "the URL path id" if len(desc.path_params) == 1 else "the URL path ids"
+    out = [
+        Example(
+            f"SELECT {cols} FROM {_qualified(desc, name)}({args})",
+            f"List {_noun(desc)}s for one {_scope_noun(desc)} ({_args(desc)}: {ids}).",
+        ),
+        fanout_example(desc, name),
+    ]
+    named = _query_arg_names(desc)
+    if named:
+        q = named[0]
+        out.append(
+            Example(
+                f"SELECT {cols} FROM {_qualified(desc, name)}({args}, {q} := {_placeholder(q)})",
+                f"Only {_noun(desc)}s matching a {q}: the named argument is sent to the API, which filters.",
+            )
+        )
+    return out
+
+
 def fanout_docs(desc: ResourceDescriptor, schema: pa.Schema, name: str) -> ObjectDocs:
+    """Docs for a scoped list exposed as a function of its path ids."""
     noun = _noun(desc)
-    last = desc.path_params[-1].name
-    llm = (
-        f"{_summary(desc)} The per-row form of the table {_qualified(desc)}: pass {_args(desc)} from columns "
-        f"of another relation (a lateral join) and get every {noun} for each input row, paginated. Rows are "
-        f"fetched concurrently and a repeated id is fetched once; an API error fails the query. Use the "
-        f"table instead when {last} is a constant."
-    )
+    named = _query_arg_names(desc)
+    llm = [
+        f"{_summary(desc)} Returns every {noun} from Cloudflare GET {desc.path}, across all pages, for the "
+        f"given {_args(desc)}. Pass literals, or columns of another relation for a lateral join — one API "
+        "call per input row, fetched concurrently, a repeated id fetched once; an API error fails the query."
+    ]
+    if named:
+        llm.append(
+            f"Named arguments {', '.join(named)} are sent to the API to filter there; any WHERE clause still "
+            "applies to the rows returned."
+        )
+    if extra := _extra_detail(desc):
+        llm.append(extra)
     md = _md(
         _qualified(desc, name),
-        f"{_summary(desc)} Calls Cloudflare GET `{desc.path}` once per input row and returns every {noun} "
-        f"for it: the lateral counterpart of `{_qualified(desc)}`, whose filters need constants. "
-        f"Arguments, in URL order: {_args(desc)} (each is also returned as a column).",
+        f"{_summary(desc)} Returns every {noun} from Cloudflare GET `{desc.path}` for the given path ids, "
+        f"paginated. Arguments, in URL order: {_args(desc)} (each is also returned as a column)."
+        + (f" Optional named arguments sent to the API: {', '.join(named)}." if named else ""),
         [("Endpoint", _endpoint_detail(desc))],
         schema,
         column_table=False,
     )
-    note = f"{comment(desc).rstrip('.')} — one API call per {last.removesuffix('_id')}, for lateral joins."
-    return ObjectDocs(note, llm, md, (fanout_example(desc, name),))
+    return ObjectDocs(comment(desc), " ".join(llm), md, tuple(list_function_examples(desc, name)))
 
 
 def lookup_docs(desc: ResourceDescriptor, schema: pa.Schema) -> ObjectDocs:
