@@ -270,8 +270,18 @@ def column_doc(spec: Spec, prop: Any, col: str, type_name: str) -> str:
     return truncate(doc, 400)
 
 
+#: DuckDB reserved words (``duckdb_keywords()``), unusable as bare argument names.
+SQL_RESERVED = set(
+    "all analyse analyze and any array as asc asymmetric both case cast check collate column constraint "
+    "create default deferrable desc describe distinct do else end except false fetch for foreign from group "
+    "having in initially intersect into lambda lateral leading limit not null offset on only or order pivot "
+    "pivot_longer pivot_wider placing primary qualify references returning select show some summarize "
+    "symmetric table then to trailing true union unique unpivot using variadic when where window with".split()
+)
+
 #: Query parameters a lookup never exposes: paging, and ``format`` (CSV would not parse).
-_ITEM_SKIP_QUERY = CONTROL_PARAMS | {"format"}
+#: ``limit``/``offset`` stay: on a get endpoint they size a report (Radar's top-N), not pages.
+_ITEM_SKIP_QUERY = (CONTROL_PARAMS - {"limit", "offset"}) | {"format"}
 
 
 def item_query_params(spec: Spec, params: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -284,7 +294,9 @@ def item_query_params(spec: Spec, params: list[dict[str, Any]]) -> list[dict[str
         if "." in nm and nm.rsplit(".", 1)[1] in OPERATOR_SUFFIXES:
             continue
         arg = re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", sanitize(nm)).lower()
-        if keyword.iskeyword(arg) or not arg.isidentifier():
+        # A Python keyword can't be a dataclass field, and a SQL reserved word can't be a
+        # named argument (`limit := 10` doesn't parse): both get a trailing underscore.
+        if keyword.iskeyword(arg) or arg in SQL_RESERVED or not arg.isidentifier():
             arg += "_"
         schema = spec.deref(pr.get("schema") or {}, frozenset(), 0) or {}
         is_array = schema.get("type") == "array"
@@ -662,7 +674,7 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
     for schema, group in by_schema.items():
         used: set[str] = set()
         tables: set[str] = set()
-        group.sort(key=lambda d: (d["kind"] == "item", d["path"]))
+        group.sort(key=lambda d: (d["kind"] == "item", d["path"].count("/"), d["path"]))
         for d in group:
             parts = d.pop("_name_parts") or ["item"]
             is_item = d["kind"] == "item"

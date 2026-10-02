@@ -21,11 +21,15 @@
 
 ---
 
+Ask questions of your Cloudflare account in SQL — across every zone and
+product at once — and join the answers with anything else DuckDB can read.
+
 ```sql
--- Every DNS record in every zone, in one query
-SELECT z.name AS zone, r.type, r.name, r.content, r.proxied
+-- Which of my DNS records bypass Cloudflare's proxy, in every zone?
+SELECT z.name AS zone, r.name, r.type, r.content
 FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
-ORDER BY zone, r.type, r.name;
+WHERE r.type IN ('A', 'AAAA', 'CNAME') AND r.proxiable AND NOT r.proxied
+ORDER BY zone, r.name;
 ```
 
 > **Read-only, with your own credentials.** Every query is answered live from
@@ -35,59 +39,422 @@ ORDER BY zone, r.type, r.name;
 > deletes anything in your account. Values from SQL that land in a URL path are
 > percent-encoded, so an id cannot traverse to a different endpoint.
 
-## Run
+## What people use it for
+
+| You want to… | See |
+|---|---|
+| Inventory and audit DNS across every zone, diff it against a source of truth, back it up | [DNS](#dns-across-every-zone) |
+| Catch configuration drift between zones (SSL mode, TLS version, HTTPS redirects, DNSSEC) | [Zone configuration](#catch-configuration-drift-between-zones) |
+| See every certificate, who issued it, and what it covers | [Certificates](#certificates) |
+| Review who has access: members without 2FA, Access apps and their policies, recent changes | [Access review](#access-and-security-review) |
+| Inventory Workers, their custom domains and routes, D1 databases | [Workers & platform](#workers-and-the-developer-platform) |
+| Report on traffic, caching, threats, and Worker errors | [Traffic](#traffic-and-performance) |
+| Research the Internet itself — protocol adoption, top domains, outages, route leaks | [Radar](#internet-research-with-radar) |
+| Keep a history, export to Parquet, or drive it from Python | [Beyond the API](#beyond-the-api-history-exports-and-python) |
+
+## Quick start
+
+You need DuckDB with the `vgi` extension: either **DuckDB 1.5.5** with
+`INSTALL vgi FROM community`, or [Haybarn](https://query.farm) (`uvx haybarn-cli`,
+or `pip install haybarn` for Python), which ships with it. Community builds can
+lag the newest DuckDB release by a little — if `INSTALL` reports a 404, use the
+version above.
 
 ```sql
-INSTALL vgi FROM community; LOAD vgi;
+INSTALL vgi FROM community; LOAD vgi;     -- Haybarn: just LOAD vgi;
 
-ATTACH 'cloudflare' (TYPE vgi,
-  LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-cloudflare vgi-cloudflare');
-
-CREATE SECRET cf (TYPE cloudflare, api_token '<your-api-token>');
-```
-
-`uvx` fetches and caches the worker on first use — there is nothing to install,
-and the working directory doesn't matter. Pin a tag for a deployment, so the
-worker cannot change under you:
-
-```sql
-ATTACH 'cloudflare' (TYPE vgi,
-  LOCATION 'uvx --from git+https://github.com/Query-farm/vgi-cloudflare@v0.1.0 vgi-cloudflare');
-```
-
-The catalog is named `cloudflare`; that is the name you `ATTACH` (an alias with
-`AS cf` works too, but the first argument must be `cloudflare`). Objects live in
-product schemas, so names are three-part: `cloudflare.<schema>.<object>`.
-
-Prefix the `LOCATION` with `launch:` to share one warm worker across queries,
-cursors, and DuckDB processes instead of starting one per connection — the
-catalog has ~2,000 objects, so a cold start costs a couple of seconds:
-
-```sql
 ATTACH 'cloudflare' (TYPE vgi,
   LOCATION 'launch:uvx --from git+https://github.com/Query-farm/vgi-cloudflare vgi-cloudflare');
+
+CREATE SECRET cf (TYPE cloudflare, api_token '<your-api-token>');
+
+SELECT name, status FROM cloudflare.zones.zones;
 ```
 
-From a clone, both entry points carry PEP-723 headers pinning their
-dependencies, so they run with nothing installed:
+- **`uvx`** fetches and caches the worker on first use; nothing to install. Pin a
+  tag for a deployment (`…/vgi-cloudflare@v0.1.0 vgi-cloudflare`) so it can't
+  change under you.
+- **`launch:`** keeps one warm worker shared by every query, cursor, and DuckDB
+  process. Without it each connection starts its own (a couple of seconds to
+  build the ~2,000-object catalog).
+- **The catalog is named `cloudflare`** — that is the name you `ATTACH` (an alias
+  with `AS cf` works too). Objects are `cloudflare.<schema>.<object>`.
+- **The token**: create one at <https://dash.cloudflare.com/profile/api-tokens>.
+  The **"Read all resources"** template covers nearly everything with no write
+  access; objects a token can't reach fail with Cloudflare's own permission
+  error. A legacy Global API Key also works:
+  `CREATE SECRET cf (TYPE cloudflare, api_key '<key>', email '<email>')`.
 
-```bash
-uv run cloudflare_worker.py              # stdio  → LOCATION 'uv run cloudflare_worker.py'
-uv run serve.py --port 8000              # HTTP   → LOCATION 'http://localhost:8000'
+From a clone, `uv run cloudflare_worker.py` (stdio) and `uv run serve.py --port 8000`
+(HTTP, `LOCATION 'http://localhost:8000'`) run with nothing installed — both carry
+PEP-723 headers. This package is not published to PyPI; install it from this
+repository.
+
+## How it fits together
+
+Most Cloudflare data lives under an **account** or a **zone**, so most queries
+start from `cloudflare.accounts.accounts` or `cloudflare.zones.zones` and fan out:
+
+- **Tables** (plural: `cloudflare.dns.records`) need their scope id as a constant —
+  `WHERE zone_id = '…'`.
+- **Fan-out functions** (`cloudflare.dns.records_by_zone(z.id)`) take the id from
+  each row of another query, so one statement covers every zone.
+- **Lookup functions** (singular: `cloudflare.dns.record(zone_id, id)`) fetch one
+  object by id — an unknown id is no row, not an error.
+
+The recipes below use all three. Every one of them was run against a real
+account; the sample outputs are illustrative.
+
+## DNS across every zone
+
+**How many records of each type do I have, and how many are proxied?**
+
+```sql
+SELECT r.type, count(*) AS records, count(*) FILTER (WHERE r.proxied) AS proxied
+FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+GROUP BY r.type ORDER BY records DESC;
 ```
 
-**This package is not published to PyPI** — install it from this repository.
-Its dependencies (`vgi-python`, `vgi-rpc`, `httpx`, `pyarrow`) are all published.
+```text
+┌───────┬─────────┬─────────┐
+│ type  │ records │ proxied │
+├───────┼─────────┼─────────┤
+│ CNAME │      39 │      20 │
+│ AAAA  │      21 │      21 │
+│ TXT   │      14 │       0 │
+│ MX    │       4 │       0 │
+└───────┴─────────┴─────────┘
+```
 
-### The API token
+**Where does a hostname live?** Search every zone at once — handy when nobody
+remembers which zone owns `www.something`:
 
-Create one at <https://dash.cloudflare.com/profile/api-tokens>. The **"Read all
-resources"** template covers every schema with no write access; a narrower token
-works too — objects it can't reach fail with Cloudflare's own permission error.
-The legacy Global API Key is also accepted:
-`CREATE SECRET cf (TYPE cloudflare, api_key '<key>', email '<email>')`.
+```sql
+SELECT z.name AS zone, r.name, r.type, r.content, r.ttl
+FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+WHERE r.name LIKE 'www.%'
+ORDER BY zone, r.name;
+```
 
-### Developing
+**Does DNS match what we think it should be?** Keep the intended records in a
+CSV (or a spreadsheet, or another database) and diff them against live DNS:
+
+```sql
+CREATE TEMP TABLE expected(name VARCHAR, type VARCHAR, content VARCHAR);
+INSERT INTO expected VALUES
+  ('example.com',     'CNAME', 'example.pages.dev'),
+  ('www.example.com', 'CNAME', 'example.pages.dev'),
+  ('api.example.com', 'A',     '192.0.2.10');
+-- or: CREATE TEMP TABLE expected AS FROM 'expected_dns.csv';
+
+CREATE TEMP TABLE actual AS
+SELECT r.name, r.type, r.content
+FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+WHERE z.name = 'example.com';
+
+SELECT 'missing' AS problem, * FROM (FROM expected EXCEPT FROM actual)
+UNION ALL
+SELECT 'unexpected', * FROM (
+  SELECT * FROM actual WHERE type IN ('A', 'AAAA', 'CNAME') EXCEPT FROM expected)
+ORDER BY problem, name;
+```
+
+```text
+┌────────────┬─────────────────────┬──────┬────────────────┐
+│  problem   │        name         │ type │    content     │
+├────────────┼─────────────────────┼──────┼────────────────┤
+│ missing    │ api.example.com     │ A    │ 192.0.2.10     │
+│ unexpected │ old.example.com     │ A    │ 198.51.100.7   │
+└────────────┴─────────────────────┴──────┴────────────────┘
+```
+
+**Back it all up** — one Parquet file of every record in every zone:
+
+```sql
+COPY (
+  SELECT z.name AS zone, r.*
+  FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+) TO 'dns-backup.parquet' (FORMAT parquet);
+```
+
+## Catch configuration drift between zones
+
+**Are all my zones configured the same way?** One row per zone, one column per
+setting:
+
+```sql
+SELECT z.name AS zone,
+       max(s.value) FILTER (WHERE s.id = 'ssl')              AS ssl_mode,
+       max(s.value) FILTER (WHERE s.id = 'min_tls_version')  AS min_tls,
+       max(s.value) FILTER (WHERE s.id = 'always_use_https') AS always_https,
+       max(s.value) FILTER (WHERE s.id = 'security_level')   AS security_level
+FROM cloudflare.zones.zones z, cloudflare.zones.settings_by_zone(z.id) s
+GROUP BY zone ORDER BY zone;
+```
+
+```text
+┌──────────────────┬──────────┬─────────┬──────────────┬────────────────┐
+│       zone       │ ssl_mode │ min_tls │ always_https │ security_level │
+├──────────────────┼──────────┼─────────┼──────────────┼────────────────┤
+│ example.com      │ full     │ 1.2     │ on           │ medium         │
+│ example.net      │ full     │ 1.0     │ off          │ medium         │
+│ example.org      │ flexible │ 1.0     │ off          │ high           │
+└──────────────────┴──────────┴─────────┴──────────────┴────────────────┘
+```
+
+**Which zones don't have DNSSEC on?**
+
+```sql
+SELECT z.name AS zone, d.status
+FROM cloudflare.zones.zones z, cloudflare.dns.dnssec(z.id) d
+WHERE d.status <> 'active'
+ORDER BY zone;
+```
+
+**What page rules are still in use?**
+
+```sql
+SELECT z.name AS zone, p.priority, p.status, p.targets, p.actions
+FROM cloudflare.zones.zones z, cloudflare.zones.pagerules_by_zone(z.id) p
+ORDER BY zone, p.priority;
+```
+
+## Certificates
+
+**Every certificate pack, who issued it, and which hostnames it covers:**
+
+```sql
+SELECT z.name AS zone, c.type, c.status, c.certificate_authority, c.hosts, c.validity_days
+FROM cloudflare.zones.zones z, cloudflare.ssl.certificate_packs_by_zone(z.id) c
+ORDER BY zone, c.type;
+```
+
+Filter on `c.status <> 'active'` to see anything pending or failing validation,
+or unnest `c.hosts` to find which pack covers a given hostname.
+
+## Access and security review
+
+**Who on the account doesn't have two-factor authentication?**
+
+```sql
+SELECT m.email, m.status, m.two_factor_enabled
+FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m
+WHERE NOT m.two_factor_enabled
+ORDER BY m.email;
+```
+
+**What do my Zero Trust Access applications let through?** Fan out twice —
+accounts → apps → each app's policies:
+
+```sql
+SELECT app.name AS app, app.domain, p.name AS policy, p.decision
+FROM cloudflare.accounts.accounts a,
+     cloudflare.access.apps_by_account(a.id) app,
+     cloudflare.access.apps_policies_by_app(a.id, app.id) p
+ORDER BY app, policy;
+```
+
+**Are any Gateway rules disabled?**
+
+```sql
+SELECT r.name, r.action, r.enabled, r.precedence
+FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.rules_by_account(a.id) r
+WHERE NOT r.enabled
+ORDER BY r.precedence;
+```
+
+**What changed recently, and how?** The account audit log, summarized by day:
+
+```sql
+SELECT l."when"::DATE AS day, l.action ->> 'type' AS action, count(*) AS changes
+FROM cloudflare.accounts.accounts a, cloudflare.logs.audit_logs_by_account(a.id) l
+GROUP BY ALL ORDER BY day DESC, changes DESC;
+```
+
+```text
+┌────────────┬─────────────────┬─────────┐
+│    day     │     action      │ changes │
+├────────────┼─────────────────┼─────────┤
+│ 2026-10-01 │ script_deploy   │      18 │
+│ 2026-10-01 │ patch_settings  │      18 │
+│ 2026-10-01 │ tail_logs_start │       6 │
+└────────────┴─────────────────┴─────────┘
+```
+
+## Workers and the developer platform
+
+**Which Workers changed most recently, and which are getting stale?**
+
+```sql
+SELECT s.id AS script, s.modified_on::DATE AS modified, s.compatibility_date, s.has_assets
+FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s
+ORDER BY s.modified_on DESC;
+```
+
+**Which hostname serves which Worker?** Custom domains, and zone routes:
+
+```sql
+SELECT d.hostname, d.service, d.environment
+FROM cloudflare.accounts.accounts a, cloudflare.workers.domains_by_account(a.id) d
+ORDER BY d.hostname;
+
+SELECT z.name AS zone, rt.pattern, rt.script
+FROM cloudflare.zones.zones z, cloudflare.workers.routes_by_zone(z.id) rt
+ORDER BY zone, rt.pattern;
+```
+
+**What D1 databases exist?**
+
+```sql
+SELECT d.name, d.version, d.created_at::DATE AS created
+FROM cloudflare.accounts.accounts a, cloudflare.storage.database_by_account(a.id) d
+ORDER BY d.name;
+```
+
+## Traffic and performance
+
+The analytics tables read Cloudflare's GraphQL Analytics API. They take a
+`zone_id` (or `account_id`), and a time range in `WHERE` becomes the API's time
+filter.
+
+**Daily traffic, cache hit rate, and threats for a zone:**
+
+```sql
+SELECT date, requests,
+       round(100.0 * cached_requests / requests, 1) AS cache_hit_pct,
+       threats, unique_visitors
+FROM cloudflare.analytics.http_requests_daily
+WHERE zone_id = '<zone-id>' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-07'
+ORDER BY date;
+```
+
+**The busiest hours of the last day:**
+
+```sql
+SELECT datetime, requests
+FROM cloudflare.analytics.http_requests_hourly
+WHERE zone_id = '<zone-id>' AND datetime >= now() - INTERVAL 1 DAY
+ORDER BY requests DESC LIMIT 5;
+```
+
+**Where is traffic coming from right now?**
+
+```sql
+SELECT client_country, sum(count) AS requests
+FROM cloudflare.analytics.http_requests_adaptive
+WHERE zone_id = '<zone-id>' AND datetime >= now() - INTERVAL 6 HOUR
+GROUP BY client_country ORDER BY requests DESC LIMIT 5;
+```
+
+**Which Workers are throwing errors?**
+
+```sql
+SELECT script_name, sum(requests) AS requests, sum(errors) AS errors
+FROM cloudflare.analytics.workers_invocations
+WHERE account_id = '<account-id>' AND datetime >= now() - INTERVAL 1 HOUR
+GROUP BY script_name ORDER BY errors DESC, requests DESC;
+```
+
+## Internet research with Radar
+
+Radar describes the Internet, not your account — no ids needed (a token is).
+Reports default to the last 7 days; `date_range`, `location`, `asn`, and each
+report's other parameters are named arguments. Results come back as JSON,
+which DuckDB unpacks.
+
+**Where is HTTP/3 adoption highest?**
+
+```sql
+SELECT t.value ->> 'clientCountryName' AS country,
+       round((t.value ->> 'value')::DOUBLE, 1) AS http3_pct
+FROM cloudflare.radar.http_version_http_version('HTTPv3', date_range := '28d') v,
+     unnest(json_extract(v.top_0, '$[*]')) AS t(value)
+ORDER BY http3_pct DESC LIMIT 5;
+```
+
+**What are the most popular domains in the US?**
+
+```sql
+SELECT (d.value ->> 'rank')::INT AS rank, d.value ->> 'domain' AS domain
+FROM cloudflare.radar.top(location := 'US', limit_ := 10) r,
+     unnest(json_extract(r.top_0, '$[*]')) AS d(value)
+ORDER BY rank;
+```
+
+**What Internet outages has Radar seen this month?**
+
+```sql
+SELECT o.value ->> 'startDate' AS started, o.value ->> 'description' AS what
+FROM cloudflare.radar.outages(date_range := '28d') r,
+     unnest(json_extract(r.annotations, '$[*]')) AS o(value)
+ORDER BY started DESC LIMIT 5;
+```
+
+**Any BGP route leaks in the last week?**
+
+```sql
+SELECT e.value ->> 'detected_ts' AS detected, e.value ->> 'leak_asn' AS leak_asn,
+       e.value ->> 'leak_count' AS prefixes
+FROM cloudflare.radar.leaks_events(date_range := '7d') r,
+     unnest(json_extract(r.events, '$[*]')) AS e(value)
+ORDER BY detected DESC LIMIT 5;
+```
+
+## Beyond the API: history, exports, and Python
+
+The API only knows *now*. DuckDB can remember. **Snapshot**, and later ask what
+changed:
+
+```sql
+ATTACH 'cloudflare-history.duckdb' AS history;
+CREATE TABLE IF NOT EXISTS history.dns AS
+SELECT current_date AS taken, z.name AS zone, r.name, r.type, r.content, r.proxied
+FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+LIMIT 0;
+
+INSERT INTO history.dns
+SELECT current_date, z.name, r.name, r.type, r.content, r.proxied
+FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r;
+
+-- records that differ between the two most recent snapshots
+WITH days AS (SELECT DISTINCT taken FROM history.dns ORDER BY taken DESC LIMIT 2),
+     cur AS (SELECT * EXCLUDE (taken) FROM history.dns WHERE taken = (SELECT max(taken) FROM days)),
+     prev AS (SELECT * EXCLUDE (taken) FROM history.dns WHERE taken = (SELECT min(taken) FROM days))
+SELECT 'added' AS change, * FROM (FROM cur EXCEPT FROM prev)
+UNION ALL
+SELECT 'removed', * FROM (FROM prev EXCEPT FROM cur);
+```
+
+Run the `INSERT` from cron and you have DNS history Cloudflare doesn't keep for
+you. The same pattern works for settings, certificates, members, or Workers.
+
+**From Python** (pandas, notebooks, scheduled jobs) — with Haybarn's Python
+package:
+
+```python
+import os
+import haybarn
+
+con = haybarn.connect()
+con.sql("LOAD vgi")
+con.sql("""ATTACH 'cloudflare' (TYPE vgi,
+  LOCATION 'launch:uvx --from git+https://github.com/Query-farm/vgi-cloudflare vgi-cloudflare')""")
+con.sql(f"CREATE SECRET cf (TYPE cloudflare, api_token '{os.environ['CLOUDFLARE_API_TOKEN']}')")
+
+df = con.sql("""
+  SELECT z.name AS zone, r.type, count(*) AS records
+  FROM cloudflare.zones.zones z, cloudflare.dns.records_by_zone(z.id) r
+  GROUP BY ALL ORDER BY zone, records DESC
+""").df()
+```
+
+**With an AI assistant.** Every table and function documents itself — what it
+returns, which filters it needs, how to call it, with examples — in the catalog
+metadata agents read (`vgi.doc_llm`). An assistant connected to DuckDB can go
+from *"which of my zones still allow TLS 1.0?"* to the settings query above on
+its own; the [agent-acceptance suite](#catalog-metadata) measures exactly that.
+
+## Developing
 
 ```bash
 git clone https://github.com/Query-farm/vgi-cloudflare
@@ -101,36 +468,6 @@ make lint                # ruff check + format --check
 To develop against local checkouts of `vgi-python` / `vgi-rpc`, install them
 over the top rather than editing `pyproject.toml` (a path source would break the
 clone for everyone else): `uv pip install -e ../vgi-python -e ../vgi-rpc`.
-
-## A tour
-
-```sql
--- Your zones, with their status and nameservers
-SELECT name, status, name_servers FROM cloudflare.zones.zones ORDER BY name;
-
--- A table needs its scope id as a constant ...
-SELECT type, count(*) AS n
-FROM cloudflare.dns.records WHERE zone_id = '<zone-id>'
-GROUP BY type ORDER BY n DESC;
-
--- ... or drive it per row from another table with the *_by_<parent> fan-out
-SELECT a.name AS account, m.email, m.status
-FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m;
-
--- Lookups fetch one object by id; an unknown id is no row, not an error
-SELECT t.zone_id, z.name, z.status
-FROM (VALUES ('<zone-id>'), ('not-a-zone')) t(zone_id)
-LEFT JOIN LATERAL cloudflare.zones.zone(t.zone_id) z ON true;
-
--- Daily traffic for a zone; the date range in WHERE becomes the API's time filter
-SELECT date, requests, cached_requests, threats
-FROM cloudflare.analytics.http_requests_daily
-WHERE zone_id = '<zone-id>' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-30'
-ORDER BY date;
-
--- Radar: Internet-wide trends, no account needed. Defaults to the last 7 days.
-SELECT summary_0 FROM cloudflare.radar.http_versions(date_range := '28d', location := 'US');
-```
 
 ## Surface
 

@@ -118,7 +118,7 @@ tasks:
       SELECT json_extract_string(top_0, '$[0].clientCountryName') AS country_name FROM cloudflare.radar.locations_bot_class_bot_class('LIKELY_AUTOMATED')
   - name: "radar_a_dns_udp_share"
     reference_sql: |
-      SELECT round((summary_0->>'UDP')::DOUBLE, 0) AS udp_pct FROM cloudflare.radar.dns_summary_protocol()
+      SELECT round((summary_0->>'UDP')::DOUBLE, 0) AS udp_pct FROM cloudflare.radar.summary_protocol()
   - name: "radar_a_dns_cache_hit"
     reference_sql: |
       SELECT round((summary_0->>'POSITIVE')::DOUBLE, 0) AS cache_hit_pct FROM cloudflare.radar.cache_hit()
@@ -155,10 +155,10 @@ tasks:
       SELECT round((summary_0->>'IPv6')::DOUBLE, 0) AS ipv6_pct FROM cloudflare.radar.ip_versions()
   - name: "radar_a_as112_protocol_top"
     reference_sql: |
-      SELECT k AS protocol FROM (SELECT e.key AS k, e.value::DOUBLE AS v FROM cloudflare.radar.as112_summary_dimension('PROTOCOL'), unnest(map_entries(summary_0::JSON::MAP(VARCHAR, VARCHAR))) AS t(e)) ORDER BY v DESC LIMIT 1
+      SELECT k AS protocol FROM (SELECT e.key AS k, e.value::DOUBLE AS v FROM cloudflare.radar.summary_dimension('PROTOCOL'), unnest(map_entries(summary_0::JSON::MAP(VARCHAR, VARCHAR))) AS t(e)) ORDER BY v DESC LIMIT 1
   - name: "radar_a_as112_querytype_timeseries"
     reference_sql: |
-      SELECT k AS query_type FROM (WITH m AS (SELECT serie_0::JSON::MAP(VARCHAR, VARCHAR[]) AS mm FROM cloudflare.radar.as112_timeseries_groups_dimension('QUERY_TYPE')) SELECT k, v::DOUBLE AS v FROM m, unnest(map_keys(mm)) AS a(k), unnest(mm[k]) AS b(v) WHERE k <> 'timestamps') GROUP BY k ORDER BY avg(v) DESC LIMIT 1
+      SELECT k AS query_type FROM (WITH m AS (SELECT serie_0::JSON::MAP(VARCHAR, VARCHAR[]) AS mm FROM cloudflare.radar.timeseries_groups_dimension('QUERY_TYPE')) SELECT k, v::DOUBLE AS v FROM m, unnest(map_keys(mm)) AS a(k), unnest(mm[k]) AS b(v) WHERE k <> 'timestamps') GROUP BY k ORDER BY avg(v) DESC LIMIT 1
   - name: "radar_a_as112_dnssec_top_country"
     reference_sql: |
       SELECT json_extract_string(top_0, '$[0].clientCountryName') AS country_name FROM cloudflare.radar.dnssec_dnssec('SUPPORTED')
@@ -215,7 +215,7 @@ tasks:
       SELECT k AS status FROM (WITH m AS (SELECT serie_0::JSON::MAP(VARCHAR, VARCHAR[]) AS mm FROM cloudflare.radar.leaked_credential_checks_timeseries_groups_dimension('COMPROMISED')) SELECT k, v::DOUBLE AS v FROM m, unnest(map_keys(mm)) AS a(k), unnest(mm[k]) AS b(v) WHERE k <> 'timestamps') GROUP BY k ORDER BY avg(v) DESC LIMIT 1
   - name: "radar_a_netflows_http_share"
     reference_sql: |
-      SELECT round((summary_0->>'HTTP')::DOUBLE, 0) AS http_pct FROM cloudflare.radar.netflows_summary()
+      SELECT round((summary_0->>'HTTP')::DOUBLE, 0) AS http_pct FROM cloudflare.radar.summary()
   - name: "radar_a_netflows_top_location"
     reference_sql: |
       SELECT k AS location FROM (SELECT e.key AS k, e.value::DOUBLE AS v FROM cloudflare.radar.netflows_summary_dimension('LOCATION'), unnest(map_entries(summary_0::JSON::MAP(VARCHAR, VARCHAR))) AS t(e)) WHERE k <> 'other' ORDER BY v DESC LIMIT 1
@@ -240,13 +240,13 @@ tasks:
       ORDER BY (r.e->'estimatedUsers'->>'estimatedUsers')::BIGINT DESC LIMIT 3
   - name: "radar_a_pt_location_info"
     reference_sql: |
-      SELECT r.e->>'region' AS region, r.e->>'subregion' AS subregion FROM cloudflare.radar.entities_locations(location := 'PT'), unnest(from_json(locations, '["JSON"]')) AS r(e)
+      SELECT r.e->>'region' AS region, r.e->>'subregion' AS subregion FROM cloudflare.radar.locations(location := 'PT'), unnest(from_json(locations, '["JSON"]')) AS r(e)
   - name: "radar_a_ip_1111_info"
     reference_sql: |
-      SELECT (ip->>'asn')::INTEGER AS asn, ip->>'asnOrgName' AS asn_org_name, ip->>'locationName' AS location_name FROM cloudflare.radar.entities_ip(ip := '1.1.1.1')
+      SELECT (ip->>'asn')::INTEGER AS asn, ip->>'asnOrgName' AS asn_org_name, ip->>'locationName' AS location_name FROM cloudflare.radar.ip(ip := '1.1.1.1')
   - name: "radar_a_ip_8888_asn"
     reference_sql: |
-      SELECT (asn->>'asn')::INTEGER AS asn, asn->>'countryName' AS country_name FROM cloudflare.radar.ip(ip := '8.8.8.8')
+      SELECT (asn->>'asn')::INTEGER AS asn, asn->>'countryName' AS country_name FROM cloudflare.radar.asns_ip(ip := '8.8.8.8')
   - name: "radar_a_search_portugal_country"
     reference_sql: |
       SELECT r.e->>'name' AS name, r.e->>'code' AS code FROM cloudflare.radar.global(query := 'portugal'), unnest(from_json(search, '["JSON"]')) AS r(e) WHERE r.e->>'type' = 'country'
@@ -262,7 +262,7 @@ tasks:
       SELECT row_number() OVER (ORDER BY avg(v::DOUBLE)) AS rank, k AS service FROM m, unnest(map_keys(mm)) AS a(k), unnest(mm[k]) AS b(v) WHERE k <> 'timestamps' GROUP BY k ORDER BY rank LIMIT 2
   - name: "radar_a_pt_ases_by_ipv4"
     reference_sql: |
-      SELECT (r.e->>'asn')::INTEGER AS asn, (r.e->>'v4_24s')::BIGINT AS v4_24s FROM cloudflare.radar.ases(country := 'PT'), unnest(from_json(asns, '["JSON"]')) AS r(e) ORDER BY v4_24s DESC LIMIT 1
+      SELECT (r.e->>'asn')::INTEGER AS asn, (r.e->>'v4_24s')::BIGINT AS v4_24s FROM cloudflare.radar.ips_top_ases(country := 'PT'), unnest(from_json(asns, '["JSON"]')) AS r(e) ORDER BY v4_24s DESC LIMIT 1
   - name: "radar_a_botnet_feed_20260901"
     reference_sql: |
       SELECT json_extract_string(ases, '$[0].asn')::INTEGER AS asn, json_extract_string(ases, '$[0].name') AS as_name, json_extract_string(ases, '$[0].country') AS country FROM cloudflare.radar.botnet_threat_feed(date := '2026-09-01')
@@ -278,7 +278,7 @@ tasks:
       SELECT json_extract_string(events, '$[0].leak_asn')::INTEGER AS leak_asn, json_extract_string(events, '$[0].prefix_count')::INTEGER AS prefix_count FROM cloudflare.radar.leaks_events(event_id := '629767', date_range := '52w')
   - name: "radar_a_outage_locations_52w"
     reference_sql: |
-      SELECT json_extract_string(annotations, '$[0].clientCountryName') AS country_name, json_extract_string(annotations, '$[0].value')::INTEGER AS outages FROM cloudflare.radar.locations(date_range := '52w')
+      SELECT json_extract_string(annotations, '$[0].clientCountryName') AS country_name, json_extract_string(annotations, '$[0].value')::INTEGER AS outages FROM cloudflare.radar.outages_locations(date_range := '52w')
   - name: "radar_a_iqi_pt_latency"
     reference_sql: |
       SELECT round((summary_0->>'p50')::DOUBLE, 0) AS p50_latency_ms FROM cloudflare.radar.iqi_summary(metric := 'LATENCY', location := 'PT')
@@ -371,10 +371,10 @@ tasks:
       SELECT (t->>'rank')::INTEGER AS rank, t->>'targetCountryAlpha2' AS country_code, round((t->>'value')::DOUBLE,1) AS share_pct FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.target(date_range := '12w')) ORDER BY rank
   - name: "radar_b_l3_protocol_mix"
     reference_sql: |
-      SELECT e.key AS protocol, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.summary_protocol(date_range := '12w')) ORDER BY share_pct DESC, protocol
+      SELECT e.key AS protocol, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.layer3_summary_protocol(date_range := '12w')) ORDER BY share_pct DESC, protocol
   - name: "radar_b_l3_ip_version_mix"
     reference_sql: |
-      SELECT e.key AS ip_version, round(e.value,2) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.summary_ip_versions(date_range := '12w')) ORDER BY share_pct DESC, ip_version
+      SELECT e.key AS ip_version, round(e.value,2) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.ip_versions(date_range := '12w')) ORDER BY share_pct DESC, ip_version
   - name: "radar_b_l3_top_vectors"
     reference_sql: |
       SELECT e.key AS vector, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.vector(date_range := '12w')) WHERE e.key <> 'other' ORDER BY share_pct DESC, vector LIMIT 3
@@ -440,7 +440,7 @@ tasks:
       SELECT e.key AS threat_category, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.threat_category(date_range := '12w')) ORDER BY share_pct DESC, threat_category LIMIT 5
   - name: "radar_b_email_top_tlds"
     reference_sql: |
-      SELECT row_number() OVER (ORDER BY (t->>'value')::DOUBLE DESC) AS rank, t->>'name' AS tld FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.tlds(date_range := '12w')) ORDER BY rank
+      SELECT row_number() OVER (ORDER BY (t->>'value')::DOUBLE DESC) AS rank, t->>'name' AS tld FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.top_tlds(date_range := '12w')) ORDER BY rank
   - name: "radar_b_email_spam_tlds"
     reference_sql: |
       SELECT t->>'name' AS tld, round((t->>'value')::DOUBLE,1) AS spam_pct FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.spam_spam('SPAM', date_range := '52w')) ORDER BY spam_pct DESC, tld
@@ -449,7 +449,7 @@ tasks:
       SELECT t->>'name' AS tld, round((t->>'value')::DOUBLE,1) AS spoof_pct FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.spoof_spoof('SPOOF', date_range := '52w')) ORDER BY spoof_pct DESC, tld
   - name: "radar_b_ai_crawl_purpose"
     reference_sql: |
-      SELECT e.key AS crawl_purpose, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.summary_dimension('CRAWL_PURPOSE', date_range := '12w')) ORDER BY share_pct DESC, crawl_purpose
+      SELECT e.key AS crawl_purpose, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.ai_bots_summary_dimension('CRAWL_PURPOSE', date_range := '12w')) ORDER BY share_pct DESC, crawl_purpose
   - name: "radar_b_ai_bot_user_agents"
     reference_sql: |
       SELECT e.key AS user_agent, round(e.value,1) AS share_pct FROM (SELECT unnest(map_entries(CAST(summary_0::JSON AS MAP(VARCHAR,DOUBLE)))) AS e FROM cloudflare.radar.user_agent(date_range := '12w')) WHERE e.key <> 'other' ORDER BY share_pct DESC, user_agent LIMIT 5
@@ -470,13 +470,13 @@ tasks:
       SELECT row_number() OVER (ORDER BY (t->>'value')::DOUBLE DESC) AS rank, t->>'botName' AS bot_name, t->>'botOwner' AS bot_owner, t->>'botCategory' AS bot_category FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.top_bots(date_range := '12w')) ORDER BY rank
   - name: "radar_b_ranking_top_domains_de"
     reference_sql: |
-      SELECT (t->>'rank')::INTEGER AS rank, t->>'domain' AS domain FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.ranking_top(location := 'DE')) ORDER BY rank
+      SELECT (t->>'rank')::INTEGER AS rank, t->>'domain' AS domain FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.top(location := 'DE')) ORDER BY rank
   - name: "radar_b_top_internet_services"
     reference_sql: |
-      SELECT (t->>'rank')::INTEGER AS rank, t->>'service' AS service FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.top()) ORDER BY rank
+      SELECT (t->>'rank')::INTEGER AS rank, t->>'service' AS service FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.internet_services_top()) ORDER BY rank
   - name: "radar_b_ranking_cloudflare_best"
     reference_sql: |
-      SELECT list_min(r) AS best_rank, list_max(r) AS worst_rank FROM (SELECT CAST(serie_0::JSON->'cloudflare.com' AS INTEGER[]) AS r FROM cloudflare.radar.ranking_timeseries_groups(domains := 'cloudflare.com', date_range := '12w'))
+      SELECT list_min(r) AS best_rank, list_max(r) AS worst_rank FROM (SELECT CAST(serie_0::JSON->'cloudflare.com' AS INTEGER[]) AS r FROM cloudflare.radar.timeseries_groups(domains := 'cloudflare.com', date_range := '12w'))
   - name: "radar_b_speed_summary_jp"
     reference_sql: |
       SELECT round(json_extract_string(summary_0,'$.bandwidthDownload')::DOUBLE,0) AS download_mbps, round(json_extract_string(summary_0,'$.bandwidthUpload')::DOUBLE,0) AS upload_mbps, round(json_extract_string(summary_0,'$.latencyIdle')::DOUBLE,0) AS latency_idle_ms FROM cloudflare.radar.speed_summary(location := 'JP')
@@ -488,19 +488,19 @@ tasks:
       SELECT row_number() OVER (ORDER BY (t->>'bandwidthDownload')::DOUBLE DESC) AS rank, (t->>'clientASN')::INTEGER AS asn, t->>'clientASName' AS as_name FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.speed_top_ases(location := 'US')) ORDER BY rank
   - name: "radar_b_bgp_top_ases_by_prefixes_de"
     reference_sql: |
-      SELECT (a->>'asn')::INTEGER AS asn, a->>'name' AS as_name, (a->>'pfxs_count')::INTEGER AS prefix_count FROM (SELECT unnest(CAST(asns::JSON AS JSON[])) AS a FROM cloudflare.radar.prefixes(country := 'DE')) ORDER BY prefix_count DESC, asn
+      SELECT (a->>'asn')::INTEGER AS asn, a->>'name' AS as_name, (a->>'pfxs_count')::INTEGER AS prefix_count FROM (SELECT unnest(CAST(asns::JSON AS JSON[])) AS a FROM cloudflare.radar.ases_prefixes(country := 'DE')) ORDER BY prefix_count DESC, asn
   - name: "radar_b_bgp_routes_stats_nz"
     reference_sql: |
       SELECT (stats::JSON->>'routes_total')::BIGINT AS routes_total, (stats::JSON->>'routes_valid')::BIGINT AS routes_valid, (stats::JSON->>'routes_invalid')::BIGINT AS routes_invalid, (stats::JSON->>'routes_unknown')::BIGINT AS routes_unknown, (stats::JSON->>'distinct_origins')::BIGINT AS distinct_origins FROM cloudflare.radar.stats(location := 'NZ')
   - name: "radar_b_bgp_nz_ases_by_prefixes"
     reference_sql: |
-      SELECT (a->>'asn')::INTEGER AS asn, a->>'name' AS as_name, (a->>'pfxsCount')::INTEGER AS prefix_count FROM (SELECT unnest(CAST(asns::JSON AS JSON[])) AS a FROM cloudflare.radar.routes_ases(location := 'NZ', sort_by := 'pfxs', sort_order := 'DESC')) ORDER BY prefix_count DESC, asn
+      SELECT (a->>'asn')::INTEGER AS asn, a->>'name' AS as_name, (a->>'pfxsCount')::INTEGER AS prefix_count FROM (SELECT unnest(CAST(asns::JSON AS JSON[])) AS a FROM cloudflare.radar.ases(location := 'NZ', sort_by := 'pfxs', sort_order := 'DESC')) ORDER BY prefix_count DESC, asn
   - name: "radar_b_bgp_top_update_ases"
     reference_sql: |
       SELECT row_number() OVER (ORDER BY (t->>'value')::DOUBLE DESC) AS rank, (t->>'asn')::INTEGER AS asn, t->>'ASName' AS as_name FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.top_ases(date_range := '12w')) ORDER BY rank
   - name: "radar_b_bgp_top_update_prefixes"
     reference_sql: |
-      SELECT row_number() OVER (ORDER BY (t->>'value')::DOUBLE DESC) AS rank, t->>'prefix' AS prefix FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.top_prefixes(date_range := '12w')) ORDER BY rank
+      SELECT row_number() OVER (ORDER BY (t->>'value')::DOUBLE DESC) AS rank, t->>'prefix' AS prefix FROM (SELECT unnest(CAST(top_0::JSON AS JSON[])) AS t FROM cloudflare.radar.prefixes(date_range := '12w')) ORDER BY rank
   - name: "radar_b_aspa_providers_as80"
     reference_sql: |
       SELECT p::INTEGER AS provider_asn, json_extract_string(asnInfo, '$."' || p::VARCHAR || '".name') AS provider_name FROM (SELECT unnest(CAST(json_extract(aspaObjects,'$[0].providers') AS INTEGER[])) AS p, asnInfo FROM cloudflare.radar.snapshot(customer_asn := '80', include_asn_info := 'true')) ORDER BY provider_asn
@@ -512,7 +512,7 @@ tasks:
       SELECT round(v[1],4) AS first_value, round(v[-1],4) AS last_value, len(v) AS num_points FROM (SELECT CAST(serie_0::JSON->'values' AS DOUBLE[]) AS v FROM cloudflare.radar.roas_timeseries(date_start := '2025-01-01T00:00:00Z', date_end := '2025-02-01T00:00:00Z'))
   - name: "radar_b_tld_dev_manager"
     reference_sql: |
-      SELECT t->>'tld' AS tld, t->>'type' AS tld_type, t->>'manager' AS manager FROM (SELECT unnest(CAST(tlds::JSON AS JSON[])) AS t FROM cloudflare.radar.tlds_2(tld := 'dev')) WHERE t->>'tld' = 'dev'
+      SELECT t->>'tld' AS tld, t->>'type' AS tld_type, t->>'manager' AS manager FROM (SELECT unnest(CAST(tlds::JSON AS JSON[])) AS t FROM cloudflare.radar.tlds(tld := 'dev')) WHERE t->>'tld' = 'dev'
   - name: "radar_b_cloud_origins_region_counts"
     reference_sql: |
       SELECT o->>'slug' AS provider, json_array_length(o->'regions')::INTEGER AS region_count FROM (SELECT unnest(CAST(origins::JSON AS JSON[])) AS o FROM cloudflare.radar.origins()) ORDER BY region_count DESC, provider
@@ -549,9 +549,6 @@ tasks:
   - name: "radar_b_ts_post_quantum"
     reference_sql: |
       SELECT e.key AS status, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_post_quantum(date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_share_pct DESC, status
-  - name: "radar_b_ts_ip_versions"
-    reference_sql: |
-      SELECT e.key AS ip_version, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_ip_versions(date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_share_pct DESC, ip_version
   - name: "radar_b_ts_bitrate"
     reference_sql: |
       SELECT e.key AS bitrate_bucket, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_bitrate(date_range := '12w')) WHERE e.key <> 'timestamps' AND e.key <> 'other' ORDER BY avg_share_pct DESC, bitrate_bucket LIMIT 3
@@ -671,7 +668,7 @@ tasks:
       SELECT e.key AS ip_version, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.routing_timeseries_groups_dimension('IP_VERSION', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_share_pct DESC, ip_version
   - name: "radar_b_tsd_ai_bots"
     reference_sql: |
-      SELECT e.key AS crawl_purpose, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.timeseries_groups_dimension('CRAWL_PURPOSE', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_share_pct DESC, crawl_purpose
+      SELECT e.key AS crawl_purpose, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_share_pct FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.ai_bots_timeseries_groups_dimension('CRAWL_PURPOSE', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_share_pct DESC, crawl_purpose
   - name: "radar_b_tsd_origin"
     reference_sql: |
       SELECT e.key AS key_agreement, round(list_avg(list_transform(e.value, lambda x: x::DOUBLE)),1) AS avg_value FROM (SELECT unnest(map_entries(CAST(serie_0::JSON AS MAP(VARCHAR,VARCHAR[])))) AS e FROM cloudflare.radar.origin_timeseries_groups_dimension('KEY_AGREEMENT', date_range := '12w')) WHERE e.key <> 'timestamps' ORDER BY avg_value DESC, key_agreement
@@ -692,16 +689,16 @@ tasks:
       SELECT count(*) FILTER (WHERE type = 'self_hosted') AS self_hosted_apps, count(*) FILTER (WHERE type = 'self_hosted' AND NOT app_launcher_visible) AS hidden_from_launcher FROM cloudflare.access.apps WHERE account_id = 'bb68a133a66d26a310231495b13479a1'
   - name: "idsec_app_policies"
     reference_sql: |
-      SELECT p.name AS app_name, q.name AS policy_name, q.decision, json_array_length(q.include) AS include_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.policies_by_app(a.id, p.id) q ORDER BY app_name, policy_name
+      SELECT p.name AS app_name, q.name AS policy_name, q.decision, json_array_length(q.include) AS include_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q ORDER BY app_name, policy_name
   - name: "idsec_app_policy_detail"
     reference_sql: |
-      SELECT p.name AS app_name, c.name AS policy_name, c.decision, json_array_length(c.exclude) AS exclude_rule_count, json_array_length(c.require) AS require_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.policies_by_app(a.id, p.id) q, cloudflare.access.policy(a.id, p.id, q.id) c ORDER BY app_name, policy_name
+      SELECT p.name AS app_name, c.name AS policy_name, c.decision, json_array_length(c.exclude) AS exclude_rule_count, json_array_length(c.require) AS require_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q, cloudflare.access.policies_policy(a.id, p.id, q.id) c ORDER BY app_name, policy_name
   - name: "idsec_zone_scoped_apps"
     reference_sql: |
       SELECT z.name AS zone_name, c.name AS app_name, c.session_duration FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.app(z.id, p.id) c ORDER BY zone_name, app_name
   - name: "idsec_zone_scoped_app_policies"
     reference_sql: |
-      SELECT p.name AS app_name, c.name AS policy_name, c.decision FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(z.id, p.id) c WHERE z.name = 'query.farm' ORDER BY app_name, policy_name
+      SELECT p.name AS app_name, c.name AS policy_name, c.decision FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_2_by_app(z.id, p.id) c WHERE z.name = 'query.farm' ORDER BY app_name, policy_name
   - name: "idsec_identity_providers"
     reference_sql: |
       SELECT c.name, c.type, CAST(json_extract(c.scim_config, '$.enabled') AS BOOLEAN) AS scim_enabled FROM cloudflare.accounts.accounts a, cloudflare.access.identity_providers_by_account(a.id) p, cloudflare.access.identity_provider(a.id, p.id) c ORDER BY c.name
@@ -716,10 +713,10 @@ tasks:
       SELECT x.aaguid, x.name FROM cloudflare.accounts.accounts a, cloudflare.access.authenticator_device_aaguids_by_account(a.id) x WHERE x.name LIKE 'YubiKey 5 Series with NFC%' ORDER BY x.name, x.aaguid
   - name: "idsec_access_user_seats"
     reference_sql: |
-      SELECT count(*) AS total_users, count(*) FILTER (WHERE x.access_seat) AS access_seat_users, count(*) FILTER (WHERE x.gateway_seat) AS gateway_seat_users FROM cloudflare.accounts.accounts a, cloudflare.access.users_2_by_account(a.id) x
+      SELECT count(*) AS total_users, count(*) FILTER (WHERE x.access_seat) AS access_seat_users, count(*) FILTER (WHERE x.gateway_seat) AS gateway_seat_users FROM cloudflare.accounts.accounts a, cloudflare.access.users_by_account(a.id) x
   - name: "idsec_access_user_details"
     reference_sql: |
-      SELECT CAST(c.created_at AS DATE) AS created_date, c.access_seat FROM cloudflare.accounts.accounts a, cloudflare.access.users_2_by_account(a.id) p, cloudflare.access.user(a.id, p.id) c ORDER BY c.created_at
+      SELECT CAST(c.created_at AS DATE) AS created_date, c.access_seat FROM cloudflare.accounts.accounts a, cloudflare.access.users_by_account(a.id) p, cloudflare.access.user(a.id, p.id) c ORDER BY c.created_at
   - name: "idsec_zt_organization"
     reference_sql: |
       SELECT c.name, c.auth_domain, c.deny_unmatched_requests FROM cloudflare.accounts.accounts a, cloudflare.access.organizations(a.id) c
@@ -732,18 +729,15 @@ tasks:
   - name: "idsec_members_roles"
     reference_sql: |
       SELECT m.status, m.two_factor_enabled, r.value->>'name' AS role_name FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m, json_each(m.roles) r ORDER BY role_name, status
-  - name: "idsec_members_policies"
-    reference_sql: |
-      SELECT m.status, p.value->>'access' AS access, g.value->>'name' AS permission_group FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_2_by_account(a.id) m, json_each(m.policies) p, json_each(p.value->'permission_groups') g ORDER BY permission_group, access, status
   - name: "idsec_member_lookup"
     reference_sql: |
-      SELECT c.status, count(*) AS member_count FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m, cloudflare.accounts.member_2(a.id, m.id) c GROUP BY c.status ORDER BY c.status
+      SELECT c.status, count(*) AS member_count FROM cloudflare.accounts.accounts a, cloudflare.accounts.members_by_account(a.id) m, cloudflare.accounts.member(a.id, m.id) c GROUP BY c.status ORDER BY c.status
   - name: "idsec_dns_roles"
     reference_sql: |
       SELECT c.name, c.description FROM cloudflare.accounts.accounts a, cloudflare.accounts.roles_by_account(a.id) p, cloudflare.accounts.role(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
   - name: "idsec_dns_permission_groups"
     reference_sql: |
-      SELECT c.name, c.meta->>'label' AS label, c.meta->>'category' AS category FROM cloudflare.accounts.accounts a, cloudflare.accounts.permission_groups_by_account(a.id) p, cloudflare.accounts.permission_group(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
+      SELECT c.name, c.meta->>'label' AS label, c.meta->>'category' AS category FROM cloudflare.accounts.accounts a, cloudflare.accounts.permission_groups_2_by_account(a.id) p, cloudflare.accounts.permission_group(a.id, p.id) c WHERE p.name LIKE 'DNS%' ORDER BY c.name
   - name: "idsec_resource_groups"
     reference_sql: |
       SELECT count(*) AS resource_group_count, count(*) FILTER (WHERE c.scope->'objects'->0->>'key' = '*') AS wildcard_groups, count(*) FILTER (WHERE c.meta->>'editable' = 'false') AS non_editable_groups FROM cloudflare.accounts.accounts a, cloudflare.accounts.resource_groups_by_account(a.id) p, cloudflare.accounts.resource_group(a.id, p.id) c
@@ -794,7 +788,7 @@ tasks:
       SELECT x.current_value AS new_status, count(*) AS change_count FROM cloudflare.accounts.accounts a, cloudflare.security.audit_log_by_account(a.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
   - name: "idsec_zone_insights_changes"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) AS change_count FROM cloudflare.zones.zones z, cloudflare.security.insights_audit_log_2_by_zone(z.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
+      SELECT z.name AS zone_name, count(*) AS change_count FROM cloudflare.zones.zones z, cloudflare.security.insights_audit_log_by_zone(z.id) x WHERE x.changed_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00' AND x.changed_at < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY 1 ORDER BY 1
   - name: "idsec_threat_feeds"
     reference_sql: |
       SELECT x.id, x.name FROM cloudflare.accounts.accounts a, cloudflare.security.view_by_account(a.id) x WHERE x.is_attributable AND x.is_downloadable ORDER BY x.id
@@ -824,10 +818,10 @@ tasks:
       SELECT CAST(c.quota->>'available' AS INTEGER) AS scans_available, CAST(c.quota->>'used' AS INTEGER) AS scans_used FROM cloudflare.accounts.accounts a, cloudflare.security.scans_by_id(a.id) c
   - name: "idsec_reusable_policy_usage"
     reference_sql: |
-      SELECT c.name AS policy_name, c.app_count, c.reusable FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.policies_by_app(a.id, p.id) q, cloudflare.access.policies_policy(a.id, q.id) c ORDER BY policy_name
+      SELECT c.name AS policy_name, c.app_count, c.reusable FROM cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q, cloudflare.access.policy(a.id, q.id) c ORDER BY policy_name
   - name: "idsec_zone_policy_lookup"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) AS policy_count FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.policies_by_app(a.id, p.id) q, cloudflare.access.apps_policies_policy(z.id, p.id, q.id) c GROUP BY z.name ORDER BY zone_name
+      SELECT z.name AS zone_name, count(*) AS policy_count FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps_by_account(a.id) p, cloudflare.access.apps_policies_by_app(a.id, p.id) q, cloudflare.access.apps_policies_policy(z.id, p.id, q.id) c GROUP BY z.name ORDER BY zone_name
   - name: "idsec_zone_insights_scan_quota"
     reference_sql: |
       SELECT z.name AS zone_name, CAST(c.quota->>'available' AS INTEGER) AS scans_available FROM cloudflare.zones.zones z, cloudflare.security.insights_scans(z.id) c ORDER BY zone_name
@@ -839,10 +833,10 @@ tasks:
       SELECT category, count(*) AS scope_count FROM cloudflare.accounts.scopes GROUP BY category ORDER BY category
   - name: "idsec_token_status"
     reference_sql: |
-      SELECT status FROM cloudflare.accounts.tokens_verify
+      SELECT status FROM cloudflare.accounts.verify
   - name: "idsec_my_organizations"
     reference_sql: |
-      SELECT status, count(*) AS organization_count FROM cloudflare.accounts.organizations_3 GROUP BY status ORDER BY status
+      SELECT status, count(*) AS organization_count FROM cloudflare.accounts.organizations_2 GROUP BY status ORDER BY status
   - name: "idsec_members_table"
     reference_sql: |
       SELECT status, count(*) FILTER (WHERE NOT two_factor_enabled) AS members_without_2fa FROM cloudflare.accounts.members WHERE account_id = 'bb68a133a66d26a310231495b13479a1' GROUP BY status ORDER BY status
@@ -851,10 +845,10 @@ tasks:
       SELECT type, count(*) AS entry_count, count(*) FILTER (WHERE enabled) AS enabled_count FROM cloudflare.zero_trust.entries WHERE account_id = 'bb68a133a66d26a310231495b13479a1' GROUP BY type ORDER BY type
   - name: "platform_scheduled_workers_scripts"
     reference_sql: |
-      SELECT s.id AS script_name, s.compatibility_date FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_2_by_account(a.id) s WHERE s.handlers LIKE '%"scheduled"%' AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
+      SELECT s.id AS script_name, s.compatibility_date FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s WHERE s.handlers LIKE '%"scheduled"%' AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
   - name: "platform_scripts_with_static_assets"
     reference_sql: |
-      SELECT s.id AS script_name FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_2_by_account(a.id) s WHERE s.has_assets AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
+      SELECT s.id AS script_name FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s WHERE s.has_assets AND s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' ORDER BY script_name
   - name: "platform_oldest_worker_scripts"
     reference_sql: |
       SELECT s.script_name, s.id AS script_id FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_search_by_account(a.id) s ORDER BY s.created_on, s.script_name LIMIT 5
@@ -926,7 +920,7 @@ tasks:
       SELECT d.name, CAST(json_array_length(d.tables) AS INTEGER) AS table_count FROM cloudflare.accounts.accounts a, cloudflare.workers.pipelines_by_account(a.id) p, cloudflare.workers.pipeline(a.id, p.id) d ORDER BY d.name
   - name: "platform_workers_account_defaults"
     reference_sql: |
-      SELECT s.subdomain, w.default_usage_model, w.green_compute FROM cloudflare.accounts.accounts a, cloudflare.workers.subdomain_2(a.id) s, cloudflare.workers.account_settings(a.id) w
+      SELECT s.subdomain, w.default_usage_model, w.green_compute FROM cloudflare.accounts.accounts a, cloudflare.workers.subdomain(a.id) s, cloudflare.workers.account_settings(a.id) w
   - name: "platform_workers_secrets_quota"
     reference_sql: |
       SELECT CAST(json_extract(q.secrets, '$.quota') AS INTEGER) AS secrets_quota FROM cloudflare.accounts.accounts a, cloudflare.workers.quota(a.id) q
@@ -941,19 +935,19 @@ tasks:
       SELECT c.amount AS topup_amount, c.threshold AS topup_threshold FROM cloudflare.accounts.accounts a, cloudflare.ai.config(a.id) c
   - name: "platform_cron_triggers"
     reference_sql: |
-      SELECT s.id AS script_name, json_extract_string(c.value, '$.cron') AS cron FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_2_by_account(a.id) s, cloudflare.workers.schedules(a.id, s.id) sc, json_each(sc.schedules) c WHERE s.handlers LIKE '%"scheduled"%' ORDER BY script_name, cron
+      SELECT s.id AS script_name, json_extract_string(c.value, '$.cron') AS cron FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.schedules(a.id, s.id) sc, json_each(sc.schedules) c WHERE s.handlers LIKE '%"scheduled"%' ORDER BY script_name, cron
   - name: "platform_scripts_workersdev_enabled"
     reference_sql: |
-      SELECT s.id AS script_name, d.previews_enabled FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_2_by_account(a.id) s, cloudflare.workers.subdomain(a.id, s.id) d WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND d.enabled ORDER BY script_name
+      SELECT s.id AS script_name, d.previews_enabled FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.scripts_subdomain(a.id, s.id) d WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND d.enabled ORDER BY script_name
   - name: "platform_scripts_observability_off"
     reference_sql: |
-      SELECT s.id AS script_name, st.logpush FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_2_by_account(a.id) s, cloudflare.workers.script_settings(a.id, s.id) st WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND coalesce(CAST(json_extract(st.observability, '$.enabled') AS BOOLEAN), false) = false ORDER BY script_name
+      SELECT s.id AS script_name, st.logpush FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.script_settings(a.id, s.id) st WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' AND coalesce(CAST(json_extract(st.observability, '$.enabled') AS BOOLEAN), false) = false ORDER BY script_name
   - name: "platform_script_secret_counts"
     reference_sql: |
-      SELECT s.id AS script_name, count(*) AS secret_count FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_2_by_account(a.id) s, cloudflare.workers.scripts_secrets_2_by_script(a.id, s.id) x WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY s.id ORDER BY secret_count DESC, script_name LIMIT 5
+      SELECT s.id AS script_name, count(*) AS secret_count FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_by_account(a.id) s, cloudflare.workers.scripts_secrets_by_script(a.id, s.id) x WHERE s.created_on < TIMESTAMPTZ '2026-09-01 00:00:00+00' GROUP BY s.id ORDER BY secret_count DESC, script_name LIMIT 5
   - name: "platform_haybarn_status_secrets"
     reference_sql: |
-      SELECT x.name, x.type FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_secrets_2_by_script(a.id, 'haybarn-status') x ORDER BY x.name
+      SELECT x.name, x.type FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_secrets_by_script(a.id, 'haybarn-status') x ORDER BY x.name
   - name: "platform_latest_deployment_haybarn_status"
     reference_sql: |
       SELECT json_extract_string(d.value, '$.source') AS source, json_extract_string(d.value, '$.strategy') AS strategy, CAST(json_extract(d.value, '$.versions[0].percentage') AS INTEGER) AS version_percentage FROM cloudflare.accounts.accounts a, cloudflare.workers.deployments(a.id, 'haybarn-status') x, json_each(x.deployments) d ORDER BY CAST(json_extract_string(d.value, '$.created_on') AS TIMESTAMPTZ) DESC LIMIT 1
@@ -980,7 +974,7 @@ tasks:
       SELECT d.name, CAST(json_extract(d.configuration, '$.vcpu') AS DOUBLE) AS vcpu, CAST(json_extract(d.configuration, '$.memory_mib') AS INTEGER) AS memory_mib, CAST(json_extract(d.configuration, '$.disk.size_mb') AS INTEGER) AS disk_mb FROM cloudflare.accounts.accounts a, cloudflare.workers.applications_by_account(a.id) c, cloudflare.workers.application(a.id, c.id) d ORDER BY d.name
   - name: "platform_container_app_rollout_versions"
     reference_sql: |
-      SELECT c.name, v.version, v.percentage FROM cloudflare.accounts.accounts a, cloudflare.workers.applications_by_account(a.id) c, cloudflare.workers.versions_by_application(a.id, c.id) v ORDER BY c.name, v.version
+      SELECT c.name, v.version, v.percentage FROM cloudflare.accounts.accounts a, cloudflare.workers.applications_by_account(a.id) c, cloudflare.workers.applications_versions_by_application(a.id, c.id) v ORDER BY c.name, v.version
   - name: "platform_kv_namespace_lookup_key_registry"
     reference_sql: |
       SELECT d.title, d.id FROM cloudflare.accounts.accounts a, cloudflare.storage.namespaces_by_account(a.id) n, cloudflare.storage.namespace(a.id, n.id) d WHERE d.title LIKE 'KEY_REGISTRY%' ORDER BY d.title
@@ -992,13 +986,13 @@ tasks:
       SELECT d.name, d.description, (SELECT string_agg(k, ',' ORDER BY k) FROM (SELECT unnest(json_keys(d.mechanisms)) AS k)) AS mechanism_types FROM cloudflare.accounts.accounts a, cloudflare.alerting.policies_by_account(a.id) p, cloudflare.alerting.policy(a.id, p.id) d ORDER BY d.name
   - name: "platform_haybarn_status_bindings"
     reference_sql: |
-      SELECT json_extract_string(b.value, '$.name') AS name, json_extract_string(b.value, '$.type') AS type FROM cloudflare.accounts.accounts a, cloudflare.workers.scripts_settings(a.id, 'haybarn-status') s, json_each(s.bindings) b ORDER BY name
+      SELECT json_extract_string(b.value, '$.name') AS name, json_extract_string(b.value, '$.type') AS type FROM cloudflare.accounts.accounts a, cloudflare.workers.settings(a.id, 'haybarn-status') s, json_each(s.bindings) b ORDER BY name
   - name: "platform_latest_deployment_version_number"
     reference_sql: |
-      WITH latest AS (SELECT a.id AS account_id, json_extract_string(d.value, '$.id') AS deployment_id FROM cloudflare.accounts.accounts a, cloudflare.workers.deployments(a.id, 'haybarn-status') x, json_each(x.deployments) d ORDER BY CAST(json_extract_string(d.value, '$.created_on') AS TIMESTAMPTZ) DESC LIMIT 1) SELECT dep.source AS deployment_source, CAST(v.number AS INTEGER) AS version_number, CAST(json_extract(dep.versions, '$[0].percentage') AS INTEGER) AS percentage FROM latest l, cloudflare.workers.deployment(l.account_id, 'haybarn-status', l.deployment_id) dep, cloudflare.workers.version(l.account_id, 'haybarn-status', json_extract_string(dep.versions, '$[0].version_id')) v
+      WITH latest AS (SELECT a.id AS account_id, json_extract_string(d.value, '$.id') AS deployment_id FROM cloudflare.accounts.accounts a, cloudflare.workers.deployments(a.id, 'haybarn-status') x, json_each(x.deployments) d ORDER BY CAST(json_extract_string(d.value, '$.created_on') AS TIMESTAMPTZ) DESC LIMIT 1) SELECT dep.source AS deployment_source, CAST(v.number AS INTEGER) AS version_number, CAST(json_extract(dep.versions, '$[0].percentage') AS INTEGER) AS percentage FROM latest l, cloudflare.workers.deployment(l.account_id, 'haybarn-status', l.deployment_id) dep, cloudflare.workers.versions_version(l.account_id, 'haybarn-status', json_extract_string(dep.versions, '$[0].version_id')) v
   - name: "platform_acct_scripts_queue_handlers"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.scripts_2 WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT id AS script_name, handlers FROM t WHERE handlers LIKE '%"queue"%' ORDER BY script_name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.scripts WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT id AS script_name, handlers FROM t WHERE handlers LIKE '%"queue"%' ORDER BY script_name
   - name: "platform_acct_custom_domains_per_zone"
     reference_sql: |
       WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.domains WHERE account_id = 'bb68a133a66d26a310231495b13479a1') SELECT zone_name, count(*) AS domain_count FROM t WHERE service LIKE 'vgi-%' GROUP BY zone_name ORDER BY zone_name
@@ -1049,10 +1043,10 @@ tasks:
       SELECT url AS page_url, json_extract_string(region, '$.value') AS region_code FROM cloudflare.zones.pages WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' ORDER BY page_url
   - name: "net_settings_on_count"
     reference_sql: |
-      SELECT z.name AS zone_name, count(*) FILTER (WHERE s.value = 'on') AS settings_on, count(*) FILTER (WHERE NOT s.editable) AS not_editable FROM cloudflare.zones.zones z, cloudflare.zones.settings_2_by_zone(z.id) s GROUP BY z.name ORDER BY z.name
+      SELECT z.name AS zone_name, count(*) FILTER (WHERE s.value = 'on') AS settings_on, count(*) FILTER (WHERE NOT s.editable) AS not_editable FROM cloudflare.zones.zones z, cloudflare.zones.settings_by_zone(z.id) s GROUP BY z.name ORDER BY z.name
   - name: "net_settings_qf_tls_literal"
     reference_sql: |
-      SELECT id AS setting_id, value FROM cloudflare.zones.settings_2 WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND id IN ('min_tls_version', 'tls_1_3', 'ssl', 'always_use_https') ORDER BY setting_id
+      SELECT id AS setting_id, value FROM cloudflare.zones.settings WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND id IN ('min_tls_version', 'tls_1_3', 'ssl', 'always_use_https') ORDER BY setting_id
   - name: "net_setting_lookup_ssl_mode"
     reference_sql: |
       SELECT z.name AS zone_name, s.value AS ssl_mode, m.value AS min_tls_version FROM cloudflare.zones.zones z, cloudflare.zones.setting(z.id, 'ssl') s, cloudflare.zones.setting(z.id, 'min_tls_version') m ORDER BY zone_name
@@ -1236,6 +1230,3 @@ tasks:
   - name: "net_http_daily_qf_totals"
     reference_sql: |
       SELECT sum(requests) AS total_requests, sum(threats) AS total_threats, max(unique_visitors) AS peak_unique_visitors, arg_max(date, threats) AS worst_threat_day FROM cloudflare.analytics.http_requests_daily WHERE zone_id = 'f762db64a4e321f026a26321acf2b65b' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-07'
-  - name: "net_workers_errors_day"
-    reference_sql: |
-      SELECT script_name, sum(errors) AS total_errors FROM cloudflare.analytics.workers_invocations WHERE account_id = 'bb68a133a66d26a310231495b13479a1' AND datetime >= TIMESTAMPTZ '2026-09-01 00:00:00+00' AND datetime < TIMESTAMPTZ '2026-09-02 00:00:00+00' GROUP BY script_name HAVING sum(errors) > 0 ORDER BY total_errors DESC, script_name

@@ -712,10 +712,6 @@
     "prompt": "Using the daily time series for the past 12 weeks broken down by post-quantum encryption support status of HTTPS requests, compute the average daily share for each group. Return status and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
   },
   {
-    "name": "radar_b_ts_ip_versions",
-    "prompt": "Using the daily time series for the past 12 weeks broken down by IP version of network-layer (L3/4) DDoS attacks, compute the average daily share for each group. Return ip_version and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
-  },
-  {
     "name": "radar_b_ts_bitrate",
     "prompt": "Using the daily time series for the past 12 weeks broken down by bitrate bucket of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return bitrate_bucket and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
   },
@@ -954,10 +950,6 @@
   {
     "name": "idsec_members_roles",
     "prompt": "List each member of my Cloudflare account with their membership status, whether two-factor authentication is enabled, and their role name(s). Return status, two_factor_enabled and role_name, ordered by role_name, status."
-  },
-  {
-    "name": "idsec_members_policies",
-    "prompt": "Using the newer policy-based membership listing, which permission groups are granted to account members, and with what access level? Return status, access and permission_group, ordered by permission_group."
   },
   {
     "name": "idsec_member_lookup",
@@ -1626,9 +1618,5 @@
   {
     "name": "net_http_daily_qf_totals",
     "prompt": "What were query.farm's total requests, total threats and peak daily unique visitors over 1\u20137 September 2026, and on which day were threats highest? Return total_requests, total_threats, peak_unique_visitors, worst_threat_day."
-  },
-  {
-    "name": "net_workers_errors_day",
-    "prompt": "Which Workers scripts on my account recorded any errors on 1 September 2026 (UTC day), and how many? Return script_name, total_errors ordered by total_errors desc, then script_name."
   }
 ]

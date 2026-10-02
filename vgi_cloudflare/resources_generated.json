@@ -901,7 +901,7 @@
    "description": "List Access application policies",
    "doc": "Lists Access policies configured for an application. Returns both exclusively scoped and reusable policies used by the application.",
    "kind": "list",
-   "name": "policies",
+   "name": "apps_policies",
    "pagination": "page",
    "path": "/accounts/{account_id}/access/apps/{app_id}/policies",
    "path_params": [
@@ -1522,7 +1522,7 @@
    "description": "List SCIM User resources",
    "doc": "Lists SCIM User resources synced to Cloudflare via the System for Cross-domain Identity Management (SCIM).",
    "kind": "list",
-   "name": "users",
+   "name": "scim_users",
    "pagination": "page",
    "path": "/accounts/{account_id}/access/identity_providers/{identity_provider_id}/scim/users",
    "path_params": [
@@ -2055,7 +2055,7 @@
    "description": "List Access reusable policies",
    "doc": "Lists Access reusable policies.",
    "kind": "list",
-   "name": "policies_2",
+   "name": "policies",
    "pagination": "page",
    "path": "/accounts/{account_id}/access/policies",
    "path_params": [
@@ -2397,7 +2397,7 @@
    "description": "Get users",
    "doc": "Gets a list of users for an account.",
    "kind": "list",
-   "name": "users_2",
+   "name": "users",
    "pagination": "page",
    "path": "/accounts/{account_id}/access/users",
    "path_params": [
@@ -7370,7 +7370,7 @@
    "description": "List all application versions",
    "doc": "Returns all versions for this application",
    "kind": "list",
-   "name": "versions",
+   "name": "applications_versions",
    "pagination": "none",
    "path": "/accounts/{account_id}/containers/applications/{application_id}/versions",
    "path_params": [
@@ -9380,7 +9380,7 @@
    "description": "List all email scanner rules",
    "doc": "Lists all email scanner rules for an account.",
    "kind": "list",
-   "name": "rules",
+   "name": "email_rules",
    "pagination": "none",
    "path": "/accounts/{account_id}/dlp/email/rules",
    "path_params": [
@@ -13333,7 +13333,7 @@
    "description": "List Zero Trust Gateway rules",
    "doc": "List Zero Trust Gateway rules for an account.",
    "kind": "list",
-   "name": "rules_2",
+   "name": "rules",
    "pagination": "none",
    "path": "/accounts/{account_id}/gateway/rules",
    "path_params": [
@@ -13600,7 +13600,7 @@
    "description": "List Account Permission Groups",
    "doc": "List all the permissions groups for an account.",
    "kind": "list",
-   "name": "permission_groups",
+   "name": "permission_groups_2",
    "pagination": "page",
    "path": "/accounts/{account_id}/iam/permission_groups",
    "path_params": [
@@ -13798,7 +13798,7 @@
    "description": "List User Group Members",
    "doc": "List all the members attached to a user group.",
    "kind": "list",
-   "name": "members",
+   "name": "user_groups_members",
    "pagination": "page",
    "path": "/accounts/{account_id}/iam/user_groups/{user_group_id}/members",
    "path_params": [
@@ -14835,7 +14835,7 @@
    "description": "List Logpush jobs for a dataset",
    "doc": "Lists Logpush jobs for an account for a dataset.",
    "kind": "list",
-   "name": "jobs",
+   "name": "datasets_jobs",
    "pagination": "none",
    "path": "/accounts/{account_id}/logpush/datasets/{dataset_id}/jobs",
    "path_params": [
@@ -14991,7 +14991,7 @@
    "description": "List Logpush jobs",
    "doc": "Lists Logpush jobs for an account.",
    "kind": "list",
-   "name": "jobs_2",
+   "name": "jobs",
    "pagination": "none",
    "path": "/accounts/{account_id}/logpush/jobs",
    "path_params": [
@@ -17626,7 +17626,7 @@
    "description": "List Members",
    "doc": "List all members of an account.",
    "kind": "list",
-   "name": "members_2",
+   "name": "members",
    "pagination": "page",
    "path": "/accounts/{account_id}/members",
    "path_params": [
@@ -18034,7 +18034,7 @@
    "description": "List account organizations",
    "doc": "Retrieve a list of the organizations that \"contain\" this account or are\nmanaging it.\n\nThe returned list will be in order from \"root\" to \"leaf\", where the \"leaf\"\nwill be the organization that _immediately_ contains the specified\naccount.",
    "kind": "list",
-   "name": "organizations",
+   "name": "organizations_3",
    "pagination": "none",
    "path": "/accounts/{account_id}/organizations",
    "path_params": [
@@ -19999,7 +19999,7 @@
    "description": "Retrieves Issue Audit Log",
    "doc": "Lists audit log entries for a specific Security Center insight, showing changes to its status and classification over time.",
    "kind": "list",
-   "name": "insights_audit_log",
+   "name": "insights_audit_log_2",
    "pagination": "cursor",
    "path": "/accounts/{account_id}/security-center/insights/{issue_id}/audit-log",
    "path_params": [
@@ -20989,7 +20989,7 @@
    "description": "List Tokens",
    "doc": "List all Account Owned API tokens created for this account.",
    "kind": "list",
-   "name": "tokens",
+   "name": "tokens_2",
    "pagination": "page",
    "path": "/accounts/{account_id}/tokens",
    "path_params": [
@@ -21038,7 +21038,7 @@
    "description": "List Permission Groups",
    "doc": "Find all available permission groups for Account Owned API Tokens",
    "kind": "list",
-   "name": "permission_groups_2",
+   "name": "permission_groups_3",
    "pagination": "none",
    "path": "/accounts/{account_id}/tokens/permission_groups",
    "path_params": [
@@ -21652,7 +21652,7 @@
    "description": "List Scripts in Namespace",
    "doc": "Fetch a list of scripts uploaded to a Workers for Platforms namespace.",
    "kind": "list",
-   "name": "scripts",
+   "name": "namespaces_scripts",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts",
    "path_params": [
@@ -22012,7 +22012,7 @@
    "description": "List Script Secrets",
    "doc": "List secrets bound to a script uploaded to a Workers for Platforms namespace.",
    "kind": "list",
-   "name": "scripts_secrets",
+   "name": "namespaces_scripts_secrets",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets",
    "path_params": [
@@ -22527,7 +22527,7 @@
    "description": "List Workers",
    "doc": "Fetch a list of uploaded workers.",
    "kind": "list",
-   "name": "scripts_2",
+   "name": "scripts",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/scripts",
    "path_params": [
@@ -22693,7 +22693,7 @@
    "description": "List script secrets",
    "doc": "List secrets bound to a script.",
    "kind": "list",
-   "name": "scripts_secrets_2",
+   "name": "scripts_secrets",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/scripts/{script_name}/secrets",
    "path_params": [
@@ -23194,7 +23194,7 @@
    "description": "List deployed Workflow versions",
    "doc": "Lists all deployed versions of a workflow.",
    "kind": "list",
-   "name": "versions_3",
+   "name": "versions",
    "pagination": "page",
    "path": "/accounts/{account_id}/workflows/{workflow_name}/versions",
    "path_params": [
@@ -23521,7 +23521,7 @@
    "description": "List organizations the user has access to",
    "doc": "Retrieve a list of organizations a particular user has access to. (Currently in Public Beta - see https://developers.cloudflare.com/fundamentals/organizations/)",
    "kind": "list",
-   "name": "organizations_2",
+   "name": "organizations",
    "pagination": "none",
    "path": "/organizations",
    "path_params": [],
@@ -24360,7 +24360,7 @@
    "description": "List organization members",
    "doc": "List memberships for an Organization. (Currently in Public Beta - see https://developers.cloudflare.com/fundamentals/organizations/)",
    "kind": "list",
-   "name": "members_3",
+   "name": "members_2",
    "pagination": "none",
    "path": "/organizations/{organization_id}/members",
    "path_params": [
@@ -25477,7 +25477,7 @@
    "description": "List Organizations",
    "doc": "Lists organizations the user is associated with.",
    "kind": "list",
-   "name": "organizations_3",
+   "name": "organizations_2",
    "pagination": "page",
    "path": "/user/organizations",
    "path_params": [],
@@ -25626,7 +25626,7 @@
    "description": "List Tokens",
    "doc": "List all access tokens you created.",
    "kind": "list",
-   "name": "tokens_2",
+   "name": "tokens",
    "pagination": "page",
    "path": "/user/tokens",
    "path_params": [],
@@ -25670,7 +25670,7 @@
    "description": "List Token Permission Groups",
    "doc": "Find all available permission groups for API Tokens.",
    "kind": "list",
-   "name": "tokens_permission_groups",
+   "name": "permission_groups",
    "pagination": "none",
    "path": "/user/tokens/permission_groups",
    "path_params": [],
@@ -26384,7 +26384,7 @@
    "description": "List Access policies",
    "doc": "Lists Access policies configured for an application.",
    "kind": "list",
-   "name": "apps_policies",
+   "name": "apps_policies_2",
    "pagination": "none",
    "path": "/zones/{zone_id}/access/apps/{app_id}/policies",
    "path_params": [
@@ -26888,7 +26888,7 @@
    "description": "Retrieve discovered operations on a zone",
    "doc": "Retrieve the most up to date view of discovered operations",
    "kind": "list",
-   "name": "operations",
+   "name": "discovery_operations",
    "pagination": "page",
    "path": "/zones/{zone_id}/api_gateway/discovery/operations",
    "path_params": [
@@ -26998,7 +26998,7 @@
    "description": "Retrieve a discovered operation",
    "doc": "Retrieve a single discovered operation by ID",
    "kind": "list",
-   "name": "discovery_operations",
+   "name": "discovery_operations_2",
    "pagination": "none",
    "path": "/zones/{zone_id}/api_gateway/discovery/operations/{discovery_id}",
    "path_params": [
@@ -27149,7 +27149,7 @@
    "description": "Retrieve information about all operations on a zone",
    "doc": "Lists all API operations tracked by API Shield for a zone with pagination. Returns operation details including method, path, and feature configurations.",
    "kind": "list",
-   "name": "operations_2",
+   "name": "operations",
    "pagination": "page",
    "path": "/zones/{zone_id}/api_gateway/operations",
    "path_params": [
@@ -29010,7 +29010,7 @@
    "description": "List TLS setting for hostnames",
    "doc": "List the requested TLS setting for the hostnames under this zone.",
    "kind": "list",
-   "name": "settings",
+   "name": "settings_2",
    "pagination": "none",
    "path": "/zones/{zone_id}/hostnames/settings/{setting_id}",
    "path_params": [
@@ -29382,7 +29382,7 @@
    "description": "List Logpush jobs for a dataset",
    "doc": "Lists Logpush jobs for a zone for a dataset.",
    "kind": "list",
-   "name": "datasets_jobs",
+   "name": "datasets_jobs_2",
    "pagination": "none",
    "path": "/zones/{zone_id}/logpush/datasets/{dataset_id}/jobs",
    "path_params": [
@@ -29593,7 +29593,7 @@
    "description": "List Logpush jobs",
    "doc": "Lists Logpush jobs for a zone.",
    "kind": "list",
-   "name": "jobs_3",
+   "name": "jobs_2",
    "pagination": "none",
    "path": "/zones/{zone_id}/logpush/jobs",
    "path_params": [
@@ -30734,7 +30734,7 @@
    "description": "Retrieves Zone Audit Log",
    "doc": "Lists audit log entries for all Security Center insights in a specific zone, showing changes to insight status and classification.",
    "kind": "list",
-   "name": "insights_audit_log_2",
+   "name": "insights_audit_log",
    "pagination": "cursor",
    "path": "/zones/{zone_id}/security-center/insights/audit-log",
    "path_params": [
@@ -30916,7 +30916,7 @@
    "description": "Get all zone settings",
    "doc": "Available settings for your user in relation to a zone.",
    "kind": "list",
-   "name": "settings_2",
+   "name": "settings",
    "pagination": "none",
    "path": "/zones/{zone_id}/settings",
    "path_params": [
@@ -32764,7 +32764,7 @@
    "description": "Get an Access application policy",
    "doc": "Fetches a single Access policy configured for an application. Returns both exclusively owned and reusable policies used by the application.",
    "kind": "item",
-   "name": "policy",
+   "name": "policies_policy",
    "pagination": "none",
    "path": "/accounts/{account_id}/access/apps/{app_id}/policies/{policy_id}",
    "path_params": [
@@ -33620,7 +33620,7 @@
    "description": "Get an Access reusable policy",
    "doc": "Fetches a single Access reusable policy.",
    "kind": "item",
-   "name": "policies_policy",
+   "name": "policy",
    "pagination": "none",
    "path": "/accounts/{account_id}/access/policies/{policy_id}",
    "path_params": [
@@ -34624,7 +34624,7 @@
    "description": "Get Advertisement Status",
    "doc": "View the current advertisement state for a prefix.\n\n**Deprecated:** Prefer the BGP Prefixes endpoints, which additionally allow for advertising and withdrawing \nsubnets of an IP prefix.",
    "kind": "item",
-   "name": "status",
+   "name": "bgp_status",
    "pagination": "none",
    "path": "/accounts/{account_id}/addressing/prefixes/{prefix_id}/bgp/status",
    "path_params": [
@@ -36970,7 +36970,7 @@
    "description": "Get a Job Details",
    "doc": "Retrieves details for a specific AI Search indexing job.",
    "kind": "item",
-   "name": "jobs_job",
+   "name": "instances_jobs_job",
    "pagination": "none",
    "path": "/accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/jobs/{job_id}",
    "path_params": [
@@ -37662,7 +37662,7 @@
    "description": "Get a Job Details",
    "doc": "",
    "kind": "item",
-   "name": "rags_jobs_job",
+   "name": "jobs_job",
    "pagination": "none",
    "path": "/accounts/{account_id}/autorag/rags/{id}/jobs/{job_id}",
    "path_params": [
@@ -37859,6 +37859,18 @@
      "doc": "",
      "name": "logo_id",
      "type": "string"
+    },
+    {
+     "api_name": "offset",
+     "doc": "",
+     "name": "offset_",
+     "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
+     "type": "string"
     }
    ],
    "result_path": "",
@@ -37903,6 +37915,18 @@
      "api_name": null,
      "doc": "",
      "name": "logo_id",
+     "type": "string"
+    },
+    {
+     "api_name": "offset",
+     "doc": "",
+     "name": "offset_",
+     "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
      "type": "string"
     }
    ],
@@ -37949,6 +37973,18 @@
      "doc": "",
      "name": "id",
      "type": "string"
+    },
+    {
+     "api_name": "offset",
+     "doc": "",
+     "name": "offset_",
+     "type": "int64"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -38000,6 +38036,18 @@
      "doc": "",
      "name": "id",
      "type": "string"
+    },
+    {
+     "api_name": "offset",
+     "doc": "",
+     "name": "offset_",
+     "type": "int64"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -38107,6 +38155,12 @@
      "doc": "Filter by URL status.",
      "name": "status",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limit for pagination.",
+     "name": "limit_",
+     "type": "float64"
     }
    ],
    "result_path": "result",
@@ -38809,6 +38863,12 @@
      "doc": "Whether to group results by date (daily aggregation)",
      "name": "group_by_date",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Maximum number of results to return.",
+     "name": "limit_",
+     "type": "float64"
     }
    ],
    "result_path": "",
@@ -39232,7 +39292,7 @@
    "description": "Reads an event",
    "doc": "Retrieves a specific event by its UUID.",
    "kind": "item",
-   "name": "event",
+   "name": "events_event",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/dataset/{dataset_id}/events/{event_id}",
    "path_params": [
@@ -39278,7 +39338,7 @@
    "description": "Lists indicators",
    "doc": "This method is deprecated. Please use /events/indicators to retrieve a paginated list of indicators.",
    "kind": "item",
-   "name": "indicators",
+   "name": "dataset_indicators",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/dataset/{dataset_id}/indicators",
    "path_params": [
@@ -39427,7 +39487,7 @@
    "description": "List indicators related to a tag within a dataset (deprecated)",
    "doc": "This endpoint is deprecated. Use GET /:account_id/events/tags/:tag_uuid/indicators with the optional datasetIds query parameter instead. Returns indicators associated with the provided tag UUID within a single dataset's indicator shards, with pagination.",
    "kind": "item",
-   "name": "tags_indicators",
+   "name": "dataset_tags_indicators",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/dataset/{dataset_id}/tags/{tag_uuid}/indicators",
    "path_params": [
@@ -39492,7 +39552,7 @@
    "description": "Lists all target industries for a specific dataset",
    "doc": "",
    "kind": "item",
-   "name": "target_industries",
+   "name": "dataset_target_industries",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/dataset/{dataset_id}/targetIndustries",
    "path_params": [
@@ -39579,6 +39639,12 @@
      "doc": "Comma-separated dataset UUIDs to restrict scope. Only neighbors in these datasets are returned.",
      "name": "dataset_ids",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Max results to return (default: 100, max: 10000)",
+     "name": "limit_",
+     "type": "float64"
     }
    ],
    "result_path": "result",
@@ -39692,7 +39758,7 @@
    "description": "Lists indicators across multiple datasets",
    "doc": "Retrieves a paginated list of indicators across specified datasets. Use datasetIds=all or datasetIds=* to query all datasets for the account. If no datasetIds provided, uses the default dataset.",
    "kind": "item",
-   "name": "events_indicators",
+   "name": "indicators",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/indicators",
    "path_params": [
@@ -39876,6 +39942,14 @@
      "doc": "For measure=relationships: only count event links whose eventDate is on/before this date (ISO 8601).",
      "name": "event_date_before",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Maximum number of aggregation results to return (1-100)",
+     "ge": 1,
+     "le": 100,
+     "name": "limit_",
+     "type": "float64"
     }
    ],
    "result_path": "",
@@ -40167,7 +40241,7 @@
    "description": "List indicators related to a tag",
    "doc": "Returns indicators associated with the provided tag UUID, with pagination. By default fans out across every indicator dataset the account can read; pass datasetIds to scope to specific datasets.",
    "kind": "item",
-   "name": "events_tags_indicators",
+   "name": "tags_indicators",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/tags/{tag_uuid}/indicators",
    "path_params": [
@@ -40234,7 +40308,7 @@
    "description": "Lists target industries across multiple datasets",
    "doc": "",
    "kind": "item",
-   "name": "events_target_industries",
+   "name": "target_industries",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/targetIndustries",
    "path_params": [
@@ -40479,7 +40553,7 @@
    "description": "Reads an event",
    "doc": "This Method is deprecated. Please use /events/dataset/:dataset_id/events/:event_id instead.",
    "kind": "item",
-   "name": "events_event",
+   "name": "event",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/events/{event_id}",
    "path_params": [
@@ -40647,7 +40721,7 @@
    "description": "Get Priority Intelligence Requirement Quota",
    "doc": "Retrieves quota usage for Cloudforce One priority requests.",
    "kind": "item",
-   "name": "quota",
+   "name": "priority_quota",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/requests/priority/quota",
    "path_params": [
@@ -40805,7 +40879,7 @@
    "description": "Get Request Quota",
    "doc": "Retrieves quota usage for Cloudforce One standard requests.",
    "kind": "item",
-   "name": "requests_quota",
+   "name": "quota",
    "pagination": "none",
    "path": "/accounts/{account_id}/cloudforce-one/requests/quota",
    "path_params": [
@@ -40986,6 +41060,21 @@
      "doc": "Filter by public visibility.",
      "name": "is_public",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Example: `50`.",
+     "ge": 1,
+     "le": 100,
+     "name": "limit_",
+     "type": "float64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Example: `0`.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "float64"
     }
    ],
    "result_path": "",
@@ -41107,6 +41196,21 @@
      "doc": "Filter by public visibility.",
      "name": "is_public",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Example: `50`.",
+     "ge": 1,
+     "le": 100,
+     "name": "limit_",
+     "type": "float64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Example: `0`.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "float64"
     },
     {
      "api_name": null,
@@ -41384,6 +41488,18 @@
    ],
    "query_params": [
     {
+     "api_name": "offset",
+     "doc": "",
+     "name": "offset_",
+     "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
+     "type": "string"
+    },
+    {
      "api_name": null,
      "doc": "Query ID or comma-separated list of Query IDs. When multiple IDs are provided, matches are deduplicated across queries and each match includes a match_details array with per-match query metadata and dismissed state.",
      "name": "query_id",
@@ -41599,6 +41715,18 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "offset",
+     "doc": "",
+     "name": "offset_",
+     "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
+     "type": "string"
+    },
     {
      "api_name": null,
      "doc": "",
@@ -42031,6 +42159,13 @@
      "doc": "If specified, only show cnis associated with the specified tunnel id.",
      "name": "tunnel_id",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
     }
    ],
    "result_path": "",
@@ -42154,6 +42289,13 @@
      "doc": "If specified, only show interconnects of the given type.",
      "name": "type",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
     }
    ],
    "result_path": "",
@@ -42268,7 +42410,7 @@
    "description": "Get the current status of an interconnect object",
    "doc": "",
    "kind": "item",
-   "name": "interconnects_status",
+   "name": "status",
    "pagination": "none",
    "path": "/accounts/{account_id}/cni/interconnects/{icon}/status",
    "path_params": [
@@ -42375,6 +42517,13 @@
      "doc": "If specified, only show slots with a specific occupied/unoccupied state.",
      "name": "occupied",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
     }
    ],
    "result_path": "",
@@ -43306,9 +43455,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for the query in ISO (RFC3339 - ISO 8601) format.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -43775,7 +43924,7 @@
    "description": "Get the live status of a latest device",
    "doc": "Get the live status of a latest device given device_id from the device_state table",
    "kind": "item",
-   "name": "live",
+   "name": "fleet_status_live",
    "pagination": "none",
    "path": "/accounts/{account_id}/dex/devices/{device_id}/fleet-status/live",
    "path_params": [
@@ -43838,7 +43987,7 @@
    "description": "Get the status over time for a device",
    "doc": "Get time-bucketed status metrics for a specific device.",
    "kind": "item",
-   "name": "over_time",
+   "name": "fleet_status_over_time",
    "pagination": "none",
    "path": "/accounts/{account_id}/dex/devices/{device_id}/fleet-status/over-time",
    "path_params": [
@@ -43859,9 +44008,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End of the time range to query. Timestamp can be provided in ISO 8601 datetime format or milliseconds since epoch.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -43943,9 +44092,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for the query in ISO 8601 format.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     }
    ],
@@ -43971,7 +44120,7 @@
    "description": "List fleet status details by dimension",
    "doc": "List details for live (up to 60 minutes) devices using WARP.",
    "kind": "item",
-   "name": "fleet_status_live",
+   "name": "live",
    "pagination": "none",
    "path": "/accounts/{account_id}/dex/fleet-status/live",
    "path_params": [
@@ -44012,7 +44161,7 @@
    "description": "List fleet status aggregate details by dimension",
    "doc": "List details for devices using WARP, up to 7 days.",
    "kind": "item",
-   "name": "fleet_status_over_time",
+   "name": "over_time",
    "pagination": "none",
    "path": "/accounts/{account_id}/dex/fleet-status/over-time",
    "path_params": [
@@ -44023,9 +44172,9 @@
    ],
    "query_params": [
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End of the time range to query. Timestamp can be provided in ISO 8601 datetime format or milliseconds since epoch.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -44144,9 +44293,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for aggregate metrics in ISO ms.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -44227,9 +44376,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for the query in ISO (RFC3339 - ISO 8601) format.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -44664,9 +44813,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for aggregate metrics in ISO ms.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -44771,9 +44920,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for aggregate metrics in ISO ms.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -44848,9 +44997,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "End time for the query in ISO (RFC3339 - ISO 8601) format.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     },
     {
@@ -45598,7 +45747,7 @@
    "description": "Get an email scanner rule",
    "doc": "Gets detailed configuration for a specific DLP email scanning rule, including detection patterns and actions.",
    "kind": "item",
-   "name": "rules_rule",
+   "name": "email_rules_rule",
    "pagination": "none",
    "path": "/accounts/{account_id}/dlp/email/rules/{rule_id}",
    "path_params": [
@@ -46888,7 +47037,7 @@
    "description": "Table",
    "doc": "Retrieves a list of summarised aggregate metrics over a given time period.\n\nSee [Analytics API properties](https://developers.cloudflare.com/dns/reference/analytics-api-properties/) for detailed information about the available query parameters.",
    "kind": "item",
-   "name": "report",
+   "name": "analytics_report",
    "pagination": "none",
    "path": "/accounts/{account_id}/dns_firewall/{dns_firewall_id}/dns_analytics/report",
    "path_params": [
@@ -46925,6 +47074,12 @@
      "doc": "End date and time of requesting data period in ISO 8601 format.",
      "name": "until",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limit number of returned metrics.",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -47003,7 +47158,7 @@
    "description": "By Time",
    "doc": "Retrieves a list of aggregate metrics grouped by time interval.\n\nSee [Analytics API properties](https://developers.cloudflare.com/dns/reference/analytics-api-properties/) for detailed information about the available query parameters.",
    "kind": "item",
-   "name": "bytime",
+   "name": "report_bytime",
    "pagination": "none",
    "path": "/accounts/{account_id}/dns_firewall/{dns_firewall_id}/dns_analytics/report/bytime",
    "path_params": [
@@ -47040,6 +47195,12 @@
      "doc": "End date and time of requesting data period in ISO 8601 format.",
      "name": "until",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limit number of returned metrics.",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -50019,7 +50180,7 @@
    "description": "Get Zero Trust Gateway rule details.",
    "doc": "Get a single Zero Trust Gateway rule.",
    "kind": "item",
-   "name": "rules_rule_2",
+   "name": "rules_rule",
    "pagination": "none",
    "path": "/accounts/{account_id}/gateway/rules/{rule_id}",
    "path_params": [
@@ -50241,7 +50402,7 @@
    "description": "Get User Group Member",
    "doc": "Get details of a specific member in a user group.",
    "kind": "item",
-   "name": "member",
+   "name": "user_groups_members_member",
    "pagination": "none",
    "path": "/accounts/{account_id}/iam/user_groups/{user_group_id}/members/{member_id}",
    "path_params": [
@@ -51360,7 +51521,7 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "references",
      "choices": [
       "",
       "*",
@@ -51368,7 +51529,7 @@
       "referrer"
      ],
      "doc": "The type of references to include. \"*\" to include both referral and referrer references. \"\" to not include any reference information.",
-     "name": "references",
+     "name": "references_",
      "type": "string"
     }
    ],
@@ -53010,9 +53171,15 @@
      "type": "float64"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "",
-     "name": "to",
+     "name": "to_",
+     "type": "float64"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
      "type": "float64"
     },
     {
@@ -53181,9 +53348,15 @@
      "type": "float64"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "",
-     "name": "to",
+     "name": "to_",
+     "type": "float64"
+    },
+    {
+     "api_name": "limit",
+     "doc": "",
+     "name": "limit_",
      "type": "float64"
     }
    ],
@@ -53811,7 +53984,7 @@
    "description": "Member Details",
    "doc": "Get information about a specific member of an account.",
    "kind": "item",
-   "name": "member_2",
+   "name": "member",
    "pagination": "none",
    "path": "/accounts/{account_id}/members/{member_id}",
    "path_params": [
@@ -56475,7 +56648,7 @@
    "description": "Fetch details of a webhook",
    "doc": "Returns webhook details for the given webhook ID.",
    "kind": "item",
-   "name": "webhook",
+   "name": "webhooks_webhook",
    "pagination": "none",
    "path": "/accounts/{account_id}/realtime/kit/{app_id}/webhooks/{webhook_id}",
    "path_params": [
@@ -58045,7 +58218,7 @@
    "description": "View webhooks",
    "doc": "Retrieves a list of webhooks.",
    "kind": "item",
-   "name": "webhook_2",
+   "name": "webhook",
    "pagination": "none",
    "path": "/accounts/{account_id}/stream/webhook",
    "path_params": [
@@ -58526,7 +58699,7 @@
    "description": "Verify Token",
    "doc": "Test whether a token works.",
    "kind": "item",
-   "name": "verify",
+   "name": "verify_2",
    "pagination": "none",
    "path": "/accounts/{account_id}/tokens/verify",
    "path_params": [
@@ -58612,7 +58785,7 @@
    "description": "Token Details",
    "doc": "Get information about a specific Account Owned API token.",
    "kind": "item",
-   "name": "token",
+   "name": "token_2",
    "pagination": "none",
    "path": "/accounts/{account_id}/tokens/{token_id}",
    "path_params": [
@@ -58663,6 +58836,12 @@
      "doc": "Scan UUID.",
      "name": "scan_id",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limit the number of objects in the response.",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -59502,7 +59681,7 @@
    "description": "Get secret binding",
    "doc": "Get a given secret binding (value omitted) on a script uploaded to a Workers for Platforms namespace.",
    "kind": "item",
-   "name": "secret_name",
+   "name": "secrets_secret_name",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets/{secret_name}",
    "path_params": [
@@ -59615,7 +59794,7 @@
    "description": "Get Script Settings",
    "doc": "Get script settings from a script uploaded to a Workers for Platforms namespace.",
    "kind": "item",
-   "name": "settings",
+   "name": "scripts_settings",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/settings",
    "path_params": [
@@ -59926,9 +60105,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "to",
      "doc": "Unix timestamp in milliseconds for the end of the range.",
-     "name": "to",
+     "name": "to_",
      "type": "string"
     }
    ],
@@ -60234,7 +60413,7 @@
    "description": "Get secret binding",
    "doc": "Get a given secret binding (value omitted) on a script.",
    "kind": "item",
-   "name": "secrets_secret_name",
+   "name": "secret_name",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/scripts/{script_name}/secrets/{secret_name}",
    "path_params": [
@@ -60348,7 +60527,7 @@
    "description": "Get Settings",
    "doc": "Get metadata and config, such as bindings or usage model.",
    "kind": "item",
-   "name": "scripts_settings",
+   "name": "settings",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/scripts/{script_name}/settings",
    "path_params": [
@@ -60391,7 +60570,7 @@
    "description": "Get Worker subdomain",
    "doc": "Get if the Worker is available on the workers.dev subdomain.",
    "kind": "item",
-   "name": "subdomain",
+   "name": "scripts_subdomain",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/scripts/{script_name}/subdomain",
    "path_params": [
@@ -60582,7 +60761,7 @@
    "description": "Get Version Detail",
    "doc": "Retrieves detailed information about a specific version of a Workers script.",
    "kind": "item",
-   "name": "version",
+   "name": "versions_version",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/scripts/{script_name}/versions/{version_id}",
    "path_params": [
@@ -60681,7 +60860,7 @@
    "description": "Get Subdomain",
    "doc": "Returns a Workers subdomain for an account.",
    "kind": "item",
-   "name": "subdomain_2",
+   "name": "subdomain",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/subdomain",
    "path_params": [
@@ -60917,7 +61096,7 @@
    "description": "Get Version",
    "doc": "Get details about a specific version.",
    "kind": "item",
-   "name": "versions_version",
+   "name": "versions_version_2",
    "pagination": "none",
    "path": "/accounts/{account_id}/workers/workers/{worker_id}/versions/{version_id}",
    "path_params": [
@@ -61338,7 +61517,7 @@
    "description": "Get Workflow version details",
    "doc": "Retrieves details for a specific deployed workflow version.",
    "kind": "item",
-   "name": "versions_version_2",
+   "name": "version",
    "pagination": "none",
    "path": "/accounts/{account_id}/workflows/{workflow_name}/versions/{version_id}",
    "path_params": [
@@ -62326,7 +62505,7 @@
    "description": "Get AI bots HTTP requests distribution by dimension",
    "doc": "Retrieves an aggregated summary of AI bots HTTP requests grouped by the specified dimension.",
    "kind": "item",
-   "name": "summary_dimension",
+   "name": "ai_bots_summary_dimension",
    "pagination": "none",
    "path": "/radar/ai/bots/summary/{dimension}",
    "path_params": [
@@ -62488,7 +62667,7 @@
    "description": "Get AI bots HTTP requests time series",
    "doc": "Retrieves AI bots HTTP request volume over time.",
    "kind": "item",
-   "name": "timeseries",
+   "name": "ai_bots_timeseries",
    "pagination": "none",
    "path": "/radar/ai/bots/timeseries",
    "path_params": [],
@@ -62752,7 +62931,7 @@
    "description": "Get time series distribution of AI bots HTTP requests by dimension.",
    "doc": "Retrieves the distribution of HTTP requests from AI bots, grouped by the specified dimension over time.",
    "kind": "item",
-   "name": "timeseries_groups_dimension",
+   "name": "ai_bots_timeseries_groups_dimension",
    "pagination": "none",
    "path": "/radar/ai/bots/timeseries_groups/{dimension}",
    "path_params": [
@@ -63451,7 +63630,7 @@
    "description": "Get AI markdown for agents reduction ratio summary",
    "doc": "Retrieves the overall median HTML-to-markdown reduction ratio for AI agent requests over the given date range.",
    "kind": "item",
-   "name": "summary",
+   "name": "markdown_for_agents_summary",
    "pagination": "none",
    "path": "/radar/ai/markdown_for_agents/summary",
    "path_params": [],
@@ -63581,6 +63760,20 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
+    {
      "api_name": "dateRange",
      "doc": "Filters results by date range.",
      "name": "date_range",
@@ -63696,6 +63889,20 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
+    {
      "api_name": "dateRange",
      "doc": "Filters results by date range.",
      "name": "date_range",
@@ -63758,11 +63965,18 @@
    "description": "Get the number of outages by location",
    "doc": "Retrieves the number of outages by location.",
    "kind": "item",
-   "name": "locations",
+   "name": "outages_locations",
    "pagination": "none",
    "path": "/radar/annotations/outages/locations",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": "dateRange",
      "doc": "Filters results by date range.",
@@ -64945,7 +65159,7 @@
    "description": "Get AS112 summary by dimension",
    "doc": "Retrieves the distribution of AS112 queries by the specified dimension.",
    "kind": "item",
-   "name": "as112_summary_dimension",
+   "name": "summary_dimension",
    "pagination": "none",
    "path": "/radar/as112/summary/{dimension}",
    "path_params": [
@@ -65167,7 +65381,7 @@
    "description": "Get AS112 DNS queries time series",
    "doc": "Retrieves the AS112 DNS queries over time.",
    "kind": "item",
-   "name": "as112_timeseries",
+   "name": "timeseries",
    "pagination": "none",
    "path": "/radar/as112/timeseries",
    "path_params": [],
@@ -66591,7 +66805,7 @@
    "description": "Get AS112 time series grouped by dimension",
    "doc": "Retrieves the distribution of AS112 queries grouped by dimension over time.",
    "kind": "item",
-   "name": "as112_timeseries_groups_dimension",
+   "name": "timeseries_groups_dimension",
    "pagination": "none",
    "path": "/radar/as112/timeseries_groups/{dimension}",
    "path_params": [
@@ -66837,6 +67051,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -66919,6 +67140,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -67003,6 +67231,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -67085,6 +67320,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -67448,7 +67690,7 @@
    "description": "Get layer 3 attacks by IP version summary",
    "doc": "Retrieves the distribution of layer 3 attacks by IP version.",
    "kind": "item",
-   "name": "summary_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer3/summary/ip_version",
    "path_params": [],
@@ -67534,7 +67776,7 @@
    "description": "Get layer 3 attacks by protocol summary",
    "doc": "Retrieves the distribution of layer 3 attacks by protocol.",
    "kind": "item",
-   "name": "summary_protocol",
+   "name": "layer3_summary_protocol",
    "pagination": "none",
    "path": "/radar/attacks/layer3/summary/protocol",
    "path_params": [],
@@ -68426,7 +68668,7 @@
    "description": "Get layer 3 attacks by IP version time series",
    "doc": "Retrieves the distribution of layer 3 attacks by IP version over time.",
    "kind": "item",
-   "name": "timeseries_groups_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer3/timeseries_groups/ip_version",
    "path_params": [],
@@ -69032,6 +69274,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -69165,6 +69414,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -69260,6 +69516,13 @@
    "path": "/radar/attacks/layer3/top/locations/origin",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -69357,6 +69620,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -69452,6 +69722,13 @@
    "path": "/radar/attacks/layer3/top/vertical",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -70000,7 +70277,7 @@
    "description": "Get layer 7 attacks by IP version summary",
    "doc": "Retrieves the distribution of layer 7 attacks by IP version.",
    "kind": "item",
-   "name": "summary_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer7/summary/ip_version",
    "path_params": [],
@@ -71578,7 +71855,7 @@
    "description": "Get layer 7 attacks by IP version time series",
    "doc": "Retrieves the distribution of layer 7 attacks by IP version used over time.",
    "kind": "item",
-   "name": "timeseries_groups_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/attacks/layer7/timeseries_groups/ip_version",
    "path_params": [],
@@ -72557,6 +72834,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -72721,6 +73005,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -72842,6 +73133,13 @@
    "path": "/radar/attacks/layer7/top/industry",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -73013,6 +73311,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -73177,6 +73482,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -73259,6 +73571,13 @@
    "path": "/radar/attacks/layer7/top/vertical",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -73654,7 +73973,7 @@
    "description": "Get top ASes by announced IP space",
    "doc": "Returns the top-N autonomous systems by announced IP space at the nearest 8-hour RIB boundary at or before the requested date. The snapped boundary is returned as `anchor_ts`.",
    "kind": "item",
-   "name": "ases",
+   "name": "ips_top_ases",
    "pagination": "none",
    "path": "/radar/bgp/ips/top/ases",
    "path_params": [],
@@ -73664,6 +73983,14 @@
      "doc": "Filters results by the specified datetime (ISO 8601).",
      "name": "date",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 1,
+     "le": 50,
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -73814,7 +74141,7 @@
    "description": "List ASes from global routing tables",
    "doc": "Retrieves all ASes in the current global routing tables with routing statistics.",
    "kind": "item",
-   "name": "routes_ases",
+   "name": "ases",
    "pagination": "none",
    "path": "/radar/bgp/routes/ases",
    "path_params": [],
@@ -73824,6 +74151,13 @@
      "doc": "Filters results by location. Specify an alpha-2 location code.",
      "name": "location",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": "sortBy",
@@ -74462,6 +74796,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -74537,7 +74878,7 @@
    "description": "Get top ASes by prefix count",
    "doc": "Retrieves the full list of autonomous systems on the global routing table ordered by announced prefixes count. The data comes from public BGP MRT data archives and updates every 2 hours.",
    "kind": "item",
-   "name": "prefixes",
+   "name": "ases_prefixes",
    "pagination": "none",
    "path": "/radar/bgp/top/ases/prefixes",
    "path_params": [],
@@ -74547,6 +74888,12 @@
      "doc": "Alpha-2 country code.",
      "name": "country",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Maximum number of ASes to return.",
+     "name": "limit_",
+     "type": "int64"
     }
    ],
    "result_path": "result",
@@ -74580,11 +74927,18 @@
    "description": "Get top prefixes by BGP updates",
    "doc": "Retrieves the top network prefixes by BGP updates.",
    "kind": "item",
-   "name": "top_prefixes",
+   "name": "prefixes",
    "pagination": "none",
    "path": "/radar/bgp/top/prefixes",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -74654,6 +75008,20 @@
    "path": "/radar/bots",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
     {
      "api_name": "botCategory",
      "choices": [
@@ -75508,7 +75876,22 @@
    "pagination": "none",
    "path": "/radar/ct/authorities",
    "path_params": [],
-   "query_params": [],
+   "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    }
+   ],
    "result_path": "result",
    "schema": "radar"
   },
@@ -75568,7 +75951,22 @@
    "pagination": "none",
    "path": "/radar/ct/logs",
    "path_params": [],
-   "query_params": [],
+   "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    }
+   ],
    "result_path": "result",
    "schema": "radar"
   },
@@ -76335,6 +76733,20 @@
    "path": "/radar/datasets",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
     {
      "api_name": "datasetType",
      "choices": [
@@ -77295,7 +77707,7 @@
    "description": "Get DNS queries by IP version summary",
    "doc": "Retrieves the distribution of DNS queries by IP version.",
    "kind": "item",
-   "name": "summary_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/dns/summary/ip_version",
    "path_params": [],
@@ -77751,7 +78163,7 @@
    "description": "Get DNS queries by protocol summary",
    "doc": "Retrieves the distribution of DNS queries by DNS transport protocol.",
    "kind": "item",
-   "name": "dns_summary_protocol",
+   "name": "summary_protocol",
    "pagination": "none",
    "path": "/radar/dns/summary/protocol",
    "path_params": [],
@@ -80119,7 +80531,7 @@
    "description": "Get DNS queries by IP version time series",
    "doc": "Retrieves the distribution of DNS queries by IP version over time.",
    "kind": "item",
-   "name": "timeseries_groups_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/dns/timeseries_groups/ip_version",
    "path_params": [],
@@ -81785,6 +82197,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -82077,6 +82496,13 @@
    "path": "/radar/dns/top/locations",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -82833,7 +83259,7 @@
    "description": "Get email IP version summary",
    "doc": "Retrieves the distribution of emails by IP version.",
    "kind": "item",
-   "name": "summary_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/email/routing/summary/ip_version",
    "path_params": [],
@@ -83718,7 +84144,7 @@
    "description": "Get email IP version time series",
    "doc": "Retrieves the distribution of emails by IP version over time.",
    "kind": "item",
-   "name": "timeseries_groups_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/email/routing/timeseries_groups/ip_version",
    "path_params": [],
@@ -86542,11 +86968,18 @@
    "description": "Get top TLDs by email message volume",
    "doc": "Retrieves the top TLDs by number of email messages.",
    "kind": "item",
-   "name": "tlds",
+   "name": "top_tlds",
    "pagination": "none",
    "path": "/radar/email/security/top/tlds",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -86685,6 +87118,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -86821,6 +87261,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -86959,6 +87406,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -87078,6 +87532,20 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Filters results by Autonomous System. Specify one or more Autonomous System Numbers (ASNs) as a comma-separated list.",
      "name": "asn",
@@ -87133,6 +87601,20 @@
    "path": "/radar/entities/asns/botnet_threat_feed",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "choices": [
@@ -87201,7 +87683,7 @@
    "description": "Get AS details by IP address",
    "doc": "Retrieves the requested autonomous system information based on IP address. Population estimates come from APNIC (refer to https://labs.apnic.net/?p=526).",
    "kind": "item",
-   "name": "ip",
+   "name": "asns_ip",
    "pagination": "none",
    "path": "/radar/entities/asns/ip",
    "path_params": [],
@@ -87318,7 +87800,7 @@
    "description": "Get IP address details",
    "doc": "Retrieves IP address information.",
    "kind": "item",
-   "name": "entities_ip",
+   "name": "ip",
    "pagination": "none",
    "path": "/radar/entities/ip",
    "path_params": [],
@@ -87352,11 +87834,25 @@
    "description": "List locations",
    "doc": "Retrieves a list of locations.",
    "kind": "item",
-   "name": "entities_locations",
+   "name": "locations",
    "pagination": "none",
    "path": "/radar/entities/locations",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Filters results by location. Specify a comma-separated list of alpha-2 location codes.",
@@ -87417,6 +87913,20 @@
    "path": "/radar/geolocations",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
     {
      "api_name": "geoId",
      "doc": "Filters results by geolocation. Specify a comma-separated list of GeoNames IDs.",
@@ -88163,7 +88673,7 @@
    "description": "Get HTTP requests by IP version summary",
    "doc": "Retrieves the distribution of HTTP requests by IP version.",
    "kind": "item",
-   "name": "summary_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/http/summary/ip_version",
    "path_params": [],
@@ -90391,7 +90901,7 @@
    "description": "Get HTTP requests by IP version time series",
    "doc": "Retrieves the distribution of HTTP requests by IP version over time.",
    "kind": "item",
-   "name": "timeseries_groups_ip_versions",
+   "name": "ip_versions",
    "pagination": "none",
    "path": "/radar/http/timeseries_groups/ip_version",
    "path_params": [],
@@ -91369,6 +91879,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -91556,6 +92073,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -91735,6 +92259,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -91911,6 +92442,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -92086,6 +92624,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -92265,6 +92810,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -92440,6 +92992,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -92623,6 +93182,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -92798,6 +93364,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -92962,6 +93535,13 @@
    "path": "/radar/http/top/browser",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -93141,6 +93721,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -93306,6 +93893,13 @@
    "path": "/radar/http/top/locations",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -93494,6 +94088,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -93673,6 +94274,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -93849,6 +94457,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -94024,6 +94639,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -94203,6 +94825,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -94378,6 +95007,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -94561,6 +95197,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -94735,6 +95378,13 @@
     }
    ],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -95472,7 +96122,7 @@
    "description": "Get network traffic summary",
    "doc": "Retrieves the distribution of network traffic (NetFlows) by HTTP vs other protocols.",
    "kind": "item",
-   "name": "netflows_summary",
+   "name": "summary",
    "pagination": "none",
    "path": "/radar/netflows/summary",
    "path_params": [],
@@ -95931,6 +96581,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -96017,6 +96674,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -96092,7 +96756,22 @@
    "pagination": "none",
    "path": "/radar/origins",
    "path_params": [],
-   "query_params": [],
+   "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    }
+   ],
    "result_path": "result",
    "schema": "radar"
   },
@@ -96795,7 +97474,7 @@
    "description": "Get Internet Quality Index (IQI) time series",
    "doc": "Retrieves a time series (percentiles) of bandwidth, latency, or DNS response time from the Radar Internet Quality Index (IQI).",
    "kind": "item",
-   "name": "timeseries_groups",
+   "name": "iqi_timeseries_groups",
    "pagination": "none",
    "path": "/radar/quality/iqi/timeseries_groups",
    "path_params": [],
@@ -97052,6 +97731,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -97135,6 +97821,13 @@
    "path": "/radar/quality/speed/top/locations",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -97226,6 +97919,13 @@
    ],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": "rankingType",
      "choices": [
       "POPULAR",
@@ -97283,6 +97983,12 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -97338,6 +98044,13 @@
      "type": "string"
     },
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -97391,7 +98104,7 @@
    "description": "Get top Internet services",
    "doc": "Retrieves top Internet services based on their rank.",
    "kind": "item",
-   "name": "top",
+   "name": "internet_services_top",
    "pagination": "none",
    "path": "/radar/ranking/internet_services/top",
    "path_params": [],
@@ -97401,6 +98114,12 @@
      "doc": "Filters results by Internet service category.",
      "name": "service_category",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -97446,11 +98165,18 @@
    "description": "Get domains rank time series",
    "doc": "Retrieves domains rank over time.",
    "kind": "item",
-   "name": "ranking_timeseries_groups",
+   "name": "timeseries_groups",
    "pagination": "none",
    "path": "/radar/ranking/timeseries_groups",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": "rankingType",
      "choices": [
@@ -97535,11 +98261,17 @@
    "description": "Get top or trending domains",
    "doc": "Retrieves the top or trending domains based on their rank. Popular domains are domains of broad appeal based on how people use the Internet. Trending domains are domains that are generating a surge in interest. For more information on top domains, see https://blog.cloudflare.com/radar-domain-rankings/.",
    "kind": "item",
-   "name": "ranking_top",
+   "name": "top",
    "pagination": "none",
    "path": "/radar/ranking/top",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -97610,6 +98342,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
      "name": "name",
@@ -97664,6 +98403,13 @@
    "path": "/radar/robots_txt/top/user_agents/directive",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -97729,6 +98475,13 @@
    "path": "/radar/search/global",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": "limitPerGroup",
      "doc": "Limits the number of objects per search category.",
@@ -97976,11 +98729,25 @@
    "description": "List TLDs",
    "doc": "Retrieves a list of TLDs.",
    "kind": "item",
-   "name": "tlds_2",
+   "name": "tlds",
    "pagination": "none",
    "path": "/radar/tlds",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
     {
      "api_name": "tldManager",
      "doc": "Filters results by TLD manager.",
@@ -98258,6 +99025,20 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
+     "api_name": "offset",
+     "doc": "Skips the specified number of objects before fetching the results.",
+     "ge": 0,
+     "name": "offset_",
+     "type": "int64"
+    },
+    {
      "api_name": "dateRange",
      "doc": "Filters results by date range.",
      "name": "date_range",
@@ -98347,6 +99128,13 @@
    "path_params": [],
    "query_params": [
     {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
+    {
      "api_name": "dateRange",
      "doc": "Filters results by date range.",
      "name": "date_range",
@@ -98412,6 +99200,13 @@
    "path": "/radar/verified_bots/top/bots",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -98492,6 +99287,13 @@
    "path": "/radar/verified_bots/top/categories",
    "path_params": [],
    "query_params": [
+    {
+     "api_name": "limit",
+     "doc": "Limits the number of objects returned in the response.",
+     "ge": 0,
+     "name": "limit_",
+     "type": "int64"
+    },
     {
      "api_name": null,
      "doc": "Array of names used to label the series in the response.",
@@ -99075,7 +99877,7 @@
    "description": "Verify Token",
    "doc": "Test whether a token works.",
    "kind": "item",
-   "name": "tokens_verify",
+   "name": "verify",
    "pagination": "none",
    "path": "/user/tokens/verify",
    "path_params": [],
@@ -99156,7 +99958,7 @@
    "description": "Token Details",
    "doc": "Get information about a specific token.",
    "kind": "item",
-   "name": "tokens_token",
+   "name": "token",
    "pagination": "none",
    "path": "/user/tokens/{token_id}",
    "path_params": [
@@ -100637,7 +101439,7 @@
    "description": "Retrieve operation-level schema validation settings",
    "doc": "Retrieves operation-level schema validation settings on the zone",
    "kind": "item",
-   "name": "schema_validation",
+   "name": "operations_schema_validation",
    "pagination": "none",
    "path": "/zones/{zone_id}/api_gateway/operations/{operation_id}/schema_validation",
    "path_params": [
@@ -100735,7 +101537,7 @@
    "description": "Retrieve zone level schema validation settings",
    "doc": "Retrieves zone level schema validation settings currently set on the zone",
    "kind": "item",
-   "name": "settings_schema_validation",
+   "name": "schema_validation",
    "pagination": "none",
    "path": "/zones/{zone_id}/api_gateway/settings/schema_validation",
    "path_params": [
@@ -102267,7 +103069,7 @@
    "description": "Table",
    "doc": "Retrieves a list of summarised aggregate metrics over a given time period.\n\nSee [Analytics API properties](https://developers.cloudflare.com/dns/reference/analytics-api-properties/) for detailed information about the available query parameters.",
    "kind": "item",
-   "name": "report_2",
+   "name": "report",
    "pagination": "none",
    "path": "/zones/{zone_id}/dns_analytics/report",
    "path_params": [
@@ -102300,6 +103102,12 @@
      "doc": "End date and time of requesting data period in ISO 8601 format.",
      "name": "until",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limit number of returned metrics.",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -102378,7 +103186,7 @@
    "description": "By Time",
    "doc": "Retrieves a list of aggregate metrics grouped by time interval.\n\nSee [Analytics API properties](https://developers.cloudflare.com/dns/reference/analytics-api-properties/) for detailed information about the available query parameters.",
    "kind": "item",
-   "name": "report_bytime",
+   "name": "bytime",
    "pagination": "none",
    "path": "/zones/{zone_id}/dns_analytics/report/bytime",
    "path_params": [
@@ -102411,6 +103219,12 @@
      "doc": "End date and time of requesting data period in ISO 8601 format.",
      "name": "until",
      "type": "string"
+    },
+    {
+     "api_name": "limit",
+     "doc": "Limit number of returned metrics.",
+     "name": "limit_",
+     "type": "int64"
     },
     {
      "api_name": null,
@@ -106170,9 +106984,9 @@
      "type": "string"
     },
     {
-     "api_name": null,
+     "api_name": "end",
      "doc": "Example: `2014-01-01T05:20:00.12345Z`.",
-     "name": "end",
+     "name": "end_",
      "type": "string"
     },
     {
