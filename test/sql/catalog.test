@@ -1,0 +1,85 @@
+# Catalog + error-path smoke tests for the Cloudflare VGI worker.
+# These need NO Cloudflare token — they exercise ATTACH, schema visibility via
+# bind (DESCRIBE), and the required-filter / missing-secret error paths.
+
+require-env VGI_CLOUDFLARE_WORKER
+
+require vgi
+
+statement ok
+ATTACH 'cloudflare' AS cf (TYPE vgi, LOCATION '${VGI_CLOUDFLARE_WORKER}');
+
+# zones table schema is available without a secret (bind needs no credentials).
+query I
+SELECT count(*) FROM (DESCRIBE cf.zones.zones);
+----
+12
+
+# dns_records exposes the required zone_id path-param column.
+query I
+SELECT count(*) FROM (DESCRIBE cf.dns.records) WHERE column_name = 'zone_id';
+----
+1
+
+# Querying dns_records without a zone_id filter must fail (required path param).
+statement error
+SELECT * FROM cf.dns.records;
+----
+
+# Querying zones without a cloudflare secret must fail clearly.
+statement error
+SELECT * FROM cf.zones.zones;
+----
+
+# An OpenAPI-generated table is present and exposes its schema via bind.
+query I
+SELECT count(*) > 0 FROM (DESCRIBE cf.accounts.members) WHERE column_name = 'account_id';
+----
+true
+
+# A generated table with a required path param errors without its filter.
+statement error
+SELECT * FROM cf.accounts.members;
+----
+
+# The GraphQL analytics table is present and requires a zone_id filter.
+query I
+SELECT count(*) FROM (DESCRIBE cf.analytics.http_requests_daily) WHERE column_name = 'zone_id';
+----
+1
+
+statement error
+SELECT * FROM cf.analytics.http_requests_daily;
+----
+
+# Additional GraphQL datasets are present with their dimensions/metrics.
+query I
+SELECT count(*) FROM (DESCRIBE cf.analytics.firewall_events)
+WHERE column_name IN ('datetime', 'action', 'count');
+----
+3
+
+statement error
+SELECT * FROM cf.analytics.firewall_events;
+----
+
+# Account-scoped dataset requires account_id.
+query I
+SELECT count(*) FROM (DESCRIBE cf.analytics.workers_invocations) WHERE column_name = 'account_id';
+----
+1
+
+# Get-by-id "item" functions are callable as table functions with arguments.
+# Without a secret they error cleanly (proves bind + arg parsing happen first).
+statement error
+SELECT * FROM cf.zones.zone('some-zone-id');
+----
+
+statement error
+SELECT * FROM cf.accounts.user();
+----
+
+# Wrong arity is a binder error — the path params are part of the signature.
+statement error
+SELECT * FROM cf.dns.record('only-one-arg');
+----

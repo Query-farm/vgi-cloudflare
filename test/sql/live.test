@@ -1,0 +1,45 @@
+# Live integration test against the REAL Cloudflare API.
+#
+# Skipped automatically unless CLOUDFLARE_API_TOKEN is set. To run:
+#   CLOUDFLARE_API_TOKEN=<token> make test-stdio
+#
+# The token needs at least Zone:Read and Account:Read. These assertions avoid
+# hard-coding any account-specific data, so they pass for any valid token.
+
+require-env VGI_CLOUDFLARE_WORKER
+
+require-env CLOUDFLARE_API_TOKEN
+
+require vgi
+
+statement ok
+ATTACH 'cloudflare' AS cf (TYPE vgi, LOCATION '${VGI_CLOUDFLARE_WORKER}');
+
+statement ok
+CREATE SECRET cf_live (TYPE cloudflare, api_token '${CLOUDFLARE_API_TOKEN}');
+
+# Zones list is reachable and returns a well-formed (possibly empty) result.
+query I
+SELECT count(*) >= 0 FROM cf.zones.zones;
+----
+true
+
+# Accounts list is reachable.
+query I
+SELECT count(*) >= 0 FROM cf.accounts.accounts;
+----
+true
+
+# The zones result has the expected columns (schema round-trips over the wire).
+query I
+SELECT count(*) FROM (DESCRIBE cf.zones.zones) WHERE column_name IN ('id', 'name', 'status');
+----
+3
+
+# Correlated/lateral join: fetch each zone one-by-one via the get-by-id function,
+# driven by ids from the list table. This is the use case item functions exist for.
+query I
+SELECT count(*) >= 0
+FROM (SELECT id FROM cf.zones.zones LIMIT 3) t, cf.zones.zone(t.id) z;
+----
+true

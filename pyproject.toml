@@ -1,0 +1,73 @@
+[project]
+name = "vgi-cloudflare"
+version = "0.1.0"
+description = "A read-only VGI (Vector Gateway Interface) worker exposing the Cloudflare API to DuckDB/SQL"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Query Farm", email = "hello@query.farm" }]
+keywords = ["vgi", "duckdb", "arrow", "sql", "cloudflare", "dns", "zero-trust", "analytics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Internet :: Name Service (DNS)",
+    "Typing :: Typed",
+]
+requires-python = ">=3.13"
+dependencies = [
+    # `haybarn` is not optional: vgi-python binds a pushed-down WHERE clause with an
+    # in-process DuckDB engine, and without one every filtered scan fails at runtime
+    # with "No DuckDB-compatible engine is installed".
+    "vgi-python[http,haybarn]>=0.37.3",
+    "vgi-rpc>=0.47.2",
+    "httpx>=0.27",
+    "pyarrow>=20",
+]
+
+[project.optional-dependencies]
+# The HTTP server deployment (Fly.io): inbound OAuth/JWT auth and Sentry.
+serve = ["vgi-python[http,haybarn,oauth]>=0.37.3", "vgi-rpc[sentry]>=0.47.2"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    # Pinned to a minor: the rule set is version-dependent.
+    "ruff>=0.16,<0.17",
+]
+
+[project.urls]
+Homepage = "https://query.farm"
+Documentation = "https://query.farm/vgi/"
+Repository = "https://github.com/Query-farm/vgi-cloudflare"
+Issues = "https://github.com/Query-farm/vgi-cloudflare/issues"
+
+[project.scripts]
+vgi-cloudflare = "vgi_cloudflare.worker:main"
+vgi-cloudflare-http = "vgi_cloudflare.worker:main_http"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vgi_cloudflare"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Hand-written documentation prose: one string per paragraph reads better unwrapped.
+"vgi_cloudflare/schema_docs.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true

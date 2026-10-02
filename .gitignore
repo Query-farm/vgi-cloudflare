@@ -1,0 +1,27 @@
+# Vendored framework copies — synced from ~/Development/vgi-{python,rpc} via `make vendor-sync`.
+# Needed only for the Docker build; regenerated, never edited by hand.
+/vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# OpenAPI spec source (~10MB, re-downloaded by codegen). The generated manifest
+# vgi_cloudflare/resources_generated.json IS committed.
+/spec/
+/tools/cache/
+
+# DuckDB sqllogictest scratch
+duckdb_unittest_tempdir/
+
+# Local secrets / scratch
+.env
+*.local
+scratch/

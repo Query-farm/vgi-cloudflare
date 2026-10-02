@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # pyproject carries no `[tool.uv.sources]`, so a fresh clone resolves from PyPI.
+  # This pins that shut: CI proves the *published* dependencies are sufficient.
+  UV_NO_SOURCES: "1"
+
+jobs:
+  check:
+    name: Lint and offline tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --no-sources
+      - name: Ruff (lint)
+        run: uv run --no-sources ruff check .
+      - name: Ruff (format)
+        run: uv run --no-sources ruff format --check .
+      - name: Offline tests (mocked HTTP)
+        run: uv run --no-sources pytest tests/ --rootdir=. -o "addopts=" -q
+      - name: Entry points start without dev checkouts
+        run: |
+          uv run --no-project cloudflare_worker.py --help > /dev/null
+          uv run --no-project serve.py --help > /dev/null
+
+  catalog:
+    name: Catalog metadata (vgi-lint, structural)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --no-sources
+      # Structural tier only: no network and no credentials, so it is safe on every
+      # push. Waivers live in vgi-lint.toml, each with its reason.
+      - name: vgi-lint (structural)
+        run: >
+          uvx --prerelease=allow --from vgi-lint-check vgi-lint lint "launch:uv run --no-sources cloudflare_worker.py"
+          --no-execute --no-check-links --audit-waivers --fail-on error

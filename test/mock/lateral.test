@@ -1,0 +1,87 @@
+# End-to-end lateral tests against tests/mock_cloudflare.py (no token needed).
+# Run via `make test-mock`, which starts the mock and points the worker at it.
+
+require-env VGI_CLOUDFLARE_MOCK_WORKER
+
+require vgi
+
+statement ok
+ATTACH 'cloudflare' AS cf (TYPE vgi, LOCATION '${VGI_CLOUDFLARE_MOCK_WORKER}');
+
+statement ok
+CREATE SECRET cf (TYPE cloudflare, api_token 'mock');
+
+# Lookup with a literal.
+query TT
+SELECT id, name FROM cf.zones.zone('z2');
+----
+z2	zone2.com
+
+# A missing id is 0 rows, not an error.
+query I
+SELECT count(*) FROM cf.zones.zone('nope');
+----
+0
+
+# Correlated: one lookup per row; missing and NULL ids drop out.
+query TT
+SELECT t.x, g.name FROM (VALUES ('z1'), ('zz'), ('z3'), (NULL)) t(x), cf.zones.zone(t.x) g ORDER BY 1;
+----
+z1	zone1.com
+z3	zone3.com
+
+query TT
+SELECT t.x, g.name FROM (VALUES ('z3'), ('z1')) t(x), LATERAL cf.zones.zone(t.x) g ORDER BY 1;
+----
+z1	zone1.com
+z3	zone3.com
+
+# LEFT JOIN LATERAL keeps the misses.
+query TT
+SELECT t.x, g.name FROM (VALUES ('z1'), ('zz')) t(x) LEFT JOIN LATERAL cf.zones.zone(t.x) g ON true ORDER BY 1;
+----
+z1	zone1.com
+zz	NULL
+
+# Fan-out across pages: zone zN has N records x 2 pages.
+query TI
+SELECT z.id, count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r GROUP BY 1 ORDER BY 1;
+----
+z1	2
+z2	4
+z3	6
+
+# Every fan-out row is stamped with the outer row that produced it.
+query I
+SELECT count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r WHERE r.zone_id <> z.id;
+----
+0
+
+# The pushdown table (multi-page) is unchanged.
+query I
+SELECT count(*) FROM cf.dns.records WHERE zone_id = 'z3';
+----
+6
+
+# Filters on columns the API can't filter are still applied (DuckDB drops pushed
+# filters, so the worker must apply them): zone z3 has r0..r2 on each of 2 pages.
+query I
+SELECT count(*) FROM cf.dns.records WHERE zone_id = 'z3' AND name = 'r0.zone3.com';
+----
+2
+
+query I
+SELECT count(*) FROM cf.dns.records WHERE zone_id = 'z3' AND name LIKE 'nomatch%';
+----
+0
+
+# The row-by-row path agrees with the batched one.
+statement ok
+SET vgi_batch_lateral = false;
+
+query TI
+SELECT z.id, count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r GROUP BY 1 ORDER BY 1;
+----
+z1	2
+z2	4
+z3	6

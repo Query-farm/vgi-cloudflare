@@ -1,0 +1,72 @@
+# vgi-lint configuration for the Cloudflare worker.
+#
+#   vgi-lint lint --audit-waivers
+#
+# re-runs the rules these waivers silence and fails if one has stopped buying
+# anything — a waiver that suppresses nothing is a standing claim nobody revisits.
+#
+# The private agent-test graders live beside this file in vgi-agent-tests.yaml.
+# Running them (`vgi-lint simulate`) needs live Cloudflare credentials, which the
+# linter cannot pass as a `cloudflare` secret (that type only exists once the
+# worker is attached), so point the worker at a token file instead:
+#
+#   vgi-lint simulate "launch:env VGI_CLOUDFLARE_TOKEN_FILE=$HOME/cf-read-token.txt uv run cloudflare_worker.py"
+
+# `launch:` keeps one warm worker for the whole run (and across runs) instead of
+# cold-starting one per cursor; building the ~2,000-object catalog takes seconds.
+location = "launch:uv run cloudflare_worker.py"
+select = ["ALL"]
+fail_on = "error"
+
+ignore = [
+  { code = "VGI117", kind = "domain-exemption", reason = """\
+Schemas follow Cloudflare's own product families (zero_trust, security, radar, …), \
+and several of those families expose well over 50 endpoints. Splitting a family \
+into artificial sub-schemas would make the catalog *harder* to navigate than \
+Cloudflare's documentation; each schema is instead organized into at most 12 \
+vgi.categories sections drawn from the API's own product areas.\
+""" },
+  { code = "VGI134", kind = "domain-exemption", reason = """\
+One table per Cloudflare list endpoint (plus parameterless reports). The Cloudflare \
+API has more than 500 of them, and the catalog mirrors the API rather than curating \
+a subset, so the count is the size of the API itself.\
+""" },
+  { code = "VGI135", kind = "domain-exemption", reason = """\
+One lookup function per get endpoint and one lateral fan-out per scoped list \
+endpoint, generated from the OpenAPI spec. The function count tracks the size of \
+the Cloudflare API, not accidental sprawl.\
+""" },
+]
+
+[per-object]
+# VGI317 reads these arguments' descriptions (copied from Cloudflare's OpenAPI spec)
+# as value lists or numeric ranges, but each parameter accepts an open set, so there
+# is no honest `choices` / `ge` / `le` to declare. Every spec-defined enum, bound,
+# and pattern IS declared; these are the arguments where the spec defines none.
+"cloudflare.security.aggregate" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "aggregate_by takes any comma-separated combination of columns ('attacker,targetIndustry'), not one value from a list" },
+] }
+"cloudflare.security.indicators_aggregate" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "aggregate_by takes any comma-separated combination of columns, not one value from a list" },
+] }
+"cloudflare.security.tags" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "filters is a JSON array of {field, op, value} objects; the field names it mentions are not the argument's values" },
+] }
+"cloudflare.security.graph" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "node_type's description gives examples; the spec declares no enum, so a choices list would be invented" },
+] }
+"cloudflare.security.events_indicators" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "tags is a free-form tag filter; the spec declares no enum, so a choices list would be invented" },
+] }
+"cloudflare.zero_trust.device" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
+] }
+"cloudflare.zero_trust.registration" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
+] }
+"cloudflare.radar.ases" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "country is an ISO 3166-1 alpha-2 code; the rule misreads '3166-1' as a numeric range" },
+] }
+"cloudflare.radar.events" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "min/max_confidence describe score bands (1-4 low, 5-7 mid, 8+ high) but the spec declares no bounds to enforce" },
+] }

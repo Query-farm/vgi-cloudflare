@@ -1,0 +1,74 @@
+# Live tests of lookups, fan-outs, and GraphQL analytics against REAL Cloudflare.
+#
+# Needs a read token (e.g. the "Read all resources" template) plus a zone and
+# account it can see; `make test-stdio` fills these in from the token.
+
+require-env VGI_CLOUDFLARE_WORKER
+
+require-env CLOUDFLARE_API_TOKEN
+
+require-env CLOUDFLARE_TEST_ZONE_ID
+
+require-env CLOUDFLARE_TEST_ACCOUNT_ID
+
+require vgi
+
+statement ok
+ATTACH 'cloudflare' AS cf (TYPE vgi, LOCATION '${VGI_CLOUDFLARE_WORKER}');
+
+statement ok
+CREATE SECRET cf_live (TYPE cloudflare, api_token '${CLOUDFLARE_API_TOKEN}');
+
+# A zero-arg lookup returns exactly one row (not one per scan thread).
+query I
+SELECT count(*) FROM cf.accounts.user();
+----
+1
+
+# Fan-out: every record row carries the zone that produced it.
+query I
+SELECT count(*) FROM cf.zones.zones z, cf.dns.records_by_zone(z.id) r WHERE r.zone_id <> z.id;
+----
+0
+
+# Fan-out agrees with the pushdown table for the test zone.
+query I
+SELECT (SELECT count(*) FROM cf.dns.records WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}')
+     = (SELECT count(*) FROM (VALUES ('${CLOUDFLARE_TEST_ZONE_ID}')) t(z), cf.dns.records_by_zone(t.z));
+----
+true
+
+# Lateral lookup: each listed record fetched by id comes back once, unchanged.
+query I
+SELECT count(*) = count(r.id) AND bool_and(r.id = t.id)
+FROM (SELECT zone_id, id FROM cf.dns.records WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}' LIMIT 5) t,
+     cf.dns.record(t.zone_id, t.id) r;
+----
+true
+
+query I
+SELECT count(*) >= 1 FROM cf.accounts.accounts a, cf.accounts.members_by_account(a.id);
+----
+true
+
+# GraphQL analytics run with the default time window (field names are accepted
+# by the live schema). firewall_events / health_check_events are plan-gated.
+query I
+SELECT count(*) >= 0 FROM cf.analytics.http_requests_daily WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}';
+----
+true
+
+query I
+SELECT count(*) >= 0 FROM cf.analytics.http_requests_hourly WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}';
+----
+true
+
+query I
+SELECT count(*) >= 0 FROM cf.analytics.http_requests_adaptive WHERE zone_id = '${CLOUDFLARE_TEST_ZONE_ID}';
+----
+true
+
+query I
+SELECT count(*) >= 0 FROM cf.analytics.workers_invocations WHERE account_id = '${CLOUDFLARE_TEST_ACCOUNT_ID}';
+----
+true

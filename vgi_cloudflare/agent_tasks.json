@@ -1,0 +1,1634 @@
+[
+  {
+    "name": "radar_a_email_auth_pass_ranking",
+    "prompt": "Over the past 7 days of email traffic, compare the pass rates of the three email authentication checks DKIM, DMARC and ARC. Return one row per check with columns check_name ('DKIM', 'DMARC', 'ARC') and pass_pct (percentage of messages that passed, rounded to 0 decimals), ordered by pass_pct descending."
+  },
+  {
+    "name": "radar_a_email_dkim_outcomes",
+    "prompt": "Rank the DKIM validation outcomes (e.g. PASS, NONE, FAIL) of email messages over the past 7 days by their share of messages. Return columns outcome and share_pct (rounded to 0 decimals), ordered by share_pct descending."
+  },
+  {
+    "name": "radar_a_email_encrypted_pct",
+    "prompt": "What percentage of email messages processed over the past 7 days were sent encrypted (TLS)? Return one column encrypted_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_email_malicious_ratio",
+    "prompt": "Over the past 7 days, how many non-malicious email messages were there for every message classified as malicious? Return one column clean_per_malicious, the ratio of the non-malicious share to the malicious share, rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_email_malicious_top_tld",
+    "prompt": "Which sender top-level domain had the highest share of its email classified as malicious over the past 7 days? Return one column tld (as reported, e.g. 'xyz.')."
+  },
+  {
+    "name": "radar_a_l3_bitrate_buckets",
+    "prompt": "Rank the bitrate buckets of network-layer (layer 3) DDoS attacks over the past 7 days by their share of attack bytes. Return one column bitrate_bucket (the bucket labels as reported, e.g. 'UNDER_500_MBPS'), ordered by share descending."
+  },
+  {
+    "name": "radar_a_l3_duration_top3",
+    "prompt": "What were the three most common duration buckets of network-layer (layer 3) DDoS attacks over the past 7 days, measured by share of attack bytes? Return columns rank (1-3) and duration_bucket (the label as reported, e.g. 'OVER_3_HOURS'), ordered by rank."
+  },
+  {
+    "name": "radar_a_l3_target_industries_top3",
+    "prompt": "Which three industries received the largest share of network-layer (layer 3) DDoS attack bytes over the past 7 days (ignore the 'other' bucket)? Return columns rank (1-3) and industry, ordered by rank."
+  },
+  {
+    "name": "radar_a_l3_protocol_avg_share",
+    "prompt": "Looking at the hourly time series of layer 3 DDoS attack traffic by protocol over the past 7 days, which protocol had the highest average hourly share? Return columns protocol and avg_share_pct (rounded to 0 decimals), for the top protocol only."
+  },
+  {
+    "name": "radar_a_l3_summary_protocol",
+    "prompt": "Rank the network protocols used in layer 3 DDoS attacks over the past 7 days by share of attack bytes. Return one column protocol, ordered by share descending."
+  },
+  {
+    "name": "radar_a_l7_mitigation_top2",
+    "prompt": "Which two Cloudflare mitigation products mitigated the largest share of application-layer (layer 7) attack requests over the past 7 days? Return columns rank (1-2) and product (as reported, e.g. 'WAF'), ordered by rank."
+  },
+  {
+    "name": "radar_a_l7_managed_rules_top",
+    "prompt": "Among layer 7 attack requests mitigated by WAF managed rules over the past 7 days, which rule category accounted for the largest share (ignore 'other')? Return columns rule_category and share_pct (rounded to 0 decimals)."
+  },
+  {
+    "name": "radar_a_l7_http_method_top3",
+    "prompt": "What were the top three HTTP methods used in mitigated application-layer (layer 7) attack requests over the past 7 days? Return columns rank (1-3) and http_method, ordered by rank."
+  },
+  {
+    "name": "radar_a_l7_http_versions",
+    "prompt": "Rank the HTTP versions used by mitigated layer 7 attack requests over the past 7 days by share. Return one column http_version (as reported, e.g. 'HTTP/2'), ordered by share descending."
+  },
+  {
+    "name": "radar_a_l7_top_industry_vertical",
+    "prompt": "Over the past 7 days, which industry and which vertical were the most targeted by application-layer (layer 7) attacks, by share of mitigated requests? Return one row with columns top_industry and top_vertical."
+  },
+  {
+    "name": "radar_a_l7_industry_timeseries",
+    "prompt": "Using the hourly time series of layer 7 attack requests grouped by target industry over the past 7 days, which named industry (excluding 'other') had the highest average hourly share? Return one column industry."
+  },
+  {
+    "name": "radar_a_l7_vertical_timeseries",
+    "prompt": "Using the hourly time series of layer 7 attack requests grouped by target vertical over the past 7 days, which named vertical (excluding 'other') had the highest average hourly share? Return one column vertical."
+  },
+  {
+    "name": "radar_a_l7_summary_ip_version",
+    "prompt": "What share of mitigated layer 7 attack requests over the past 7 days were made over IPv4? Return one column ipv4_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_l7_method_timeseries",
+    "prompt": "In the hourly time series of mitigated layer 7 attack requests grouped by HTTP method over the past 7 days, which method had the highest average hourly share? Return columns http_method and avg_share_pct (rounded to 0 decimals)."
+  },
+  {
+    "name": "radar_a_l7_origin_as_top",
+    "prompt": "Which autonomous system originated the largest share of application-layer (layer 7) attack requests over the past 7 days? Return columns origin_asn (integer) and origin_as_name."
+  },
+  {
+    "name": "radar_a_l7_origin_target_countries",
+    "prompt": "Over the past 7 days, which country was the top origin of application-layer (layer 7) attack requests, and which country was the top target? Return one row with columns top_origin_country and top_target_country (country names)."
+  },
+  {
+    "name": "radar_a_l7_target_top2",
+    "prompt": "What were the two most targeted countries for application-layer (layer 7) attacks over the past 7 days? Return columns rank and target_country (country name), ordered by rank."
+  },
+  {
+    "name": "radar_a_http_bot_share",
+    "prompt": "What percentage of HTTP requests seen by Cloudflare over the past 7 days were classified as coming from bots? Return one column bot_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_http_device_split",
+    "prompt": "What was the split of HTTP requests between desktop and mobile devices worldwide over the past 7 days? Return one row with columns desktop_pct and mobile_pct, each rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_http_https_share",
+    "prompt": "What share of HTTP requests worldwide over the past 7 days used HTTPS (encrypted) rather than plain HTTP? Return one column https_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_http_os_top2",
+    "prompt": "Which two operating systems generated the most human and bot HTTP requests worldwide over the past 7 days? Return columns rank (1-2) and os (as reported), ordered by rank."
+  },
+  {
+    "name": "radar_a_http_device_timeseries",
+    "prompt": "Using the hourly time series of HTTP requests by device type over the past 7 days, what was the average hourly share of mobile traffic? Return one column mobile_avg_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_http_top_browser",
+    "prompt": "Using the hourly time series of HTTP request share by browser over the past 7 days, which browser had the highest average share? Return one column browser."
+  },
+  {
+    "name": "radar_a_http_top_browser_family",
+    "prompt": "Using the hourly time series of HTTP request share by browser family over the past 7 days, which browser family had the highest average share? Return one column browser_family (as reported)."
+  },
+  {
+    "name": "radar_a_http_top_country",
+    "prompt": "Which country originated the largest share of HTTP requests seen by Cloudflare over the past 7 days? Return columns country_code and country_name."
+  },
+  {
+    "name": "radar_a_http_v3_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests made over HTTP/3 during the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_http_plain_http_top_as",
+    "prompt": "Which network (autonomous system) had the highest share of its requests sent over unencrypted plain HTTP during the past 7 days? Return columns asn (integer) and as_name."
+  },
+  {
+    "name": "radar_a_http_firefox_top_as",
+    "prompt": "Which network (autonomous system) had the highest share of its HTTP requests coming from the Firefox browser family over the past 7 days? Return columns asn (integer) and as_name."
+  },
+  {
+    "name": "radar_a_http_safari_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests coming from the Safari browser family over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_http_ipv6_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests made over IPv6 during the past 7 days? Return columns country_code and country_name."
+  },
+  {
+    "name": "radar_a_http_automated_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests classified as likely automated (bot) traffic over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_dns_udp_share",
+    "prompt": "What share of DNS queries to Cloudflare's 1.1.1.1 resolver over the past 7 days were made over UDP? Return one column udp_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_dns_cache_hit",
+    "prompt": "What percentage of DNS queries to the 1.1.1.1 resolver over the past 7 days were answered from cache (cache hit)? Return one column cache_hit_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_dns_matching_answer",
+    "prompt": "For DNS queries to the 1.1.1.1 resolver over the past 7 days, which was more common: responses with a matching answer (POSITIVE) or without (NEGATIVE)? Return one column more_common with the label as reported."
+  },
+  {
+    "name": "radar_a_dns_top_client_as",
+    "prompt": "Which network (autonomous system) sent the largest share of DNS queries to the 1.1.1.1 resolver over the past 7 days? Return columns asn (integer) and as_name."
+  },
+  {
+    "name": "radar_a_dns_top_client_country",
+    "prompt": "Which country sent the largest share of DNS queries to the 1.1.1.1 resolver over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_dns_query_type_top2",
+    "prompt": "Using the hourly time series of 1.1.1.1 DNS queries by query type over the past 7 days, which two record types had the highest average hourly share? Return columns rank (1-2) and query_type, ordered by rank."
+  },
+  {
+    "name": "radar_a_dns_protocol_timeseries",
+    "prompt": "Using the hourly time series of 1.1.1.1 DNS queries by transport protocol over the past 7 days, what was the average hourly share of UDP? Return one column udp_avg_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_dns_dnssec_status_timeseries",
+    "prompt": "Using the hourly time series of 1.1.1.1 DNS responses grouped by DNSSEC validation status over the past 7 days, which status had the highest average hourly share? Return one column dnssec_status."
+  },
+  {
+    "name": "radar_a_dns_summary_query_type",
+    "prompt": "What was the most common DNS query type seen by the 1.1.1.1 resolver over the past 7 days, and what share of queries did it account for? Return columns query_type and share_pct (rounded to 0 decimals)."
+  },
+  {
+    "name": "radar_a_dns_ipversion_timeseries",
+    "prompt": "Using the hourly time series of 1.1.1.1 DNS queries grouped by IP version over the past 7 days, what was the average hourly share of IPv4? Return one column ipv4_avg_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_as112_dnssec_edns",
+    "prompt": "For DNS queries to the AS112 reverse-DNS sink over the past 7 days, what percentage of queries supported DNSSEC and what percentage supported EDNS? Return one row with columns dnssec_pct and edns_pct, each rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_as112_ipv6_share",
+    "prompt": "What percentage of AS112 DNS queries over the past 7 days arrived over IPv6? Return one column ipv6_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_as112_protocol_top",
+    "prompt": "Which transport protocol carried the largest share of AS112 DNS queries over the past 7 days? Return one column protocol."
+  },
+  {
+    "name": "radar_a_as112_querytype_timeseries",
+    "prompt": "Using the hourly time series of AS112 DNS queries grouped by query type over the past 7 days, which query type had the highest average hourly share? Return one column query_type."
+  },
+  {
+    "name": "radar_a_as112_dnssec_top_country",
+    "prompt": "Which country sent the largest share of DNSSEC-enabled queries to AS112 over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_as112_edns_top_country",
+    "prompt": "Which country sent the largest share of EDNS-enabled queries to AS112 over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_as112_ipv4_top_country",
+    "prompt": "Which country sent the largest share of IPv4 queries to AS112 over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_bots_category_top2",
+    "prompt": "Among HTTP requests from known bots over the past 7 days, which two bot categories accounted for the largest shares? Return columns rank (1-2) and bot_category (as reported, e.g. 'AI_CRAWLER'), ordered by rank."
+  },
+  {
+    "name": "radar_a_bots_kind_timeseries",
+    "prompt": "Using the hourly time series of known-bot HTTP requests grouped by bot kind over the past 7 days, which kind had the highest average hourly share? Return one column bot_kind."
+  },
+  {
+    "name": "radar_a_crawlers_client_type",
+    "prompt": "Rank the client types (e.g. HUMAN, AI_BOT) making requests in Cloudflare's crawler dataset over the past 7 days by share. Return one column client_type, ordered by share descending."
+  },
+  {
+    "name": "radar_a_crawlers_client_type_timeseries",
+    "prompt": "Using the hourly time series of crawler-dataset requests grouped by client type over the past 7 days, which client type had the highest average hourly share? Return one column client_type."
+  },
+  {
+    "name": "radar_a_bot_detail_gptbot",
+    "prompt": "In Cloudflare Radar's bot directory, who operates the bot with slug 'gptbot', and what category and kind is it? Return columns operator, category, kind."
+  },
+  {
+    "name": "radar_a_ai_inference_top_model",
+    "prompt": "Which Workers AI model served the largest share of inference requests over the past 7 days? Return one column model."
+  },
+  {
+    "name": "radar_a_ai_inference_task_top",
+    "prompt": "Which Workers AI task type accounted for the largest share of inference requests over the past 7 days? Return one column task."
+  },
+  {
+    "name": "radar_a_ai_inference_task_timeseries",
+    "prompt": "Using the hourly time series of Workers AI inference requests grouped by task over the past 7 days, which task (excluding 'other') had the highest average hourly share? Return one column task."
+  },
+  {
+    "name": "radar_a_robots_top_ai_agent",
+    "prompt": "In the latest weekly robots.txt analysis of top domains, which AI user agent is referenced by the most domains? Return columns user_agent and domains."
+  },
+  {
+    "name": "radar_a_robots_top_domain_category",
+    "prompt": "In the latest weekly robots.txt analysis, which domain category has the most domains with robots.txt files that mention AI crawlers? Return one column domain_category."
+  },
+  {
+    "name": "radar_a_agent_readiness_top_check",
+    "prompt": "In Cloudflare's agent-readiness scan of websites, which readiness check is detected on the most sites? Return columns check_name and sites."
+  },
+  {
+    "name": "radar_a_leaked_creds_compromised",
+    "prompt": "What percentage of HTTP authentication requests over the past 7 days used leaked (compromised) credentials? Return one column compromised_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_leaked_creds_bot_class",
+    "prompt": "Among HTTP authentication requests over the past 7 days, which was larger: the human share or the bot share? Return one column bot_class with the larger class as reported."
+  },
+  {
+    "name": "radar_a_leaked_creds_bot_timeseries",
+    "prompt": "Using the hourly time series of HTTP authentication requests by bot class over the past 7 days, which class (human or bot) had the higher average hourly share? Return one column bot_class."
+  },
+  {
+    "name": "radar_a_leaked_creds_clean_timeseries",
+    "prompt": "Using the hourly time series of HTTP authentication requests grouped by compromised status over the past 7 days, which status had the higher average hourly share? Return one column status."
+  },
+  {
+    "name": "radar_a_netflows_http_share",
+    "prompt": "What share of Cloudflare network traffic bytes over the past 7 days was HTTP traffic? Return one column http_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_netflows_top_location",
+    "prompt": "Which country accounted for the largest share of Cloudflare network traffic bytes over the past 7 days? Return one column location (the two-letter code as reported)."
+  },
+  {
+    "name": "radar_a_netflows_product_timeseries",
+    "prompt": "Using the hourly time series of Cloudflare network traffic grouped by product over the past 7 days, what was the average hourly share of HTTP? Return one column http_avg_pct rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_ct_top_ca_owner",
+    "prompt": "Which certificate authority owner issued the most certificates logged to Certificate Transparency over the past 7 days? Return one column ca_owner."
+  },
+  {
+    "name": "radar_a_ct_ca_owner_timeseries_top2",
+    "prompt": "Using the hourly time series of Certificate Transparency entries grouped by CA owner over the past 7 days, which two CA owners had the most certificates in total? Return columns rank (1-2) and ca_owner, ordered by rank."
+  },
+  {
+    "name": "radar_a_ct_log_operator",
+    "prompt": "Who operates the Certificate Transparency log with slug 'aquamarine2026h2', and which API type does it use? Return columns operator and api."
+  },
+  {
+    "name": "radar_a_ct_ca_lookup",
+    "prompt": "Look up the certificate authority whose SHA-256 fingerprint is 75AA1CBE7CB4BCD66518242B1989E36830107AB181602E7C079AC43767EB0BEA. Return columns ca_name and country_name."
+  },
+  {
+    "name": "radar_a_pt_asns_by_population",
+    "prompt": "What are the three Portuguese autonomous systems with the largest estimated user populations? Return columns asn (integer) and as_name (the short AS name), ordered by estimated users descending."
+  },
+  {
+    "name": "radar_a_pt_location_info",
+    "prompt": "According to Cloudflare Radar's location entities, which region and subregion is Portugal (PT) in? Return columns region and subregion."
+  },
+  {
+    "name": "radar_a_ip_1111_info",
+    "prompt": "Which ASN and AS organization does the IP address 1.1.1.1 belong to, and what location is it geolocated to? Return columns asn (integer), asn_org_name, location_name."
+  },
+  {
+    "name": "radar_a_ip_8888_asn",
+    "prompt": "Which autonomous system announces the IP address 8.8.8.8, and in which country is that AS registered? Return columns asn (integer) and country_name."
+  },
+  {
+    "name": "radar_a_search_portugal_country",
+    "prompt": "Using Cloudflare Radar's global search for 'portugal', what is the code of the result whose type is 'country'? Return columns name and code."
+  },
+  {
+    "name": "radar_a_google_rank",
+    "prompt": "What is google.com's current rank in Cloudflare Radar's popular domains ranking, and what is its first listed category? Return columns rank (integer) and category."
+  },
+  {
+    "name": "radar_a_ranking_bucket_max",
+    "prompt": "What is the largest 'top N' size among the currently available ranking-bucket datasets in Cloudflare Radar? Return one column max_top_n (integer)."
+  },
+  {
+    "name": "radar_a_internet_services_rank1",
+    "prompt": "Using Cloudflare Radar's daily Internet services ranking over the past week, which two services had the best (lowest) average rank? Return columns rank (1-2) and service, ordered by rank."
+  },
+  {
+    "name": "radar_a_pt_ases_by_ipv4",
+    "prompt": "Which Portuguese autonomous system announces the most IPv4 /24 prefixes, according to Radar's BGP IP-space data? Return columns asn (integer) and v4_24s (integer)."
+  },
+  {
+    "name": "radar_a_botnet_feed_20260901",
+    "prompt": "In Cloudflare's botnet threat feed for 2026-09-01, which autonomous system was ranked #1? Return columns asn (integer), as_name and country."
+  },
+  {
+    "name": "radar_a_aspa_count_20250101",
+    "prompt": "How many ASPA (Autonomous System Provider Authorization) objects were observed on 2025-01-01, according to Radar's daily ASPA time series? Return one column aspa_objects (integer)."
+  },
+  {
+    "name": "radar_a_hijack_event_166608",
+    "prompt": "For BGP hijack event ID 166608 (look back up to 52 weeks), which ASN was the suspected hijacker and which prefix was affected? Return columns hijacker_asn (integer) and prefix."
+  },
+  {
+    "name": "radar_a_leak_event_629767",
+    "prompt": "For BGP route-leak event ID 629767 (look back up to 52 weeks), which ASN leaked the routes and how many prefixes were involved? Return columns leak_asn (integer) and prefix_count (integer)."
+  },
+  {
+    "name": "radar_a_outage_locations_52w",
+    "prompt": "Over the past 52 weeks, which country had the most Internet outage annotations in Cloudflare Radar? Return columns country_name and outages (integer)."
+  },
+  {
+    "name": "radar_a_iqi_pt_latency",
+    "prompt": "What was the median (p50) Internet latency measured in Portugal over the past 7 days, in milliseconds? Return one column p50_latency_ms rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_geolocation_braga",
+    "prompt": "In Cloudflare Radar's geolocation data, the region with geo ID 2742031 belongs to which country and continent? Return columns region_name, country_name, continent_name."
+  },
+  {
+    "name": "radar_a_http_top_ases_pt",
+    "prompt": "Which three networks (ASNs) originated the most HTTP traffic from Portugal over the past 7 days? Return one column asn (integer), ordered by ascending ASN number."
+  },
+  {
+    "name": "radar_a_pt_http2_top3_as",
+    "prompt": "Among networks in Portugal, which three autonomous systems had the highest share of their HTTP requests made over HTTP/2 during the past 7 days? Return one column asn (integer), ordered by ascending ASN number."
+  },
+  {
+    "name": "radar_a_dns_dnssec_clients",
+    "prompt": "For DNS queries to the 1.1.1.1 resolver over the past 7 days, what percentage came from DNSSEC-aware clients, and what percentage were NOT end-to-end DNSSEC validated? Return one row with columns dnssec_aware_pct and not_e2e_validated_pct, each rounded to 0 decimals."
+  },
+  {
+    "name": "radar_a_l3_vector_timeseries",
+    "prompt": "Using the hourly time series of layer 3 DDoS attacks grouped by attack vector over the past 7 days, which vector (excluding 'other') had the highest average hourly share? Return one column vector."
+  },
+  {
+    "name": "radar_a_l3_us_origin_top_target",
+    "prompt": "For network-layer (layer 3) DDoS attack traffic originating from the United States over the past 7 days, which target country other than the United States itself received the largest share? Return one column target_country (country name)."
+  },
+  {
+    "name": "radar_a_anthropic_bots",
+    "prompt": "List the bots operated by Anthropic in Cloudflare Radar's bot directory. Return columns bot_name and category, ordered by bot_name."
+  },
+  {
+    "name": "radar_a_http_chromeos_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests coming from ChromeOS devices over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_http_other_device_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests coming from devices that are neither desktop nor mobile ('other' device type) over the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_http_plain_http_top_country",
+    "prompt": "Which country had the highest share of its HTTP requests sent over unencrypted plain HTTP during the past 7 days? Return one column country_name."
+  },
+  {
+    "name": "radar_a_pt_mobile_top_as",
+    "prompt": "Among networks in Portugal, which autonomous system had the highest share of its HTTP requests coming from mobile devices over the past 7 days? Return columns asn (integer) and as_name."
+  },
+  {
+    "name": "radar_a_pt_ipv6_top_as",
+    "prompt": "Among networks in Portugal, which autonomous system had the highest share of its HTTP requests made over IPv6 during the past 7 days? Return one column asn (integer)."
+  },
+  {
+    "name": "radar_a_pt_human_top_as",
+    "prompt": "Among networks in Portugal, which autonomous system had the highest share of its HTTP requests classified as likely human over the past 7 days? Return columns asn (integer) and as_name."
+  },
+  {
+    "name": "radar_a_eswatini_latest_outage",
+    "prompt": "What were the cause and type of the most recent Internet outage annotated by Cloudflare Radar for Eswatini (location code SZ) within the past 52 weeks? Return columns outage_cause and outage_type."
+  },
+  {
+    "name": "radar_a_geolocation_braganca",
+    "prompt": "In Cloudflare Radar's geolocation list, what is the name, administrative type and parent country of the geolocation with geo ID 2742026? Return columns name, geo_type, parent_country."
+  },
+  {
+    "name": "radar_a_as2860_as_sets",
+    "prompt": "Approximately how many IRR AS-SETs include AS2860 (NOS Portugal) as a member? Return one column as_set_count, the count rounded to the nearest hundred."
+  },
+  {
+    "name": "radar_a_pt_ipv4_space",
+    "prompt": "What was the maximum number of announced IPv4 /24 address blocks attributed to Portugal over the past day? Return one column ipv4_24s_thousands, the count in thousands rounded to 0 decimals."
+  },
+  {
+    "name": "radar_b_http_os_share",
+    "prompt": "Over the past 12 weeks, what share of HTTP requests seen by Cloudflare came from each operating system? Return os and share_pct (percent, rounded to 1 decimal), highest share first."
+  },
+  {
+    "name": "radar_b_http_post_quantum",
+    "prompt": "Over the past 12 weeks, what percentage of HTTPS requests to Cloudflare used post-quantum encryption versus not? Return status (SUPPORTED / NOT_SUPPORTED) and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_http_top_browsers",
+    "prompt": "Over the past 12 weeks, which were the top 5 web browsers by share of HTTP requests worldwide? Return rank (1 = highest), browser, ordered by rank."
+  },
+  {
+    "name": "radar_b_http_top_browser_families",
+    "prompt": "Over the past 12 weeks, which browser families had the largest share of HTTP requests? Return browser_family and share_pct (rounded to 1 decimal) for the top 5, highest first."
+  },
+  {
+    "name": "radar_b_http_ios_top_ases",
+    "prompt": "Over the past 52 weeks, which 5 autonomous systems had the highest share of their HTTP traffic coming from iOS devices? Return asn and as_name, ordered by that iOS share descending."
+  },
+  {
+    "name": "radar_b_http_tls10_top_ases",
+    "prompt": "Over the past 12 weeks, which 5 autonomous systems had the highest share of HTTP requests still using TLS 1.0? Return asn and as_name ordered by that share, highest first."
+  },
+  {
+    "name": "radar_b_http_quic_top_locations",
+    "prompt": "Over the past 12 weeks, which 5 countries had the highest share of their HTTP requests carried over QUIC (HTTP/3)? Return country_code (ISO alpha-2) and country_name, ordered by that share, highest first."
+  },
+  {
+    "name": "radar_b_netflows_top_ases_us",
+    "prompt": "Over the past 28 days, which 5 networks (ASNs) originated the most traffic in the United States according to Cloudflare network flow data? Return asn and as_name, ordered by traffic share descending."
+  },
+  {
+    "name": "radar_b_netflows_top_locations",
+    "prompt": "Over the past 52 weeks, which 5 countries accounted for the most network traffic (NetFlows) seen by Cloudflare? Return country_code and country_name, ordered by traffic share descending."
+  },
+  {
+    "name": "radar_b_l3_top_origin_countries",
+    "prompt": "Over the past 12 weeks, which 5 countries were the top origins of network-layer (layer 3/4) DDoS attacks? Return rank and country_name, ordered by rank."
+  },
+  {
+    "name": "radar_b_l3_top_target_countries",
+    "prompt": "Over the past 12 weeks, which 5 countries were most targeted by network-layer (layer 3/4) DDoS attacks? Return rank, country_code and share_pct (rounded to 1 decimal), ordered by rank."
+  },
+  {
+    "name": "radar_b_l3_protocol_mix",
+    "prompt": "Over the past 12 weeks, how were network-layer DDoS attacks split by IP protocol (TCP, UDP, ICMP, GRE)? Return protocol and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_l3_ip_version_mix",
+    "prompt": "Over the past 12 weeks, what share of layer 3/4 DDoS attacks were over IPv4 versus IPv6? Return ip_version and share_pct rounded to 2 decimals, highest first."
+  },
+  {
+    "name": "radar_b_l3_top_vectors",
+    "prompt": "Over the past 12 weeks, what were the 3 most common network-layer DDoS attack vectors (excluding the 'other' bucket)? Return vector and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_l3_verticals_summary",
+    "prompt": "Over the past 12 weeks, which 3 industry verticals (excluding 'other') received the largest share of layer 3/4 DDoS attacks? Return vertical and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_l3_top_industries",
+    "prompt": "Over the past 12 weeks, rank the top 5 industries targeted by network-layer DDoS attacks. Return rank (1 = most targeted) and industry, ordered by rank."
+  },
+  {
+    "name": "radar_b_l3_top_verticals",
+    "prompt": "Over the past 52 weeks, rank the top 5 verticals targeted by network-layer DDoS attacks. Return rank (1 = most targeted) and vertical, ordered by rank."
+  },
+  {
+    "name": "radar_b_l7_industries",
+    "prompt": "Over the past 12 weeks, which 3 industries (excluding 'other') were targeted by the largest share of application-layer (layer 7) attacks? Return industry and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_l7_verticals",
+    "prompt": "Over the past 12 weeks, which 3 verticals (excluding 'other') received the largest share of application-layer (layer 7) attacks? Return vertical and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_l7_top_attack_pairs",
+    "prompt": "Over the past 12 weeks, what were the top 3 origin-to-target country pairs for application-layer (layer 7) attacks? Return rank, origin_country and target_country (country names), ordered by rank."
+  },
+  {
+    "name": "radar_b_dns_response_codes",
+    "prompt": "Over the past 12 weeks, how were DNS responses from Cloudflare's 1.1.1.1 resolver distributed by response code? Return response_code and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_dns_response_ttl",
+    "prompt": "Over the past 12 weeks, how were 1.1.1.1 DNS answers distributed across TTL buckets? Return ttl_bucket (e.g. lte_1m) and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_dns_dnssec_status",
+    "prompt": "Over the past 12 weeks, what share of 1.1.1.1 DNS responses fell into each DNSSEC validation status (SECURE, INSECURE, INVALID, OTHER)? Return dnssec_status and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_dns_query_types",
+    "prompt": "Over the past 12 weeks, which 5 DNS record types (excluding 'other') were queried most often at the 1.1.1.1 resolver? Return query_type and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_as112_protocol",
+    "prompt": "Over the past 12 weeks, how were queries to the AS112 DNS sink split by transport protocol? Return protocol and share_pct rounded to 2 decimals, highest first."
+  },
+  {
+    "name": "radar_b_as112_query_types",
+    "prompt": "Over the past 12 weeks, which 3 DNS query types were most common at AS112 (the reverse-lookup sink for private address space)? Return query_type and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_as112_response_codes",
+    "prompt": "Over the past 12 weeks, how were AS112 DNS responses split by response code? Return response_code and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_as112_top_locations",
+    "prompt": "Over the past 12 weeks, which 5 countries sent the most queries to AS112? Return country_code and country_name, ordered by query share descending."
+  },
+  {
+    "name": "radar_b_email_spam_share",
+    "prompt": "Over the past 12 weeks, what share of emails processed by Cloudflare email security were classified as spam versus not spam? Return classification and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_spoof_share",
+    "prompt": "Over the past 12 weeks, what share of emails processed by Cloudflare email security were spoofed versus not spoofed? Return classification and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_malicious_share",
+    "prompt": "Over the past 12 weeks, what share of emails processed by Cloudflare email security were classified as malicious versus not malicious? Return classification and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_routing_encrypted",
+    "prompt": "Over the past 12 weeks, what share of emails routed through Cloudflare Email Routing were transmitted encrypted versus not encrypted? Return status and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_tls_versions",
+    "prompt": "Over the past 12 weeks, how were emails processed by Cloudflare email security split by TLS version used for delivery? Return tls_version and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_threat_categories",
+    "prompt": "Over the past 12 weeks, what were the 5 most common threat categories among malicious emails detected by Cloudflare email security? Return threat_category and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_top_tlds",
+    "prompt": "Over the past 12 weeks, which 5 top-level domains sent the most email processed by Cloudflare email security? Return rank (1 = most) and tld (as returned, with trailing dot), ordered by rank."
+  },
+  {
+    "name": "radar_b_email_spam_tlds",
+    "prompt": "Over the past 52 weeks, which 5 sending TLDs had the highest proportion of their email classified as spam? Return tld (with trailing dot) and spam_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_email_spoof_tlds",
+    "prompt": "Over the past 52 weeks, which 5 sending TLDs had the highest proportion of their email classified as spoofed? Return tld (with trailing dot) and spoof_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_ai_crawl_purpose",
+    "prompt": "Over the past 12 weeks, how was AI bot crawling traffic split by declared crawl purpose? Return crawl_purpose and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_ai_bot_user_agents",
+    "prompt": "Over the past 12 weeks, which 5 AI crawler user agents (excluding 'other') accounted for the most AI bot requests? Return user_agent and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_ai_inference_tasks",
+    "prompt": "Over the past 12 weeks, which 3 task types made up the largest share of Workers AI inference requests? Return task and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_leaked_creds_bot_class",
+    "prompt": "Over the past 12 weeks, of the login requests checked for leaked credentials, what share came from bots versus humans? Return bot_class and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_tcp_resets_summary",
+    "prompt": "Over the past 12 weeks, how were TCP connections to Cloudflare distributed across reset/timeout categories (e.g. post_syn, post_ack, no_match)? Return category and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_verified_bot_categories",
+    "prompt": "Over the past 12 weeks, which 5 verified bot categories generated the most requests? Return bot_category and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_verified_top_bots",
+    "prompt": "Over the past 12 weeks, which were the 5 most active verified bots? Return rank (1 = most requests), bot_name, bot_owner and bot_category, ordered by rank."
+  },
+  {
+    "name": "radar_b_ranking_top_domains_de",
+    "prompt": "What are the 5 most popular domains in Germany according to Cloudflare's current domain ranking? Return rank and domain, ordered by rank."
+  },
+  {
+    "name": "radar_b_top_internet_services",
+    "prompt": "According to Cloudflare's latest ranking of Internet services, which are the top 5 services overall? Return rank and service, ordered by rank."
+  },
+  {
+    "name": "radar_b_ranking_cloudflare_best",
+    "prompt": "Over the past 12 weeks of Cloudflare's daily domain popularity ranking, what was the best (lowest number) and worst (highest number) daily rank held by cloudflare.com? Return best_rank and worst_rank."
+  },
+  {
+    "name": "radar_b_speed_summary_jp",
+    "prompt": "Based on Cloudflare speed tests from Japan (default recent window), what are the median download and upload bandwidth in Mbps and the idle latency in ms? Return download_mbps, upload_mbps and latency_idle_ms, each rounded to 0 decimals."
+  },
+  {
+    "name": "radar_b_speed_top_locations",
+    "prompt": "According to Cloudflare speed tests (default recent window), which 5 countries rank highest for download bandwidth? Return rank, country_code and download_mbps (rounded to 0 decimals), ordered by rank."
+  },
+  {
+    "name": "radar_b_speed_top_ases_us",
+    "prompt": "According to Cloudflare speed tests in the United States (default recent window), which 5 networks (ASNs) rank highest for download bandwidth? Return rank, asn and as_name, ordered by rank."
+  },
+  {
+    "name": "radar_b_bgp_top_ases_by_prefixes_de",
+    "prompt": "Which 5 German autonomous systems announce the most IP prefixes in BGP? Return asn, as_name and prefix_count, ordered by prefix_count descending."
+  },
+  {
+    "name": "radar_b_bgp_routes_stats_nz",
+    "prompt": "For New Zealand, what does the BGP routing table look like right now? Return routes_total, routes_valid, routes_invalid, routes_unknown and distinct_origins as integers."
+  },
+  {
+    "name": "radar_b_bgp_nz_ases_by_prefixes",
+    "prompt": "Which 5 New Zealand autonomous systems announce the most prefixes in the global routing table? Return asn, as_name and prefix_count, ordered by prefix_count descending (ties by asn)."
+  },
+  {
+    "name": "radar_b_bgp_top_update_ases",
+    "prompt": "Over the past 12 weeks, which 5 autonomous systems generated the most BGP update messages? Return rank (1 = most), asn and as_name, ordered by rank."
+  },
+  {
+    "name": "radar_b_bgp_top_update_prefixes",
+    "prompt": "Over the past 12 weeks, which 5 IP prefixes received the most BGP updates? Return rank (1 = most) and prefix, ordered by rank."
+  },
+  {
+    "name": "radar_b_aspa_providers_as80",
+    "prompt": "According to the current RPKI ASPA snapshot, which provider ASNs has AS80 authorized as its upstreams? Return provider_asn and provider_name, ordered by provider_asn."
+  },
+  {
+    "name": "radar_b_asn_rel_cloudflare_cogent",
+    "prompt": "According to Cloudflare's AS relationship data, which relationship types are recorded between Cloudflare's network (AS13335) and Cogent (AS174)? Return relationship, one row per type, ordered alphabetically."
+  },
+  {
+    "name": "radar_b_rpki_roa_jan2025",
+    "prompt": "For January 2025 (2025-01-01 through 2025-02-01, daily points), what was the global RPKI ROA deployment metric on the first and last day of the series, and how many daily points are there? Return first_value, last_value (both rounded to 4 decimals) and num_points."
+  },
+  {
+    "name": "radar_b_tld_dev_manager",
+    "prompt": "Who manages the .dev top-level domain and what type of TLD is it, according to Cloudflare Radar's TLD registry data? Return tld, tld_type and manager."
+  },
+  {
+    "name": "radar_b_cloud_origins_region_counts",
+    "prompt": "For each cloud provider that Cloudflare Radar tracks origin performance for, how many regions are listed? Return provider (slug) and region_count, ordered by region_count descending then provider."
+  },
+  {
+    "name": "radar_b_cloud_origin_google_regions",
+    "prompt": "How many Google Cloud regions does Cloudflare Radar list for origin measurements, and which is alphabetically first? Return region_count and first_region."
+  },
+  {
+    "name": "radar_b_pq_origin_key_agreement",
+    "prompt": "Over the past 12 weeks, what percentage of origin servers supported each TLS key agreement algorithm (including the post-quantum X25519MLKEM768)? Return key_agreement and support_pct rounded to 0 decimals, highest first."
+  },
+  {
+    "name": "radar_b_tld_dns_latency_percentiles",
+    "prompt": "Over the past 12 weeks, what were the 25th, 50th and 75th percentile DNS latencies (ms) for TLD nameservers? Return percentile (p25/p50/p75) and latency_ms, ordered by percentile."
+  },
+  {
+    "name": "radar_b_outage_causes",
+    "prompt": "Among the most recent Internet outages annotated by Cloudflare Radar over the past 12 weeks, how many were attributed to each outage cause? Return outage_cause and outage_count, ordered by outage_count descending then outage_cause."
+  },
+  {
+    "name": "radar_b_traffic_anomaly_locations",
+    "prompt": "Over the past 12 weeks, which countries had the most verified traffic anomalies detected by Cloudflare Radar? Return country_code, country_name and anomaly_count for the top 5, ordered by anomaly_count descending then country_code."
+  },
+  {
+    "name": "radar_b_traffic_anomalies_types",
+    "prompt": "Among the most recent verified traffic anomalies detected by Cloudflare Radar in the past 12 weeks, how many are of each type (e.g. LOCATION, AS)? Return anomaly_type and anomaly_count, ordered by anomaly_count descending then anomaly_type."
+  },
+  {
+    "name": "radar_b_ts_device_type",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by device type of HTTP requests, compute the average daily share for each group. Return device_type and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_bot_class",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by bot vs human classification of HTTP requests, compute the average daily share for each group. Return bot_class and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_os",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by operating system of HTTP requests, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return os and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_http_protocol",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by HTTP vs HTTPS for HTTP requests, compute the average daily share for each group. Return http_protocol and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_post_quantum",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by post-quantum encryption support status of HTTPS requests, compute the average daily share for each group. Return status and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_ip_versions",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by IP version of network-layer (L3/4) DDoS attacks, compute the average daily share for each group. Return ip_version and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_bitrate",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by bitrate bucket of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return bitrate_bucket and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_duration",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by duration bucket of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return duration_bucket and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_vector",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by attack vector of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return vector and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_industry",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by targeted industry of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return industry and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_vertical",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by targeted vertical of network-layer DDoS attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return vertical and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_http_method",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by HTTP method of application-layer (L7) attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return http_method and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_managed_rules",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by WAF managed-rule category of application-layer (L7) attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return rule_category and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_mitigation_product",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by mitigation product handling application-layer (L7) attacks, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return mitigation_product and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_cache_hit",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by cache hit status (POSITIVE/NEGATIVE) of 1.1.1.1 DNS responses, compute the average daily share for each group. Return cache_status and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_dnssec_aware",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DNSSEC awareness of clients querying 1.1.1.1, compute the average daily share for each group. Return dnssec_aware and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_dnssec_e2e",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by end-to-end DNSSEC validation status of 1.1.1.1 queries, compute the average daily share for each group. Return dnssec_e2e and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_matching_answer",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by matching-answer status of 1.1.1.1 DNS responses, compute the average daily share for each group. Return matching_answer and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_response_code",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DNS response code at 1.1.1.1, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return response_code and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_response_ttl",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by TTL bucket of 1.1.1.1 DNS answers, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return ttl_bucket and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_dnssec",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DNSSEC support of queries to AS112, compute the average daily share for each group. Return dnssec and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_edns",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by EDNS support of queries to AS112, compute the average daily share for each group. Return edns and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_protocol",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by transport protocol of queries to AS112, compute the average daily share for each group. Return protocol and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_query_type",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by query type of queries to AS112, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return query_type and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_response_codes",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by response code of AS112 DNS responses, compute the average daily share for each group. Return response_code and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_arc",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by ARC validation result for emails handled by Cloudflare Email Routing, compute the average daily share for each group. Return arc_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_dkim",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DKIM validation result for emails handled by Cloudflare Email Routing, compute the average daily share for each group. Return dkim_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_dmarc",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DMARC validation result for emails handled by Cloudflare Email Routing, compute the average daily share for each group. Return dmarc_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_spf",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by SPF validation result for emails handled by Cloudflare Email Routing, compute the average daily share for each group. Return spf_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_encrypted",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by encryption status of emails handled by Cloudflare Email Routing, compute the average daily share for each group. Return status and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_security_arc",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by ARC validation result for emails processed by Cloudflare email security, compute the average daily share for each group. Return arc_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_security_dkim",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DKIM validation result for emails processed by Cloudflare email security, compute the average daily share for each group. Return dkim_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_security_dmarc",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by DMARC validation result for emails processed by Cloudflare email security, compute the average daily share for each group. Return dmarc_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_security_spf",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by SPF validation result for emails processed by Cloudflare email security, compute the average daily share for each group. Return spf_result and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_malicious",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by malicious vs not-malicious classification of emails processed by Cloudflare email security, compute the average daily share for each group. Return classification and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_spam",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by spam vs not-spam classification of emails processed by Cloudflare email security, compute the average daily share for each group. Return classification and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_spoof",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by spoof vs not-spoof classification of emails processed by Cloudflare email security, compute the average daily share for each group. Return classification and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_threat_category",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by threat category of malicious emails detected by Cloudflare email security, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return threat_category and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_model",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by model used for Workers AI inference requests, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return model and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_task",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by task type of Workers AI inference requests, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return task and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_user_agent",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by user agent of AI crawler requests, compute the average daily share for the top 3 groups (excluding any 'other' bucket). Return user_agent and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_compromised",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by compromised (leaked credential) status of checked login requests, compute the average daily share for each group. Return status and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_ts_tcp_resets_timeouts_ts",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by TCP reset/timeout category of connections to Cloudflare, compute the average daily share for each group. Return category and avg_share_pct (average of the daily percentage values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_tsd_security",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by spam classification of emails processed by Cloudflare email security, compute the average daily value for each group. Return classification and avg_share_pct (average of the daily values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_tsd_routing",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by IP version used by emails handled by Cloudflare Email Routing, compute the average daily value for each group. Return ip_version and avg_share_pct (average of the daily values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_tsd_ai_bots",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by declared crawl purpose of AI bot traffic, compute the average daily value for each group. Return crawl_purpose and avg_share_pct (average of the daily values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_tsd_origin",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by TLS key agreement support among origin servers, compute the average daily value for each group. Return key_agreement and avg_value (average of the daily values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_tsd_performance",
+    "prompt": "Using the daily time series for the past 12 weeks broken down by TLD nameserver DNS latency percentiles (values in ms), compute the average daily value for each group. Return percentile and avg_value (average of the daily values, rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "radar_b_cloud_origin_request_share",
+    "prompt": "Over the past 12 weeks, how was Cloudflare's request traffic to cloud-hosted origins split across cloud providers? Return provider and share_pct rounded to 1 decimal, highest first."
+  },
+  {
+    "name": "radar_b_cloud_origin_request_share_ts",
+    "prompt": "Using the daily time series for the past 12 weeks of Cloudflare's request traffic to cloud-hosted origins broken down by cloud provider, compute each provider's average daily share. Return provider and avg_share_pct (rounded to 1 decimal), highest first."
+  },
+  {
+    "name": "idsec_access_apps",
+    "prompt": "List the Zero Trust Access applications protecting my sites. Return name, type, domain and app_launcher_visible (whether it appears in the App Launcher), ordered by name."
+  },
+  {
+    "name": "idsec_access_apps_table",
+    "prompt": "My Cloudflare account has id 'bb68a133a66d26a310231495b13479a1'. How many Access applications in it are self-hosted, and how many of those are hidden from the App Launcher? Return self_hosted_apps and hidden_from_launcher."
+  },
+  {
+    "name": "idsec_app_policies",
+    "prompt": "For each Access application, list the access policies attached to it. Return app_name, policy_name, decision and include_rule_count (number of include rules in the policy), ordered by app_name then policy_name."
+  },
+  {
+    "name": "idsec_app_policy_detail",
+    "prompt": "For every policy attached to my Access applications, fetch the policy's full details and report whether it has any exclude or require rules. Return app_name, policy_name, decision, exclude_rule_count and require_rule_count, ordered by app_name."
+  },
+  {
+    "name": "idsec_zone_scoped_apps",
+    "prompt": "Through the zone-level Access API of each of my zones, look up my account's Access applications. Return zone_name, app_name and session_duration, ordered by zone_name then app_name."
+  },
+  {
+    "name": "idsec_zone_scoped_app_policies",
+    "prompt": "For the zone named query.farm, use its zone-level Access API to list the policies of each of my account's Access applications. Return app_name, policy_name and decision, ordered by app_name, policy_name."
+  },
+  {
+    "name": "idsec_identity_providers",
+    "prompt": "Which login methods (identity providers) are configured for Zero Trust, and is SCIM provisioning enabled on each? Return name, type and scim_enabled, ordered by name."
+  },
+  {
+    "name": "idsec_identity_providers_table",
+    "prompt": "In my Cloudflare account (id 'bb68a133a66d26a310231495b13479a1'), how many identity providers are configured per provider type? Return type and provider_count ordered by type."
+  },
+  {
+    "name": "idsec_zone_identity_providers",
+    "prompt": "For each of my zones, list the identity providers available through the zone-level Access configuration. Return zone_name, idp_name and idp_type, ordered by zone_name then idp_name."
+  },
+  {
+    "name": "idsec_yubikey_aaguids",
+    "prompt": "Which security-key models recognised for Access authenticator policies have names starting with 'YubiKey 5 Series with NFC'? Return aaguid and name, ordered by name then aaguid."
+  },
+  {
+    "name": "idsec_access_user_seats",
+    "prompt": "How many Zero Trust users does my account have, and how many of them consume an Access seat and a Gateway seat? Return total_users, access_seat_users and gateway_seat_users."
+  },
+  {
+    "name": "idsec_access_user_details",
+    "prompt": "For each Zero Trust user, fetch their individual user record and report the date the user was created and whether they hold an Access seat. Return created_date and access_seat, ordered by created_date."
+  },
+  {
+    "name": "idsec_zt_organization",
+    "prompt": "What is my Zero Trust organization called, what is its team authentication domain, and does it deny requests to unmatched hostnames? Return name, auth_domain and deny_unmatched_requests."
+  },
+  {
+    "name": "idsec_zone_zt_organization",
+    "prompt": "For each of my zones, which Zero Trust organization (name and auth domain) does the zone-level Access configuration report? Return zone_name, org_name and auth_domain, ordered by zone_name."
+  },
+  {
+    "name": "idsec_access_key_rotation",
+    "prompt": "How often (in days) are my Access signing keys automatically rotated? Return key_rotation_interval_days."
+  },
+  {
+    "name": "idsec_members_roles",
+    "prompt": "List each member of my Cloudflare account with their membership status, whether two-factor authentication is enabled, and their role name(s). Return status, two_factor_enabled and role_name, ordered by role_name, status."
+  },
+  {
+    "name": "idsec_members_policies",
+    "prompt": "Using the newer policy-based membership listing, which permission groups are granted to account members, and with what access level? Return status, access and permission_group, ordered by permission_group."
+  },
+  {
+    "name": "idsec_member_lookup",
+    "prompt": "Fetch each account member's individual membership record and count how many members have accepted their invitation versus are pending. Return status and member_count, ordered by status."
+  },
+  {
+    "name": "idsec_dns_roles",
+    "prompt": "Which account roles relate to DNS (role name starts with 'DNS')? Fetch each role's details and return name and description, ordered by name."
+  },
+  {
+    "name": "idsec_dns_permission_groups",
+    "prompt": "List the permission groups whose name starts with 'DNS' and look up each one to get its internal label and category. Return name, label and category, ordered by name."
+  },
+  {
+    "name": "idsec_resource_groups",
+    "prompt": "How many resource groups does my account have, and how many of them cover all objects ('*') and are non-editable? Fetch each group's details to check. Return resource_group_count, wildcard_groups and non_editable_groups."
+  },
+  {
+    "name": "idsec_account_details",
+    "prompt": "Look up my account's details: what type of account is it, on what date was it created, and is two-factor authentication enforced for members? Return type, created_date and enforce_twofactor."
+  },
+  {
+    "name": "idsec_app_type_categories",
+    "prompt": "Gateway groups applications into application-type categories. List the first ten categories by id. Return id and name, ordered by id."
+  },
+  {
+    "name": "idsec_gateway_free_categories",
+    "prompt": "Which Gateway content categories are available on the free class? Return id and name, ordered by id."
+  },
+  {
+    "name": "idsec_gateway_certificates",
+    "prompt": "Show my Zero Trust Gateway certificates with full details: type, binding_status, in_use, issuer_org and expiry date (expires_date), ordered by expires_date."
+  },
+  {
+    "name": "idsec_dns_destination_ips",
+    "prompt": "What DNS resolver destination IP pairs are assigned to my Zero Trust account? Return pair_type, primary_ip and backup_ip, ordered by primary_ip."
+  },
+  {
+    "name": "idsec_dlp_financial_entries",
+    "prompt": "Which DLP detection entries belong to the 'Financial Information' DLP profile, and are they enabled? Return entry_name and enabled, ordered by entry_name."
+  },
+  {
+    "name": "idsec_dlp_aws_entries",
+    "prompt": "Look up the DLP detection entries whose names start with 'Amazon AWS' and report each entry's type and enabled flag from its individual entry record. Return name, type and enabled, ordered by name."
+  },
+  {
+    "name": "idsec_dlp_profiles",
+    "prompt": "List my DLP profiles with their type, allowed match count, whether OCR is enabled, and how many detection entries each contains. Return name, type, allowed_match_count, ocr_enabled and entry_count, ordered by name."
+  },
+  {
+    "name": "idsec_dlp_predefined_profiles",
+    "prompt": "For each DLP profile, fetch its predefined-profile definition and report how many entries it defines and whether its context awareness is enabled. Return name, entry_count and context_awareness_enabled, ordered by name."
+  },
+  {
+    "name": "idsec_dlp_profile_config",
+    "prompt": "For each DLP profile, look up its predefined profile configuration and report how many entries are explicitly enabled and whether open access is on. Return name, enabled_entry_count and open_access, ordered by name."
+  },
+  {
+    "name": "idsec_dlp_profile_lookup",
+    "prompt": "Fetch each DLP profile individually by id and report its type and AI context analysis setting. Return name, type and ai_context_enabled, ordered by name."
+  },
+  {
+    "name": "idsec_target_environments",
+    "prompt": "Which target operating environments are supported for Zero Trust device targeting? Return target_environment and display_name, ordered by target_environment."
+  },
+  {
+    "name": "idsec_classification_templates",
+    "prompt": "List the data-classification (sensitivity level) templates available for DLP and how many sensitivity levels each defines. Return name and level_count, ordered by name."
+  },
+  {
+    "name": "idsec_tlp_levels",
+    "prompt": "Fetch the 'Traffic Light Protocol (TLP)' data-classification template and list its sensitivity levels in their defined order. Return level_position (1-based) and level_name, ordered by level_position."
+  },
+  {
+    "name": "idsec_insights_status_changes",
+    "prompt": "In Security Center, how many issue status changes were recorded across my account between 2026-07-01 and 2026-09-01 (exclusive), split by the new status? Return new_status and change_count, ordered by new_status."
+  },
+  {
+    "name": "idsec_zone_insights_changes",
+    "prompt": "For each of my zones, how many Security Center issue changes were logged between 2026-07-01 and 2026-09-01 (exclusive)? Return zone_name and change_count, ordered by zone_name; omit zones with none."
+  },
+  {
+    "name": "idsec_threat_feeds",
+    "prompt": "Which threat-intelligence indicator feeds can my account see that are both attributable and downloadable? Return id and name, ordered by id."
+  },
+  {
+    "name": "idsec_gateway_logging",
+    "prompt": "How is Zero Trust Gateway activity logging configured? For each rule type (dns, http, l4) report whether all traffic is logged and whether only blocks are logged, plus the account-wide PII redaction flag. Return rule_type, log_all, log_blocks and redact_pii, ordered by rule_type."
+  },
+  {
+    "name": "idsec_gateway_account",
+    "prompt": "Who is the provider of my Zero Trust Gateway account? Return provider_name."
+  },
+  {
+    "name": "idsec_dlp_settings",
+    "prompt": "Are OCR and AI context analysis turned on in my DLP account settings, and what payload-logging masking level is set? Return ocr, ai_context_analysis and masking_level."
+  },
+  {
+    "name": "idsec_ssh_audit_settings",
+    "prompt": "Has an SSH session-audit encryption public key been configured for Zero Trust? Return has_public_key (true/false) and the date the SSH audit settings were created as created_date."
+  },
+  {
+    "name": "idsec_gateway_config_cert",
+    "prompt": "Which certificate id is configured for TLS inspection in my Gateway account configuration, and is it the same certificate that the Gateway certificate list reports as in use? Return certificate_id and matches_in_use_cert."
+  },
+  {
+    "name": "idsec_zone_bot_management",
+    "prompt": "For each of my zones, what are the Bot Management settings for AI bot protection and Bot Fight Mode, and is JavaScript detection enabled? Return zone_name, ai_bots_protection, fight_mode and enable_js, ordered by zone_name."
+  },
+  {
+    "name": "idsec_zone_fraud_detection",
+    "prompt": "For each of my zones, what is the Fraud Detection user-profiles setting, and how many username expressions are configured? Return zone_name, user_profiles and username_expression_count, ordered by zone_name."
+  },
+  {
+    "name": "idsec_insights_scan_quota",
+    "prompt": "How many on-demand Security Center (Security Insights) account scans are still available under my quota, and how many have been used? Return scans_available and scans_used."
+  },
+  {
+    "name": "idsec_reusable_policy_usage",
+    "prompt": "For each policy attached to my Access applications, look it up in the account-level policy catalogue and report how many applications use it and whether it is reusable. Return policy_name, app_count and reusable, ordered by policy_name."
+  },
+  {
+    "name": "idsec_zone_policy_lookup",
+    "prompt": "Using each zone's zone-level Access API, fetch every policy of my account's Access applications individually. Return zone_name and policy_count (number of policies retrieved), ordered by zone_name."
+  },
+  {
+    "name": "idsec_zone_insights_scan_quota",
+    "prompt": "For each of my zones, how many on-demand Security Insights scans remain available? Return zone_name and scans_available, ordered by zone_name."
+  },
+  {
+    "name": "idsec_my_memberships",
+    "prompt": "Across all the accounts I am a member of, what is the status of each of my memberships and which roles do I hold? Return status and role_name, ordered by role_name."
+  },
+  {
+    "name": "idsec_token_scope_categories",
+    "prompt": "What categories of API token permission scopes exist? Return category and scope_count, ordered by category."
+  },
+  {
+    "name": "idsec_token_status",
+    "prompt": "Is the API token I'm currently using valid? Return its status."
+  },
+  {
+    "name": "idsec_my_organizations",
+    "prompt": "How many organizations do I belong to, and what is my membership status in them? Return status and organization_count, ordered by status."
+  },
+  {
+    "name": "idsec_members_table",
+    "prompt": "For my Cloudflare account with id 'bb68a133a66d26a310231495b13479a1', how many members have two-factor authentication disabled? Return status and members_without_2fa, ordered by status."
+  },
+  {
+    "name": "idsec_dlp_entries_table",
+    "prompt": "In my Cloudflare account with id 'bb68a133a66d26a310231495b13479a1', how many DLP detection entries are there per entry type, and how many of them are enabled? Return type, entry_count and enabled_count, ordered by type."
+  },
+  {
+    "name": "platform_scheduled_workers_scripts",
+    "prompt": "Which of my Workers scripts have a scheduled (cron) handler and were created before September 1, 2026 (UTC)? Return script_name and compatibility_date, ordered by script_name."
+  },
+  {
+    "name": "platform_scripts_with_static_assets",
+    "prompt": "Which Workers scripts on my account ship static assets and were created before September 2026 (UTC)? Return script_name, ordered alphabetically."
+  },
+  {
+    "name": "platform_oldest_worker_scripts",
+    "prompt": "What are the five oldest Workers scripts on my account by creation time? Return script_name and the script's internal id (as script_id), oldest first."
+  },
+  {
+    "name": "platform_workers_created_march_2026",
+    "prompt": "Which Workers were created during March 2026 (UTC)? Return worker name, oldest first."
+  },
+  {
+    "name": "platform_custom_domains_github_receiver",
+    "prompt": "Which custom domain hostnames route to my github-webhook-receiver Worker? Return hostname, zone_name and environment, ordered by hostname."
+  },
+  {
+    "name": "platform_durable_object_classes_per_script",
+    "prompt": "Which Workers scripts define more than one Durable Object namespace? Return script and namespace_count, ordered by namespace_count descending then script."
+  },
+  {
+    "name": "platform_durable_objects_without_sqlite",
+    "prompt": "Which Durable Object namespaces are NOT using the SQLite storage backend? Return name and class, ordered by name."
+  },
+  {
+    "name": "platform_pipelines_status",
+    "prompt": "List my data pipelines with their current status and SQL transformation. Return name, status and sql, ordered by name."
+  },
+  {
+    "name": "platform_queues_with_consumers",
+    "prompt": "Which of my queues have at least one consumer attached? Return queue_name and consumers_total_count, ordered by queue_name."
+  },
+  {
+    "name": "platform_queue_retention",
+    "prompt": "For each of my queues, what is the message retention period in days? Return queue_name and retention_days (integer), ordered by queue_name."
+  },
+  {
+    "name": "platform_container_registries",
+    "prompt": "Which container image registries are configured on my account? Return domain and kind, ordered by domain."
+  },
+  {
+    "name": "platform_worker_routes_by_zone",
+    "prompt": "Which zone-level Worker routes are configured across my zones? Return zone_name, pattern and script, ordered by zone_name then pattern."
+  },
+  {
+    "name": "platform_pipeline_sinks",
+    "prompt": "What pipeline sinks do I have and what destination type and file format/compression do they write? Return name, type, file_format and compression, ordered by name."
+  },
+  {
+    "name": "platform_pipeline_streams",
+    "prompt": "List my pipeline streams with their input format and version. Return name, input_format and version, ordered by name."
+  },
+  {
+    "name": "platform_d1_databases_before_july",
+    "prompt": "Which D1 databases were created before July 1, 2026 (UTC)? Return name and version, oldest first."
+  },
+  {
+    "name": "platform_kv_namespaces",
+    "prompt": "List my Workers KV namespaces. Return title and whether they support URL encoding (supports_url_encoding), ordered by title."
+  },
+  {
+    "name": "platform_public_ai_finetunes",
+    "prompt": "Which public Workers AI fine-tunes (LoRA adapters) are available to my account? Return name and model, ordered by name."
+  },
+  {
+    "name": "platform_ai_markdown_mime_types",
+    "prompt": "For Workers AI document conversion (to Markdown), which MIME types are accepted under more than one file extension? Return mime_type and extension_count, ordered by extension_count descending then mime_type."
+  },
+  {
+    "name": "platform_alert_policies",
+    "prompt": "What notification/alert policies are configured on my account? Return name, alert_type and enabled, ordered by name."
+  },
+  {
+    "name": "platform_billing_cost_by_family_sept",
+    "prompt": "For pay-as-you-go usage with charge periods starting between 2026-09-10 00:00 UTC (inclusive) and 2026-09-20 00:00 UTC (exclusive), what was the total contracted cost per service family? Return service_family and total_cost rounded to 2 decimals, ordered by total_cost descending then service_family."
+  },
+  {
+    "name": "platform_container_applications",
+    "prompt": "Which Cloudflare Containers applications do I run, and what is each one's maximum instance count? Return name and max_instances, ordered by name."
+  },
+  {
+    "name": "platform_secrets_store_inventory",
+    "prompt": "In my account-level Secrets Store, which secrets are used for Stockgate attestation keys? Return store_name, secret_name and comment for secrets whose name contains 'attestation', ordered by secret_name."
+  },
+  {
+    "name": "platform_queue_consumer_dlq",
+    "prompt": "For each queue that has a consumer, what dead-letter queue does the consumer use and what are its batch size and max retries? Return queue_name, dead_letter_queue, batch_size and max_retries, ordered by queue_name."
+  },
+  {
+    "name": "platform_queue_producers_detail",
+    "prompt": "Fetching each queue's details individually, which Worker scripts produce messages into my queues? Return queue_name and producer_script, ordered by queue_name then producer_script."
+  },
+  {
+    "name": "platform_pipeline_detail_tables",
+    "prompt": "For each pipeline, look up its full details and tell me how many tables (streams and sinks) it is connected to. Return name and table_count, ordered by name."
+  },
+  {
+    "name": "platform_workers_account_defaults",
+    "prompt": "What is my account's workers.dev subdomain, and what are the account-wide Workers default usage model and green compute setting? Return subdomain, default_usage_model and green_compute."
+  },
+  {
+    "name": "platform_workers_secrets_quota",
+    "prompt": "What is my account's Workers secrets quota (maximum number of secrets allowed)? Return secrets_quota as an integer."
+  },
+  {
+    "name": "platform_workers_aws_regions",
+    "prompt": "Which AWS regions can I choose for Workers placement in the ap-northeast area? Return region_id ordered alphabetically."
+  },
+  {
+    "name": "platform_ai_credit_limits",
+    "prompt": "What are the minimum and maximum amounts (in cents) I can purchase as AI credits, and in what currency? Also, is my AI spending limit enabled, and what amount and duration is configured? Return currency, min_cents, max_cents, spending_limit_enabled, limit_amount and limit_duration."
+  },
+  {
+    "name": "platform_ai_topup_config",
+    "prompt": "What is my AI credits auto top-up configuration? Return topup_amount and topup_threshold."
+  },
+  {
+    "name": "platform_cron_triggers",
+    "prompt": "For every Workers script that has a scheduled handler, list its cron triggers. Return script_name and cron, ordered by script_name then cron."
+  },
+  {
+    "name": "platform_scripts_workersdev_enabled",
+    "prompt": "Among my Workers scripts created before September 2026 (UTC), which have their workers.dev route enabled? Use each script's own subdomain setting. Return script_name and previews_enabled, ordered by script_name."
+  },
+  {
+    "name": "platform_scripts_observability_off",
+    "prompt": "Which Workers scripts created before September 2026 (UTC) do NOT have Workers Observability enabled in their script settings (disabled or not configured)? Return script_name and logpush, ordered by script_name."
+  },
+  {
+    "name": "platform_script_secret_counts",
+    "prompt": "Which Workers scripts created before September 2026 (UTC) have the most secrets bound to them? Return script_name and secret_count for the top 5, ordered by secret_count descending then script_name."
+  },
+  {
+    "name": "platform_haybarn_status_secrets",
+    "prompt": "What secret bindings does my haybarn-status Worker have? Return name and type, ordered by name."
+  },
+  {
+    "name": "platform_latest_deployment_haybarn_status",
+    "prompt": "For my haybarn-status Worker, what was its most recent deployment? Return source, strategy, and the traffic percentage given to its first version (as version_percentage)."
+  },
+  {
+    "name": "platform_pipeline_sink_destinations",
+    "prompt": "For each pipeline sink, look up its configuration: which R2 bucket and path prefix does it write to, and how often (in seconds) does it roll files? Return name, bucket, path and interval_seconds, ordered by name."
+  },
+  {
+    "name": "platform_pipeline_stream_http",
+    "prompt": "For each pipeline stream, fetch its details and tell me whether its HTTP ingest endpoint is enabled and whether it requires authentication. Return name, http_enabled and http_authentication, ordered by name."
+  },
+  {
+    "name": "platform_custom_domain_details_query_farm",
+    "prompt": "Look up each Workers custom domain individually and list the ones in the query.farm zone. Return hostname and service, ordered by hostname."
+  },
+  {
+    "name": "platform_worker_detail_observability_march",
+    "prompt": "For Workers created during March 2026 (UTC), fetch each Worker's details and report whether observability is enabled. Return name and observability_enabled, ordered by name."
+  },
+  {
+    "name": "platform_haybarn_status_versions_may",
+    "prompt": "How many versions of my haybarn-status Worker were uploaded during May 2026 (UTC), and what were the lowest and highest version numbers in that month? Return version_count, first_number and last_number."
+  },
+  {
+    "name": "platform_haybarn_status_deployable_versions",
+    "prompt": "How many deployable versions does the haybarn-status Workers script have? Return deployable_version_count."
+  },
+  {
+    "name": "platform_container_app_resources",
+    "prompt": "For each Containers application, fetch its full configuration and report the vCPU and memory (MiB) allocated per instance and the disk size in MB. Return name, vcpu, memory_mib and disk_mb, ordered by name."
+  },
+  {
+    "name": "platform_container_app_rollout_versions",
+    "prompt": "Which version of each Containers application is currently receiving traffic, and at what percentage? Return name, version and percentage, ordered by name."
+  },
+  {
+    "name": "platform_kv_namespace_lookup_key_registry",
+    "prompt": "Fetching each KV namespace individually by id, which namespaces have titles starting with KEY_REGISTRY? Return title and id, ordered by title."
+  },
+  {
+    "name": "platform_kv_keys_egress_config",
+    "prompt": "What keys are stored in my vgi-egress-proxy-config KV namespace? Return key name (as key_name), ordered alphabetically."
+  },
+  {
+    "name": "platform_alert_policy_detail",
+    "prompt": "Fetch the full details of each notification policy and show how it delivers alerts. Return name, description and the delivery mechanism types configured (as mechanism_types, comma-separated alphabetically), ordered by name."
+  },
+  {
+    "name": "platform_haybarn_status_bindings",
+    "prompt": "What bindings are configured in the current settings of my haybarn-status Workers script? Return binding name and type, ordered by name."
+  },
+  {
+    "name": "platform_latest_deployment_version_number",
+    "prompt": "For my haybarn-status Worker, take its most recent deployment, fetch that deployment's details, and look up the version it routes traffic to. Return deployment_source, version_number (integer) and traffic percentage (as percentage)."
+  },
+  {
+    "name": "platform_acct_scripts_queue_handlers",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, which Workers scripts have a queue consumer handler? Return script_name and handlers (the raw JSON list of handler names), ordered by script_name."
+  },
+  {
+    "name": "platform_acct_custom_domains_per_zone",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, how many Workers custom domains point at each zone, counting only domains served by Workers scripts whose names start with 'vgi-'? Return zone_name and domain_count, ordered by zone_name."
+  },
+  {
+    "name": "platform_acct_stockgate_d1",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, which D1 databases belong to the Stockgate project (name starts with 'stockgate')? Return name and uuid, ordered by name."
+  },
+  {
+    "name": "platform_acct_dead_letter_queues",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, list the dead-letter queues (queue names ending in '-dlq') and when they were created. Return queue_name and created_date (the creation date as YYYY-MM-DD text taken from the API's created_on value), ordered by queue_name."
+  },
+  {
+    "name": "platform_zone_routes_query_farm_services",
+    "prompt": "On my query-farm.services zone (zone id 9b3308c61327a270a88bfe105f239e37), which Worker routes exist? Return pattern and script, ordered by pattern."
+  },
+  {
+    "name": "platform_acct_do_namespaces_stockgate",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, which Durable Object classes are defined by the stockgate-dev Worker? Return class and use_sqlite, ordered by class."
+  },
+  {
+    "name": "platform_acct_workers_d1_grainlift",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, list the Workers whose names start with 'grainlift' along with their creation date (UTC, YYYY-MM-DD). Return name and created_date, ordered by name."
+  },
+  {
+    "name": "platform_acct_billing_r2_storage_sept",
+    "prompt": "For Cloudflare account bb68a133a66d26a310231495b13479a1, what was the total R2 pay-as-you-go consumed quantity per R2 service line for charge periods starting from 2026-09-10 00:00 UTC up to (not including) 2026-09-20 00:00 UTC? Return service_name and consumed_quantity rounded to 2 decimals, ordered by service_name."
+  },
+  {
+    "name": "platform_acct_ai_public_finetune_dates",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, which public Workers AI fine-tunes are available and on what date (UTC, YYYY-MM-DD) was each created? Return name and created_date, ordered by created_date then name."
+  },
+  {
+    "name": "platform_acct_scripts_search_count_2025",
+    "prompt": "In Cloudflare account bb68a133a66d26a310231495b13479a1, how many Workers scripts were created in calendar year 2025 (UTC)? Return script_count."
+  },
+  {
+    "name": "net_zones_by_creation",
+    "prompt": "List every zone on my Cloudflare account with its status and when it was created. Return zone_name, status, created_on ordered by created_on ascending."
+  },
+  {
+    "name": "net_zone_lookup_activation",
+    "prompt": "For each of my zones, fetch the zone's full details individually and report when it was activated and whether it is paused. Return zone_name, activated_on, paused ordered by zone_name."
+  },
+  {
+    "name": "net_page_rules_targets",
+    "prompt": "Which page rules exist across my zones? For each rule give the zone name, the URL pattern it matches (the constraint value of its first target), its priority and status. Return zone_name, url_pattern, priority, status ordered by zone_name, priority."
+  },
+  {
+    "name": "net_page_rule_action_count",
+    "prompt": "For each page rule on my zones, fetch the rule individually and count how many actions it applies. Return zone_name, url_pattern (constraint value of the first target), action_count ordered by zone_name, url_pattern."
+  },
+  {
+    "name": "net_page_rules_qfs_literal",
+    "prompt": "How many page rules does the zone query-farm.services have, and how many of them are active? Return total_rules, active_rules."
+  },
+  {
+    "name": "net_speed_pages",
+    "prompt": "Which pages are registered for Cloudflare speed (observatory) testing across my zones, and from which region are they tested? Return zone_name, page_url, region_label ordered by zone_name, page_url."
+  },
+  {
+    "name": "net_speed_pages_qf_literal",
+    "prompt": "For the query.farm zone, list the pages set up for speed testing with the region code they are tested from. Return page_url, region_code ordered by page_url."
+  },
+  {
+    "name": "net_settings_on_count",
+    "prompt": "For each of my zones, how many zone settings currently have the value 'on' and how many settings are not editable? Return zone_name, settings_on, not_editable ordered by zone_name."
+  },
+  {
+    "name": "net_settings_qf_tls_literal",
+    "prompt": "On the query.farm zone, what are the values of the TLS-related settings min_tls_version, tls_1_3, ssl and always_use_https? Return setting_id, value ordered by setting_id."
+  },
+  {
+    "name": "net_setting_lookup_ssl_mode",
+    "prompt": "What SSL/TLS encryption mode (the 'ssl' setting) and minimum TLS version is each of my zones using? Fetch each setting individually. Return zone_name, ssl_mode, min_tls_version ordered by zone_name."
+  },
+  {
+    "name": "net_ssl_automatic_mode",
+    "prompt": "Which SSL/TLS recommender (automatic SSL mode) setting does each zone use, ? Return zone_name, automatic_mode ordered by zone_name."
+  },
+  {
+    "name": "net_perf_features",
+    "prompt": "For each zone, report whether Speed Brain, Cloudflare Fonts and Argo tiered caching are turned on. Return zone_name, speed_brain, fonts, tiered_caching (the setting values) ordered by zone_name."
+  },
+  {
+    "name": "net_origin_protocol_settings",
+    "prompt": "For each zone, what is the maximum HTTP version used to talk to the origin, the maximum number of HTTP/2 streams to the origin, and the origin post-quantum encryption setting? Return zone_name, origin_max_http_version, origin_h2_max_streams, origin_pqe ordered by zone_name."
+  },
+  {
+    "name": "net_egress_tls_features",
+    "prompt": "Per zone, are Aegis (dedicated egress IPs), automatic origin TLS key exchange, and smart tiered cache topology enabled? Return zone_name, aegis_enabled (boolean from the Aegis setting's enabled flag), auto_origin_tls_kex_enabled, smart_topology (the setting value) ordered by zone_name."
+  },
+  {
+    "name": "net_rum_and_tls_compliance",
+    "prompt": "For each zone, is Real User Monitoring (RUM) on, and how many origin TLS compliance modes are configured? Return zone_name, rum, compliance_mode_count ordered by zone_name."
+  },
+  {
+    "name": "net_zaraz_config",
+    "prompt": "For each zone, does the Zaraz configuration have the data layer enabled and automatic script injection turned on? Return zone_name, data_layer, auto_inject_script ordered by zone_name."
+  },
+  {
+    "name": "net_zaraz_default",
+    "prompt": "What does the default Zaraz configuration Cloudflare offers for the query.farm zone look like? Report whether it enables the data layer and history-change tracking and how many triggers it defines. Return data_layer, history_change, trigger_count."
+  },
+  {
+    "name": "net_speed_availability",
+    "prompt": "For the query.farm zone, what plan does the speed-test quota report, and how many test regions are available? Return plan, region_count."
+  },
+  {
+    "name": "net_cloud_region_vendors",
+    "prompt": "For the query.farm zone, which cloud vendors are supported for origin cloud-region mapping and how many regions does each vendor offer? Return vendor, region_count ordered by vendor."
+  },
+  {
+    "name": "net_rum_sites",
+    "prompt": "How many Web Analytics (RUM) sites are on my account, and how many of them are auto-installed on a Cloudflare zone? Return total_sites, auto_installed_sites."
+  },
+  {
+    "name": "net_rum_sites_zone_literal",
+    "prompt": "Which zones have a Web Analytics site auto-installed, and does each use the lite ruleset? Return zone_name (from the site's ruleset), lite ordered by zone_name."
+  },
+  {
+    "name": "net_rum_site_lookup",
+    "prompt": "Fetch each Web Analytics site on my account individually and report, per auto-install status, how many sites have a ruleset attached. Return auto_install, sites, sites_with_ruleset ordered by auto_install."
+  },
+  {
+    "name": "net_rules_lists",
+    "prompt": "What custom lists (IP/redirect/hostname lists) exist on my account? Return list_name, kind, num_items ordered by list_name."
+  },
+  {
+    "name": "net_rules_lists_literal",
+    "prompt": "How many custom lists of each kind are on my account and how many items do they hold in total? Return kind, list_count, total_items ordered by kind."
+  },
+  {
+    "name": "net_redirect_list_items",
+    "prompt": "For every item in my account's redirect lists, show the list name, the redirect source URL, the target URL and whether subdomains are included. Return list_name, source_url, target_url, include_subdomains ordered by list_name, source_url."
+  },
+  {
+    "name": "net_list_item_lookup",
+    "prompt": "Fetch each list item on my account individually and report its redirect status code (null if none) and whether the path suffix is preserved. Return list_name, status_code, preserve_path_suffix ordered by list_name, status_code."
+  },
+  {
+    "name": "net_list_detail_lookup",
+    "prompt": "Fetch the details of each custom list on my account individually: name, kind, number of items and how many filters reference it. Return list_name, kind, num_items, num_referencing_filters ordered by list_name."
+  },
+  {
+    "name": "net_custom_pages_zone",
+    "prompt": "For each zone, how many custom error/challenge pages are defined and how many are still in the default state? Return zone_name, page_count, default_pages ordered by zone_name."
+  },
+  {
+    "name": "net_custom_pages_account",
+    "prompt": "List the account-level custom pages that require a CAPTCHA box token. Return page_id, description ordered by page_id."
+  },
+  {
+    "name": "net_custom_page_lookup",
+    "prompt": "Look up the account-level '500_errors' custom page and the 'under_attack' page: what is each one's description, state and preview target? Return page_id, description, state, preview_target ordered by page_id."
+  },
+  {
+    "name": "net_dns_types_all_zones",
+    "prompt": "How many DNS records of each type exist across all my zones? Return record_type and record_count ordered by record_count desc, then record_type."
+  },
+  {
+    "name": "net_dns_proxied_per_zone",
+    "prompt": "For each zone, how many DNS records are there and how many are proxied through Cloudflare? Return zone_name, total_records, proxied_records ordered by zone_name."
+  },
+  {
+    "name": "net_dns_qf_types_literal",
+    "prompt": "In the query.farm zone, how many DNS records are there per record type? Return record_type, record_count ordered by record_type."
+  },
+  {
+    "name": "net_dns_mx_lookup",
+    "prompt": "List every MX record across my zones, fetching each record's full details individually. Return zone_name, mail_server (the record content), ttl, proxied ordered by zone_name, mail_server."
+  },
+  {
+    "name": "net_dns_usage_vs_quota",
+    "prompt": "How close is each zone to its DNS record quota? Return zone_name, record_usage, record_quota and pct_used (usage / quota * 100 rounded to 1 decimal) ordered by record_usage desc."
+  },
+  {
+    "name": "net_dns_account_usage",
+    "prompt": "How many DNS records does my account use in total according to the account-level DNS usage report? Return record_usage."
+  },
+  {
+    "name": "net_dns_account_defaults",
+    "prompt": "What are the account-wide default DNS zone settings for new zones: nameserver TTL, SOA default TTL, and whether all CNAMEs are flattened? Return ns_ttl, soa_ttl, flatten_all_cnames."
+  },
+  {
+    "name": "net_dnssec_status",
+    "prompt": "What is the DNSSEC status of each of my zones? Return zone_name, dnssec_status ordered by zone_name."
+  },
+  {
+    "name": "net_dns_zone_settings",
+    "prompt": "For each zone, report its DNS zone mode, nameserver TTL, SOA minimum TTL and whether CNAME flattening of all records is on. Return zone_name, zone_mode, ns_ttl, soa_min_ttl, flatten_all_cnames ordered by zone_name."
+  },
+  {
+    "name": "net_dnssec_zsk",
+    "prompt": "Which DNSSEC zone-signing key name does each zone have? Return zone_name, zsk_name ordered by zone_name."
+  },
+  {
+    "name": "net_dnssec_zsk_literal",
+    "prompt": "How many DNSSEC zone-signing keys does rusty.today have? Return zsk_count."
+  },
+  {
+    "name": "net_cert_packs_by_type",
+    "prompt": "How many SSL certificate packs of each type (e.g. universal, advanced) does each zone have? Return zone_name, pack_type, pack_count ordered by zone_name, pack_type."
+  },
+  {
+    "name": "net_cert_packs_qf_literal",
+    "prompt": "For the query.farm zone, how many certificate packs are issued by each certificate authority? Return certificate_authority, pack_count ordered by certificate_authority."
+  },
+  {
+    "name": "net_universal_cert_lookup",
+    "prompt": "For each zone, fetch the universal SSL certificate pack individually and report its certificate authority, status and validity period in days. Return zone_name, certificate_authority, status, validity_days ordered by zone_name."
+  },
+  {
+    "name": "net_ssl_verification",
+    "prompt": "What is the SSL certificate verification status per zone \u2014 the certificate status and validation method reported by SSL verification? Return zone_name, certificate_status, validation_method ordered by zone_name."
+  },
+  {
+    "name": "net_ssl_verification_literal",
+    "prompt": "For query.farm, which certificate pack ID is the SSL verification report about, and what is its status? Return cert_pack_uuid, certificate_status."
+  },
+  {
+    "name": "net_ssl_advanced_quota",
+    "prompt": "How many advanced certificate packs does each zone use according to its certificate-pack quota? Return zone_name, advanced_used ordered by advanced_used desc, zone_name."
+  },
+  {
+    "name": "net_ssl_universal_total_tls",
+    "prompt": "For each zone, is Universal SSL enabled and is Total TLS enabled? Return zone_name, universal_ssl_enabled, total_tls_enabled ordered by zone_name."
+  },
+  {
+    "name": "net_ssl_ct_alerting_origin_auth",
+    "prompt": "For each zone, are Certificate Transparency alerts enabled and is authenticated origin pulls (origin TLS client auth) enabled? Return zone_name, ct_alerting_enabled, origin_client_auth_enabled ordered by zone_name."
+  },
+  {
+    "name": "net_dcv_delegation_uuid",
+    "prompt": "What is the DCV delegation UUID for each zone? Return zone_name, dcv_uuid ordered by zone_name."
+  },
+  {
+    "name": "net_mtls_certs_services",
+    "prompt": "Which mTLS certificates are on my account and which services are they associated with? Return cert_type, is_ca, expires_on, service, association_status ordered by expires_on, service."
+  },
+  {
+    "name": "net_mtls_cert_lookup",
+    "prompt": "Fetch each mTLS certificate on my account individually and report its type, whether it is a CA, the year it was uploaded and the year it expires. Return cert_type, is_ca, uploaded_year, expires_year ordered by cert_type."
+  },
+  {
+    "name": "net_mtls_certs_literal",
+    "prompt": "How many mTLS certificates are on my account, and how many of them are CA certificates? Return total_certs, ca_certs."
+  },
+  {
+    "name": "net_email_routing_dns_required",
+    "prompt": "Which DNS records does Cloudflare Email Routing require for each zone? Count them by record type per zone. Return zone_name, record_type, record_count ordered by zone_name, record_type."
+  },
+  {
+    "name": "net_email_routing_dns_literal",
+    "prompt": "For rusty.today, what MX priorities does Email Routing require? Return mx_priority ordered ascending."
+  },
+  {
+    "name": "net_email_routing_rules",
+    "prompt": "List the email routing rules for each zone with whether they are enabled, their first matcher type and first action type. Return zone_name, enabled, matcher_type, action_type ordered by zone_name."
+  },
+  {
+    "name": "net_email_routing_rules_literal",
+    "prompt": "How many email routing rules does query.farm have and how many are enabled? Return total_rules, enabled_rules."
+  },
+  {
+    "name": "net_email_catch_all_status",
+    "prompt": "For each zone, what is the email routing status and is the catch-all rule enabled, and what does it do? Return zone_name, routing_status, routing_enabled, catch_all_enabled, catch_all_action ordered by zone_name."
+  },
+  {
+    "name": "net_email_dmarc_reports",
+    "prompt": "Are DMARC reports enabled for each of my zones? Return zone_name, dmarc_reports_enabled ordered by zone_name."
+  },
+  {
+    "name": "net_cloudflare_ip_ranges",
+    "prompt": "How many IPv4 and IPv6 CIDR ranges does Cloudflare publish for its edge network? Return ipv4_ranges, ipv6_ranges."
+  },
+  {
+    "name": "net_regional_services_regions",
+    "prompt": "Which Regional Services regions are available to my account? Return region_key, label ordered by region_key."
+  },
+  {
+    "name": "net_regional_regions_literal",
+    "prompt": "How many Regional Services regions are available on my account? Return region_count."
+  },
+  {
+    "name": "net_addressing_services",
+    "prompt": "Which Cloudflare services can BYOIP address space be bound to on my account? Return service_name ordered by service_name."
+  },
+  {
+    "name": "net_addressing_services_literal",
+    "prompt": "How many address-binding services are available on my account? Return service_count."
+  },
+  {
+    "name": "net_cni_default_asn",
+    "prompt": "What default ASN is configured in my account's Cloudflare Network Interconnect settings? Return default_asn."
+  },
+  {
+    "name": "net_api_labels_per_zone",
+    "prompt": "How many API Shield endpoint labels are available per zone, split by label source (managed vs user)? Return zone_name, source, label_count ordered by zone_name, source."
+  },
+  {
+    "name": "net_api_labels_literal",
+    "prompt": "Which API Shield labels on query.farm were created in 2025 or later? Return label_name, created_date (the UTC calendar date) ordered by created_date, label_name."
+  },
+  {
+    "name": "net_api_managed_label_lookup",
+    "prompt": "Look up the managed API Shield label 'cf-log-in' on the query.farm zone. What is its description and source? Return label_name, source, description."
+  },
+  {
+    "name": "net_http_daily_qf_week",
+    "prompt": "For the query.farm zone, show daily HTTP traffic for 1\u20137 September 2026: date, requests, cached_requests, threats, unique_visitors ordered by date."
+  },
+  {
+    "name": "net_http_daily_qf_totals",
+    "prompt": "What were query.farm's total requests, total threats and peak daily unique visitors over 1\u20137 September 2026, and on which day were threats highest? Return total_requests, total_threats, peak_unique_visitors, worst_threat_day."
+  },
+  {
+    "name": "net_workers_errors_day",
+    "prompt": "Which Workers scripts on my account recorded any errors on 1 September 2026 (UTC day), and how many? Return script_name, total_errors ordered by total_errors desc, then script_name."
+  }
+]

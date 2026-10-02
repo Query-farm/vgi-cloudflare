@@ -1,0 +1,39 @@
+app = 'vgi-cloudflare'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  VGI_HTTP_CORS_ORIGINS = '*'
+  # Inbound auth (who may call this worker) is configured here. Set a real OAuth
+  # provider before exposing publicly. Secrets (VGI_SIGNING_KEY, OAuth client
+  # secrets) must be set via `fly secrets set`, never committed here.
+  #
+  # VGI_JWT_ISSUER = 'https://accounts.google.com'
+  # VGI_JWT_AUDIENCE = '<client-id>.apps.googleusercontent.com'
+  # VGI_JWT_JWKS_URI = 'https://www.googleapis.com/oauth2/v3/certs'
+  # VGI_OAUTH_RESOURCE = 'https://vgi-cloudflare.fly.dev'
+  # VGI_OAUTH_AUTH_SERVERS = 'https://accounts.google.com'
+  # VGI_OAUTH_SCOPES = 'openid,email,profile'
+  # VGI_OAUTH_RESOURCE_NAME = 'Cloudflare API'
+  # VGI_OAUTH_USE_ID_TOKEN = 'true'
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    path = '/health'
+    protocol = 'http'
+    timeout = '5s'
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
