@@ -34,6 +34,10 @@ the Cloudflare API, not accidental sprawl.\
 ]
 
 [per-object]
+# VGI317 reports a description shared by several functions once, on whichever it
+# meets first, and that order differs by platform (CI on Linux vs. macOS), so a
+# waiver for a shared description globs every function that shares it.
+
 # VGI317 reads these arguments' descriptions (copied from Cloudflare's OpenAPI spec)
 # as value lists or numeric ranges, but each parameter accepts an open set, so there
 # is no honest `choices` / `ge` / `le` to declare. Every spec-defined enum, bound,
@@ -53,8 +57,8 @@ the Cloudflare API, not accidental sprawl.\
 "cloudflare.security.indicators" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "tags is a free-form tag filter; the spec declares no enum, so a choices list would be invented" },
 ] }
-"cloudflare.zero_trust.registration" = { ignore = [
-  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
+"cloudflare.zero_trust.registration*" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list (registration and registrations share it); choices would allow only a single value" },
 ] }
 "cloudflare.radar.ips_top_ases" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "country is an ISO 3166-1 alpha-2 code; the rule misreads '3166-1' as a numeric range" },
@@ -68,17 +72,18 @@ the Cloudflare API, not accidental sprawl.\
 "cloudflare.email.allow_policies" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "verify_sender is a BOOLEAN; the rule reads 'DMARC, SPF, or DKIM' in its description as a value list" },
 ] }
-"cloudflare.magic.providers" = { ignore = [
+# Matches exactly onramps and providers, which share order_by's description.
+"cloudflare.magic.[op][nr][ro][av]*s" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "order_by's allowed fields appear only in prose; the spec declares no enum to make machine-readable" },
 ] }
 "cloudflare.magic.resources" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "order_by's allowed fields appear only in prose; the spec declares no enum to make machine-readable" },
 ] }
-"cloudflare.magic.tcp_flow_protection_filters" = { ignore = [
-  { code = "VGI317", kind = "tooling-bug", reason = "mode's values appear only in prose; the spec declares no enum to make machine-readable" },
+"cloudflare.magic.*filters" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "mode's values appear only in prose (filters and tcp_flow_protection_filters share it); the spec declares no enum to make machine-readable" },
 ] }
-"cloudflare.zero_trust.physical_devices" = { ignore = [
-  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list; choices would allow only a single value" },
+"cloudflare.zero_trust.*device*" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "include is a comma-separated list (device and physical_devices share it); choices would allow only a single value" },
 ] }
 "cloudflare.zones.connections" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "status and exclude_urls are comma-separated lists; choices would allow only a single value" },
