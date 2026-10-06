@@ -101,6 +101,18 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 | `vgi_cloudflare/agent_tasks.json` + `vgi-agent-tests.yaml` | Public agent-test prompts (catalog tag) + their private graders. Written by `tools/agent_tasks.py`. |
 | `tools/generate_resources.py` | OpenAPI → manifest codegen. |
 
+### Catalog loading
+
+The catalog is declarative, read-only and version-frozen, so vgi-python
+(≥ 0.40.0, VGI protocol 2.1.0) advertises `supports_catalog_contents` and
+serves the whole catalog — all ~24 schemas, ~1,150 functions — in **one**
+`catalog_contents` RPC instead of `catalog_schemas` + a
+`catalog_schema_contents_*` call per schema (32 sequential RPCs). The response
+(~17.6 MB raw, ~1.2 MB zstd) is built once per process (~1.8 s) and served
+from a cache afterwards. The DuckDB extension decodes each schema lazily.
+`SET vgi_catalog_contents = false` forces the old per-schema path for
+comparison. Protocol 2.1.0 needs a matching vgi extension (2.1.0+).
+
 ### How a query runs
 
 List and lookup functions read their path ids from each input row and their
