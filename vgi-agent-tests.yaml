@@ -680,7 +680,7 @@ tasks:
       SELECT p.name AS app_name, c.name AS policy_name, c.decision, json_array_length(c.exclude) AS exclude_rule_count, json_array_length(c.require) AS require_rule_count FROM cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.apps_policies(a.id, p.id) q, cloudflare.access.policies_policy(a.id, p.id, q.id) c ORDER BY app_name, policy_name
   - name: "idsec_zone_scoped_apps"
     reference_sql: |
-      SELECT z.name AS zone_name, c.name AS app_name, c.session_duration FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.app(z.id, p.id) c ORDER BY zone_name, app_name
+      SELECT z.name AS zone_name, c.name AS app_name, c.session_duration FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.apps_app(z.id, p.id) c ORDER BY zone_name, app_name
   - name: "idsec_zone_scoped_app_policies"
     reference_sql: |
       SELECT p.name AS app_name, c.name AS policy_name, c.decision FROM cloudflare.zones.zones z, cloudflare.accounts.accounts a, cloudflare.access.apps(a.id) p, cloudflare.access.zone_apps_policies(z.id, p.id) c WHERE z.name = 'query.farm' ORDER BY app_name, policy_name
@@ -785,7 +785,7 @@ tasks:
       SELECT c.provider_name FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.gateway(a.id) c
   - name: "idsec_dlp_settings"
     reference_sql: |
-      SELECT c.ocr, c.ai_context_analysis, c.payload_logging->>'masking_level' AS masking_level FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.settings(a.id) c
+      SELECT c.ocr, c.ai_context_analysis, c.payload_logging->>'masking_level' AS masking_level FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.account_settings(a.id) c
   - name: "idsec_ssh_audit_settings"
     reference_sql: |
       SELECT coalesce(c.public_key, '') <> '' AS has_public_key, CAST(c.created_at AS DATE) AS created_date FROM cloudflare.accounts.accounts a, cloudflare.zero_trust.audit_ssh_settings(a.id) c
@@ -887,7 +887,7 @@ tasks:
       SELECT p.name, p.alert_type, p.enabled FROM cloudflare.accounts.accounts a, cloudflare.alerting.policies(a.id) p ORDER BY p.name
   - name: "platform_billing_cost_by_family_sept"
     reference_sql: |
-      SELECT u.ServiceFamilyName AS service_family, round(sum(u.ContractedCost), 2) AS total_cost FROM cloudflare.accounts.accounts a, cloudflare.billing.paygo_usage(a.id) u WHERE u.ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND u.ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY total_cost DESC, service_family
+      SELECT u.ServiceFamilyName AS service_family, round(sum(u.ContractedCost), 2) AS total_cost FROM cloudflare.accounts.accounts a, cloudflare.billing.billable_usage(a.id) u WHERE u.ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND u.ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY total_cost DESC, service_family
   - name: "platform_container_applications"
     reference_sql: |
       SELECT c.name, c.max_instances FROM cloudflare.accounts.accounts a, cloudflare.workers.applications(a.id) c ORDER BY c.name
@@ -998,7 +998,7 @@ tasks:
       WITH t AS MATERIALIZED (SELECT * FROM cloudflare.workers.workers('bb68a133a66d26a310231495b13479a1') ) SELECT name, strftime(created_on AT TIME ZONE 'UTC', '%Y-%m-%d') AS created_date FROM t WHERE name LIKE 'grainlift%' ORDER BY name
   - name: "platform_acct_billing_r2_storage_sept"
     reference_sql: |
-      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.billing.paygo_usage('bb68a133a66d26a310231495b13479a1') ) SELECT ServiceName AS service_name, round(sum(ConsumedQuantity), 2) AS consumed_quantity FROM t WHERE ServiceFamilyName = 'R2' AND ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY service_name
+      WITH t AS MATERIALIZED (SELECT * FROM cloudflare.billing.billable_usage('bb68a133a66d26a310231495b13479a1') ) SELECT ServiceName AS service_name, round(sum(ConsumedQuantity), 2) AS consumed_quantity FROM t WHERE ServiceFamilyName = 'R2' AND ChargePeriodStart >= TIMESTAMPTZ '2026-09-10 00:00:00+00' AND ChargePeriodStart < TIMESTAMPTZ '2026-09-20 00:00:00+00' GROUP BY 1 ORDER BY service_name
   - name: "platform_acct_ai_public_finetune_dates"
     reference_sql: |
       WITH t AS MATERIALIZED (SELECT * FROM cloudflare.ai.public('bb68a133a66d26a310231495b13479a1') ) SELECT name, strftime(created_at AT TIME ZONE 'UTC', '%Y-%m-%d') AS created_date FROM t ORDER BY created_date, name

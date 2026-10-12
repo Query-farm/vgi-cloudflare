@@ -93,7 +93,7 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 | `vgi_cloudflare/resources.py` | Hand-written core list descriptors (`zones.zones`, `accounts.accounts`, `accounts.members`, `dns.records`). |
 | `vgi_cloudflare/items.py` | Hand-written lookup descriptors (`zones.zone`, `dns.record`, …). |
 | `vgi_cloudflare/generated.py` | Loads `resources_generated.json` into descriptors. |
-| `vgi_cloudflare/resources_generated.json` | **Committed** OpenAPI-generated manifest (1,142 resources). |
+| `vgi_cloudflare/resources_generated.json` | **Committed** OpenAPI-generated manifest (1,684 resources). |
 | `vgi_cloudflare/graphql.py` | Descriptor-driven GraphQL analytics: `GraphQLDataset` + `make_graphql_function()` + the `DATASETS` list (`http_requests_daily`, `firewall_events`, …). All land in the `analytics` schema. |
 | `vgi_cloudflare/catalog.py` | `build_catalog()` + `merge_resources()` (hand-written wins on name collisions; inherits spec docs from its generated twin). Catalog tags, agent-test tasks, executable examples. |
 | `vgi_cloudflare/docs.py` | Per-object `doc_llm`/`doc_md`/examples/result schema/categories, generated from descriptors. |
@@ -105,7 +105,7 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 
 The catalog is declarative, read-only and version-frozen, so vgi-python
 (≥ 0.40.0, VGI protocol 2.1.0) advertises `supports_catalog_contents` and
-serves the whole catalog — all ~24 schemas, ~1,150 functions — in **one**
+serves the whole catalog — all ~24 schemas, ~1,690 functions — in **one**
 `catalog_contents` RPC instead of `catalog_schemas` + a
 `catalog_schema_contents_*` call per schema (32 sequential RPCs). The response
 (~17.6 MB raw, ~1.2 MB zstd) is built once per process (~1.8 s) and served
@@ -136,16 +136,21 @@ query params from named args (`_lateral_process`). Unscoped tables run like this
 ## OpenAPI codegen
 
 `tools/generate_resources.py` reads `spec/openapi.json` (the Cloudflare spec,
-~10MB, **git-ignored** — re-downloaded by the script) and emits the committed
-`resources_generated.json` (~1,140 resources). It:
+~27MB, **git-ignored** — re-downloaded by the script) and emits the committed
+`resources_generated.json` (~1,680 resources). It:
 
 - generates **list** tables (`result` is an array) and **item** get-by-id
   functions (`result` is a single object, or a "wrapperless" body via
   `result_path=""`);
+- follows a `$ref`'d `200` response, and takes the **typed** `result` from the
+  composed schema — the shared envelope declares its own loose one first
+  (`anyOf[object, array, string]`), which would otherwise shadow it;
+- carries a `per_page` maximum below 100 into the descriptor (rulesets reject,
+  rather than clamp, a larger page);
 - flattens response schemas through `$ref`/`allOf`/`oneOf`/`anyOf` (so
   polymorphic resources like DNS records get a union of all variant fields);
 - assigns each resource a **schema** via `AREA_TO_SCHEMA` (the path's product
-  area → one of ~20 curated families; all 122 areas are mapped, no `misc`);
+  area → one of ~20 curated families; every area with a resource is mapped, no `misc`);
 - derives names that are unique **within each schema**, shortened to drop the
   redundant schema prefix (`dns_records` in schema `dns` → `records`;
   `dns_record` → `record`);
@@ -165,6 +170,12 @@ qualified by what differs — the noun before a generic `{id}` (`rule`), its sco
 (`iam_permission_groups`) — and is never silently dropped (a duplicate name would
 shadow an endpoint). Query params that are SQL reserved words become `limit_`.
 Reserved object names (`group`, `default`) are fine schema-qualified.
+
+**Published names are stable.** The codegen reads the committed manifest first and
+keeps every `(schema, kind, name)` a path already has, naming only new endpoints
+around them — otherwise a spec update repoints names users already query (the
+registrar *sandbox* sorts ahead of `registrar` and would take `registrar.registrations`).
+`--emit --rename` names everything afresh.
 
 Regenerate after a spec update:
 ```sh

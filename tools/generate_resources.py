@@ -13,9 +13,13 @@ name unique within that schema (shortened to drop the redundant schema prefix).
 The runtime loader (generated.py) turns the manifest into VGI table functions
 via the same descriptor pipeline as the hand-written resources.
 
+Names already in the committed manifest are kept across regenerations, so a spec
+update never repoints a published name; ``--rename`` names everything afresh.
+
 Usage:
     python tools/generate_resources.py            # print stats only (dry run)
     python tools/generate_resources.py --emit     # write the JSON manifest
+    python tools/generate_resources.py --emit --rename   # ...ignoring published names
 """
 
 from __future__ import annotations
@@ -57,6 +61,7 @@ OPERATOR_SUFFIXES = {
 }
 
 MAX_COLUMNS = 64
+DEFAULT_PER_PAGE = 100  # ResourceDescriptor.per_page's default
 MAX_DEPTH = 10
 
 
@@ -146,7 +151,13 @@ class Spec:
             return sch["type"], sch.get("format")
         if "enum" in sch:
             return "string", None
-        for key in ("allOf", "oneOf", "anyOf"):
+        # Every allOf member applies, so a bare ``{type: string}`` beside a
+        # ``date-time`` ref (Access ``created_at``) is still a timestamp.
+        members = [self.leaf_type(sub, seen, depth + 1) for sub in sch.get("allOf", [])]
+        if typed := [m for m in members if m[0]]:
+            otype = typed[0][0]
+            return otype, next((f for t, f in typed if t == otype and f), None)
+        for key in ("oneOf", "anyOf"):
             for sub in sch.get(key, []):
                 t, f = self.leaf_type(sub, seen, depth + 1)
                 if t:
@@ -179,30 +190,67 @@ class Spec:
             acc.setdefault(name, prop)
         return acc
 
-    def result_items(
-        self, sch: dict[str, Any], seen: frozenset[str] = frozenset(), depth: int = 0
-    ) -> dict[str, Any] | None:
-        """Return the schema of one item in the ``result`` array, or None if not a list."""
+    def response_schema(self, op: dict[str, Any]) -> dict[str, Any] | None:
+        """The JSON schema of an operation's 200 response, following a shared ``$ref`` response."""
+        resp = op.get("responses", {}).get("200", {})
+        if "$ref" in resp:
+            resp = self.resolve(resp["$ref"])
+        return resp.get("content", {}).get("application/json", {}).get("schema")
+
+    def result_nodes(
+        self,
+        sch: dict[str, Any],
+        seen: frozenset[str] = frozenset(),
+        acc: list[dict[str, Any]] | None = None,
+        depth: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Every ``result`` property declared across the composed response schema.
+
+        An endpoint's schema is usually ``allOf[<shared envelope>, {result: <typed>}]``,
+        and the envelope declares its own loose ``result`` (``anyOf[object, array,
+        string]``, or an array of ``{}``) first. Callers pick the typed one.
+        """
+        if acc is None:
+            acc = []
         if depth > MAX_DEPTH or not isinstance(sch, dict):
-            return None
+            return acc
         if "$ref" in sch:
             ref = sch["$ref"]
             if ref in seen:
-                return None
-            return self.result_items(self.resolve(ref), seen | {ref}, depth + 1)
+                return acc
+            return self.result_nodes(self.resolve(ref), seen | {ref}, acc, depth + 1)
         for key in ("allOf", "oneOf", "anyOf"):
             for sub in sch.get(key, []):
-                items = self.result_items(sub, seen, depth + 1)
-                if items is not None:
-                    return items
+                self.result_nodes(sub, seen, acc, depth + 1)
         result = sch.get("properties", {}).get("result")
-        if result is None:
-            return None
-        if "$ref" in result:
-            result = self.resolve(result["$ref"])
-        if result.get("type") == "array":
-            return result.get("items", {})
+        if isinstance(result, dict):
+            node = self.deref(result, frozenset(), 0)
+            if node is not None:
+                acc.append(node)
+        return acc
+
+    def array_items(self, node: dict[str, Any]) -> dict[str, Any] | None:
+        """Item schema of an array node (or of a union whose every variant is an array), else None."""
+        if node.get("type") == "array":
+            return node.get("items", {})
+        for key in ("oneOf", "anyOf"):
+            subs = [self.deref(sub, frozenset(), 0) or {} for sub in node.get(key, [])]
+            if subs and all(sub.get("type") == "array" for sub in subs):
+                return {"anyOf": [sub.get("items", {}) for sub in subs]}
         return None
+
+    def result_items(self, sch: dict[str, Any]) -> dict[str, Any] | None:
+        """Return the schema of one item in the ``result`` array, or None if not a list."""
+        untyped = None
+        for node in self.result_nodes(sch):
+            items = self.array_items(node)
+            if items is None:
+                continue
+            if self.flatten_props(items):
+                return items
+            if untyped is None:
+                untyped = items
+        return untyped
 
 
 def arrow_type(otype: str | None, fmt: str | None) -> str:
@@ -220,7 +268,8 @@ def arrow_type(otype: str | None, fmt: str | None) -> str:
 
 
 def sanitize(name: str) -> str:
-    return name.replace(".", "_").replace("-", "_")
+    """An identifier-safe name: ``.``, ``-`` and operator marks (``issue_class~neq``) become ``_``."""
+    return re.sub(r"[^0-9A-Za-z_]", "_", name)
 
 
 _PLACEHOLDER_DOCS = {
@@ -398,6 +447,14 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "analytics": "zones",
     "diagnostics": "zones",
     "spectrum": "zones",
+    "snippets": "zones",
+    "smart_shield": "zones",
+    "healthchecks": "zones",
+    "web3": "zones",
+    "hold": "zones",
+    "managed_headers": "zones",
+    "url_normalization": "zones",
+    "precursor": "zones",
     # Accounts, org, IAM
     "accounts": "accounts",
     "members": "accounts",
@@ -417,6 +474,9 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "system": "accounts",
     "resource-library": "accounts",
     "subscriptions": "accounts",
+    "shares": "accounts",
+    "api": "accounts",
+    "reporting": "accounts",
     # SSL / TLS / certificates
     "ssl": "ssl",
     "certificates": "ssl",
@@ -443,6 +503,12 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "warp_connector": "zero_trust",
     "cfd_tunnel": "zero_trust",
     "infrastructure": "zero_trust",
+    "teamnet": "zero_trust",
+    "zerotrust": "zero_trust",
+    "tunnels": "zero_trust",
+    "one": "zero_trust",
+    "browser-extension": "zero_trust",
+    "data-security": "zero_trust",
     # Threat intelligence / security products
     "cloudforce-one": "security",
     "intel": "security",
@@ -456,8 +522,20 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "urlscanner": "security",
     "pay-per-crawl": "security",
     "challenges": "security",
+    "cws": "security",
+    "managed-defense": "security",
+    "ai-audit": "security",
+    "pay-per-use": "security",
+    "monetization": "security",
     # WAF / firewall
     "firewall": "waf",
+    "rulesets": "waf",
+    "filters": "waf",
+    "rate_limits": "waf",
+    "leaked_credential_checks": "waf",
+    "content-upload-scan": "waf",
+    "ai-security": "waf",
+    "rate_limit_analytics": "waf",
     # Workers platform
     "workers": "workers",
     "workflows": "workers",
@@ -467,6 +545,10 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "containers": "workers",
     "secrets_store": "workers",
     "environments": "workers",
+    "analytics_engine": "workers",
+    "artifacts": "workers",
+    "k2": "workers",
+    "triggers": "workers",
     "slurper": "workers",
     # AI
     "ai": "ai",
@@ -474,17 +556,22 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "ai-search": "ai",
     "autorag": "ai",
     "vectorize": "ai",
+    "agent-memory": "ai",
     # Storage / data
     "r2": "storage",
     "r2-catalog": "storage",
     "d1": "storage",
     "hyperdrive": "storage",
     "storage": "storage",
+    "event_notifications": "storage",
+    "basin-catalog": "storage",
     # Magic / network
     "magic": "magic",
     "addressing": "magic",
     "cni": "magic",
     "ips": "magic",
+    "mnm": "magic",
+    "pcaps": "magic",
     # Email
     "email": "email",
     "email-security": "email",
@@ -493,6 +580,8 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "calls": "stream",
     "realtime": "stream",
     "moq": "stream",
+    "images": "stream",
+    "media": "stream",
     # Load balancing
     "load_balancers": "load_balancing",
     "load_balancing_analytics": "load_balancing",
@@ -501,6 +590,8 @@ AREA_TO_SCHEMA: dict[str, str] = {
     # Logs
     "logs": "logs",
     "logpush": "logs",
+    "field_extractors": "logs",
+    "observability": "logs",
     "audit_logs": "logs",
     # Alerting
     "alerting": "alerting",
@@ -509,10 +600,19 @@ AREA_TO_SCHEMA: dict[str, str] = {
     "billing": "billing",
     "billable": "billing",
     "paygo-usage": "billing",
+    "available_plans": "billing",
+    "available_rate_plans": "billing",
+    "subscription": "billing",
+    "billable-usage": "billing",
+    "payment-methods": "billing",
+    "entitlements": "billing",
     # Standalone families
     "api_gateway": "api_gateway",
+    "schema_validation": "api_gateway",
+    "token_validation": "api_gateway",
     "pages": "pages",
     "registrar": "registrar",
+    "registrar-sandbox": "registrar",
     "browser-rendering": "browser_rendering",
     "stream_live": "stream",
 }
@@ -561,8 +661,7 @@ def with_path_item_params(spec: Spec, path_item: dict[str, Any], op: dict[str, A
 
 
 def build_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any] | None:
-    resp = op.get("responses", {}).get("200", {})
-    schema = resp.get("content", {}).get("application/json", {}).get("schema")
+    schema = spec.response_schema(op)
     if not schema:
         return None
     item = spec.result_items(schema)
@@ -573,6 +672,7 @@ def build_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any
     raw_path_params: dict[str, dict[str, Any]] = {}
     query_params: list[dict[str, Any]] = []
     raw_param_names: set[str] = set()
+    per_page: int | None = None
     for pr in op.get("parameters", []):
         if "$ref" in pr:
             pr = spec.resolve(pr["$ref"])
@@ -583,6 +683,11 @@ def build_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any
         if loc == "path":
             raw_path_params[nm] = pr
         elif loc == "query":
+            if nm == "per_page":
+                # Some endpoints reject (not clamp) a page size over their maximum.
+                limit = (spec.deref(pr.get("schema", {}), frozenset(), 0) or {}).get("maximum")
+                if isinstance(limit, int) and 0 < limit < DEFAULT_PER_PAGE:
+                    per_page = limit
             if nm in CONTROL_PARAMS:
                 continue
             if "." in nm and nm.rsplit(".", 1)[1] in OPERATOR_SUFFIXES:
@@ -631,6 +736,7 @@ def build_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any
         "_name_parts": tail or [area],
         "path": path,
         "pagination": detect_pagination(raw_param_names),
+        **({"per_page": per_page} if per_page else {}),
         "path_params": path_params,
         "query_params": query_params,
         "columns": columns,
@@ -639,7 +745,7 @@ def build_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any
         "api_tag": tags[0] if tags else "",
         "area": area,
         "categories": ["cloudflare", "generated"]
-        + ([sanitize(tags[0].lower().replace(" ", "_"))] if tags else []),
+        + ([re.sub(r"[ .-]", "_", tags[0].lower())] if tags else []),
     }
 
 
@@ -731,7 +837,9 @@ def _take_name(d: dict[str, Any], name: str, used: set[str], lists: set[str]) ->
     d["name"] = name
 
 
-def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
+def assign_names_per_schema(
+    descriptors: list[dict[str, Any]], published: dict[str, tuple[str, str, str]] | None = None
+) -> None:
     """Assign names unique *within each schema*, shortened to drop the schema prefix.
 
     Lists are plural nouns and are named first, shallowest path first, so the most
@@ -741,6 +849,11 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
     it apart — the noun before a generic ``{id}``, its scope (``zone_apps`` beside
     ``apps``), or its product area (``iam_permission_groups``) — and only as a last
     resort numbered.
+
+    ``published`` maps a path to the ``(schema, kind, name)`` it already has in the
+    committed manifest. Those names are kept and everything new is named around
+    them: a spec update must not repoint a name users already query to a different
+    endpoint (``registrar.registrations`` to the registrar sandbox's).
     """
     from collections import defaultdict
 
@@ -753,8 +866,14 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
         lists: set[str] = set()
 
         group.sort(key=lambda d: (d["kind"] == "item", d["path"].count("/"), d["path"]))
+        for d in group:
+            was = (published or {}).get(d["path"])
+            if was and was[:2] == (schema, d["kind"]) and was[2] not in used:
+                _take_name(d, was[2], used, lists)
         deferred: list[dict[str, Any]] = []
         for d in group:
+            if "name" in d:
+                continue
             parts = d["_name_parts"] = d.pop("_name_parts") or ["item"]
             for n in range(1, len(parts) + 1):
                 if "_".join(parts[-n:]) == "list" and n < len(parts):
@@ -768,7 +887,7 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
 
         # Second pass: qualify what collided instead of numbering it.
         for d in deferred:
-            parts = d.pop("_name_parts")
+            parts = d["_name_parts"]
             base = shorten("_".join(parts), schema) or "item"
             scope, area = _scope_and_area(d["path"])
             area_q = shorten(area or "", schema) if area and area != schema else ""
@@ -782,6 +901,8 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
                 candidates.append(f"{area_q}_{base}")
                 if scope:
                     candidates.append(f"{scope}_{area_q}_{base}")
+            if scope and area:
+                candidates.append(f"{scope}_{area}_{base}")  # the area even when it is the schema's own
             for c in candidates:
                 c = _finish_name(d, c, lists)
                 if c not in used:
@@ -798,25 +919,21 @@ def assign_names_per_schema(descriptors: list[dict[str, Any]]) -> None:
 
 def _result_object_node(spec: Spec, schema: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
     """Classify a single-object 200 schema: ('object'|'wrapperless'|'skip', item_node)."""
-    merged = spec.flatten_props(schema)
-    if "result" not in merged:
+    nodes = spec.result_nodes(schema)
+    if not nodes:
         # No envelope — the body itself is the object (if it has properties).
         return ("wrapperless", schema) if spec.flatten_props(schema) else ("skip", None)
-    node = merged["result"]
-    if "$ref" in node:
-        node = spec.resolve(node["$ref"])
-    if node.get("type") == "array":
+    if any(spec.array_items(node) is not None for node in nodes):
         return ("skip", None)  # actually a list — handled elsewhere
-    if node.get("type") == "object" or "properties" in node or "allOf" in node or "oneOf" in node:
-        return ("object", node)
-    return ("skip", None)  # scalar / unresolved
+    for node in nodes:
+        if spec.flatten_props(node):
+            return ("object", node)
+    return ("skip", None)  # scalar / free-form / unresolved
 
 
 def build_item_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str, Any] | None:
     """Build a get-one-by-id ('item') descriptor: path params become required args."""
-    schema = (
-        op.get("responses", {}).get("200", {}).get("content", {}).get("application/json", {}).get("schema")
-    )
+    schema = spec.response_schema(op)
     if not schema:
         return None
     kind, item_node = _result_object_node(spec, schema)
@@ -915,7 +1032,12 @@ def main() -> int:
             skipped += 1
 
     descriptors.extend(items)
-    assign_names_per_schema(descriptors)  # names unique within each schema
+    published: dict[str, tuple[str, str, str]] = {}
+    if "--rename" not in sys.argv and OUT_PATH.exists():
+        for r in json.loads(OUT_PATH.read_text()).get("resources", []):
+            published[r["path"]] = (r["schema"], r["kind"], r["name"])
+    assign_names_per_schema(descriptors, published)  # names unique within each schema
+    kept = sum(1 for d in descriptors if published.get(d["path"], ("", "", ""))[2] == d["name"])
 
     # Stats
     list_descs = [d for d in descriptors if d["kind"] == "list"]
@@ -926,6 +1048,7 @@ def main() -> int:
     print(f"  wrapperless (result_path=''): {sum(1 for d in item_descs if d['result_path'] == '')}")
     print(f"Skipped (no usable schema): {skipped}")
     print(f"TOTAL descriptors: {len(descriptors)}")
+    print(f"Published names kept: {kept} of {len(published)} (new: {len(descriptors) - kept})")
     col_counts = [len(d["columns"]) for d in descriptors]
     print(
         f"Columns/resource: min={min(col_counts)} max={max(col_counts)} "

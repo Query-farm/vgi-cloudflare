@@ -71,6 +71,7 @@ def _load() -> tuple[ResourceDescriptor, ...]:
                     for q in d["query_params"]
                 ),
                 pagination=Pagination(d.get("pagination", "page")),
+                per_page=d.get("per_page", 100),
                 description=d.get("description", ""),
                 doc=d.get("doc", ""),
                 api_tag=d.get("api_tag", ""),

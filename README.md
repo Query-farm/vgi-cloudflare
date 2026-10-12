@@ -489,7 +489,7 @@ clone for everyone else): `uv pip install -e ../vgi-python -e ../vgi-rpc`.
 
 ## Surface
 
-1,148 functions and 230 tables across 24 product schemas, generated from
+1,690 functions and 243 tables across 24 product schemas, generated from
 Cloudflare's OpenAPI description. Every object carries agent- and human-facing
 documentation built from that spec: what it returns, which filters it requires,
 how to call it, and examples.
