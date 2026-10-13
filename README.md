@@ -575,9 +575,9 @@ list's 404 is an error (a missing parent is not an empty list).
 Each function takes the zone or account id (a literal, or per row of another
 query) and a required window, `since` and `until`. There is no default window:
 one that silently defaulted would quietly drop data a query asked for. The
-GraphQL API caps a response at 10,000 groups and has no cursor, so a window
-that comes back full is split in half and re-queried until each piece fits;
-results are complete rather than silently truncated. `firewall_events` and
+GraphQL API caps a response at 10,000 groups and has no cursor, so a response
+that comes back full is paged: the next request resumes at its last time
+bucket, and results are complete rather than silently truncated. `firewall_events` and
 `health_check_events` exist only on plans that include them; elsewhere the
 query fails with an error saying so, instead of returning an empty result that
 reads like "no events".
@@ -670,7 +670,7 @@ vgi-lint simulate "launch:env VGI_CLOUDFLARE_TOKEN_FILE=$HOME/cf-read-token.txt 
 
 | Command | What | Needs |
 |---|---|---|
-| `make test-unit` | pytest with mocked HTTP: lifecycle, pagination, pushdown, lateral batching, provenance, splitting, naming | nothing |
+| `make test-unit` | pytest with mocked HTTP: lifecycle, pagination, pushdown, lateral batching, provenance, analytics paging, naming | nothing |
 | `make test-mock` | real DuckDB `ATTACH` against a local fake Cloudflare: lateral, `LEFT JOIN LATERAL`, a list across pages | the `vgi` sqllogictest runner |
 | `make test-stdio` | real DuckDB against real Cloudflare (`test/sql/live*.test`) | a token in `$CLOUDFLARE_API_TOKEN` or `~/cf-read-token.txt` |
 | `vgi-lint simulate` | the agent-acceptance suite | a token file, and Claude |

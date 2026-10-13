@@ -246,32 +246,50 @@ def _dataset_args_class(desc: GraphQLDataset) -> type:
 def _fetch_groups(
     auth: Any, query: str, desc: GraphQLDataset, tag: str, since: str, until: str, out: OutputCollector
 ) -> list[dict[str, Any]]:
-    """Every group for one scope id and window, splitting windows the API caps.
+    """Every group for one scope id and window, paging past the API's group cap.
 
-    The API returns at most ``desc.limit`` groups and has no cursor, so a full
-    response may be truncated: its window is halved and re-queried, down to the
-    smallest bucket (a warning is logged if even that is full).
+    The API returns at most ``desc.limit`` groups and has no cursor, but it orders
+    them by time. So a full page is complete for every bucket before its last:
+    those are kept, and the next page starts at that last bucket. A single bucket
+    that fills a page can't be paged this way: it is kept as returned, with a
+    warning, and paging resumes after it.
     """
     plural = "zones" if desc.scope == "zone" else "accounts"
-    pending = [{"tag": tag, "since": since, "until": until}]
+    binding = {"tag": tag, "since": since, "until": until}
     groups: list[dict[str, Any]] = []
-    while pending:
-        binding = pending.pop()
+    while True:
         data = _post(auth, query, binding, desc)
         scoped = (data.get("viewer") or {}).get(plural) or []
         got = scoped[0].get(desc.dataset, []) if scoped else []
-        if len(got) >= desc.limit:
-            halves = _split_window(binding, desc.time_field)
-            if halves:
-                pending.extend(halves)
-                continue
+        if len(got) < desc.limit:
+            return groups + got
+        last = _bucket(got[-1], desc)
+        resume = _fmt(last, desc.time_field)
+        complete = [g for g in got if _bucket(g, desc) != last]
+        if complete and resume > binding["since"]:
+            groups.extend(complete)
+        else:
             out.client_log(
                 Level.WARN,
-                f"{desc.name}: {binding['since']}..{binding['until']} returned the "
-                f"{desc.limit}-group limit in its smallest window; results may be truncated",
+                f"{desc.name}: {resume} alone returned the {desc.limit}-group limit; "
+                "results for it may be truncated",
             )
-        groups.extend(got)
-    return groups
+            groups.extend(got)
+            resume = _after(resume, desc.time_field)
+            if resume > until:
+                return groups
+        binding = {**binding, "since": resume}
+
+
+def _bucket(group: dict[str, Any], desc: GraphQLDataset) -> Any:
+    return (group.get("dimensions") or {}).get(desc.time_field)
+
+
+def _after(bucket: str, time_field: str) -> str:
+    """The smallest window start past ``bucket`` (a day, or a second, later)."""
+    if time_field == "date":
+        return (date.fromisoformat(bucket) + timedelta(days=1)).isoformat()
+    return _fmt(datetime.fromisoformat(bucket.replace("Z", "+00:00")) + timedelta(seconds=1), time_field)
 
 
 def make_graphql_function(desc: GraphQLDataset) -> type[RowTransformFunction]:
@@ -350,30 +368,6 @@ def _post(auth: Any, query: str, binding: dict[str, Any], desc: GraphQLDataset) 
                 f"(or the token lacks Analytics read). Details: {exc}"
             ) from exc
         raise
-
-
-def _split_window(binding: dict[str, Any], time_field: str) -> list[dict[str, Any]] | None:
-    """Split a binding's inclusive ``since..until`` window in two, or None if minimal.
-
-    The halves don't overlap (``_leq`` / ``_geq`` are both inclusive), so the
-    second starts one bucket (a day, or a second) after the first ends.
-    """
-    if time_field == "date":
-        lo, hi = date.fromisoformat(binding["since"]), date.fromisoformat(binding["until"])
-        if hi <= lo:
-            return None
-        mid = lo + (hi - lo) // 2
-        bounds = [(lo, mid), (mid + timedelta(days=1), hi)]
-    else:
-        lo_dt = datetime.fromisoformat(binding["since"].replace("Z", "+00:00"))
-        hi_dt = datetime.fromisoformat(binding["until"].replace("Z", "+00:00"))
-        if (hi_dt - lo_dt) < timedelta(seconds=1):
-            return None
-        mid_dt = lo_dt + timedelta(seconds=(hi_dt - lo_dt).total_seconds() // 2)
-        bounds = [(lo_dt, mid_dt), (mid_dt + timedelta(seconds=1), hi_dt)]
-    return [
-        {**binding, "since": _fmt(a, time_field), "until": _fmt(b, time_field)} for a, b in bounds if a <= b
-    ]
 
 
 def _camel(name: str) -> str:
@@ -608,7 +602,7 @@ def dataset_tags(desc: GraphQLDataset) -> dict[str, str]:
         f"a required window, since := … and until := … (inclusive {bucket}s, UTC; constants, not "
         f"expressions like current_date, in a lateral call). One row per {bucket}"
         + (f" and combination of {', '.join(d.name for d in desc.dimensions)}" if desc.dimensions else "")
-        + f", with metrics {', '.join(m.name for m in desc.metrics)}. Large windows are split into several "
+        + f", with metrics {', '.join(m.name for m in desc.metrics)}. Large windows are paged over several "
         "API calls so results aren't truncated."
         + (" Only available on plans that include this dataset." if desc.name in _PLAN_GATED else "")
     )

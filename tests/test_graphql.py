@@ -14,7 +14,7 @@ import pytest
 import vgi_cloudflare.client as client
 from tests.harness import invoke_lateral
 from vgi_cloudflare.client import CloudflareError
-from vgi_cloudflare.graphql import DATASETS, _split_window, build_query, make_graphql_function
+from vgi_cloudflare.graphql import DATASETS, build_query, make_graphql_function
 
 _BY_NAME = {d.name: d for d in DATASETS}
 _UTC = pa.timestamp("us", tz="UTC")
@@ -164,52 +164,73 @@ class TestQueryBuilder:
         assert "datetime_geq: $since" in q
 
 
-class TestWindowSplitting:
-    """A response at the group limit may be truncated, so its window is bisected."""
+class TestPaging:
+    """A response at the group limit may be truncated, so the next page resumes at its last bucket."""
 
-    def _run(self, groups_for, since: datetime.date, until: datetime.date):  # noqa: ANN001
-        desc = dataclasses.replace(_BY_NAME["http_requests_daily"], limit=4)
+    def _run(self, desc, groups_for, since, until):  # noqa: ANN001
+        desc = dataclasses.replace(desc, limit=4)
         calls: list[dict[str, Any]] = []
 
         def _fake_post(path, json=None, headers=None):  # noqa: ANN001
             v = json["variables"]
             calls.append(v)
-            body = {"data": {"viewer": {"zones": [{desc.dataset: groups_for(v["since"], v["until"])}]}}}
+            body = {"data": {"viewer": {"zones": [{desc.dataset: groups_for(v["since"], v["until"])[:4]}]}}}
             return httpx.Response(200, json=body)
 
         with patch.object(client._http, "post", side_effect=_fake_post):
             table, _ = _call(desc, ["z1"], window={"since": since, "until": until})
         return table, calls
 
-    def test_daily_window_is_split_until_complete(self) -> None:
+    def test_daily_window_is_paged_until_complete(self) -> None:
         days = [datetime.date(2024, 1, 1) + datetime.timedelta(days=i) for i in range(10)]
 
         def groups_for(since: str, until: str) -> list[dict]:
             hit = [d for d in days if since <= d.isoformat() <= until]
-            return [{"dimensions": {"date": d.isoformat()}, "sum": {"requests": 1}} for d in hit[:4]]
+            return [{"dimensions": {"date": d.isoformat()}, "sum": {"requests": 1}} for d in hit]
 
-        table, calls = self._run(groups_for, days[0], days[-1])
-        assert sorted(table.column("date").to_pylist()) == days  # every day, none twice
-        assert len(calls) > 1
+        table, calls = self._run(_BY_NAME["http_requests_daily"], groups_for, days[0], days[-1])
+        assert table.column("date").to_pylist() == days  # every day, none twice
+        assert [c["since"] for c in calls] == ["2024-01-01", "2024-01-04", "2024-01-07", "2024-01-10"]
 
-    def test_minimal_window_at_limit_warns(self) -> None:
+    def test_bucket_cut_by_a_page_is_refetched_whole(self) -> None:
+        # Three groups per second: every page of four ends partway through a bucket.
+        stamps = [f"2024-03-01T00:00:0{s}Z" for s in range(4)]
+        rows = [(t, c) for t in stamps for c in ("DE", "FR", "US")]
+
+        def groups_for(since: str, until: str) -> list[dict]:
+            return [
+                {"dimensions": {"datetime": t, "clientCountryName": c}, "count": 1}
+                for t, c in rows
+                if since <= t <= until
+            ]
+
+        table, calls = self._run(_BY_NAME["http_requests_adaptive"], groups_for, *_TIME)
+        got = list(
+            zip(table.column("datetime").to_pylist(), table.column("client_country").to_pylist(), strict=True)
+        )
+        assert [(t.strftime("%Y-%m-%dT%H:%M:%SZ"), c) for t, c in got] == rows
+        assert [c["since"] for c in calls] == stamps
+
+    def test_bucket_filling_a_page_warns_and_paging_resumes_after_it(self) -> None:
+        def groups_for(since: str, until: str) -> list[dict]:
+            crowded = [{"dimensions": {"date": "2024-01-01"}, "sum": {"requests": i}} for i in range(6)]
+            rest = [{"dimensions": {"date": "2024-01-02"}, "sum": {"requests": 9}}]
+            return [g for g in crowded + rest if since <= g["dimensions"]["date"] <= until]
+
+        table, calls = self._run(
+            _BY_NAME["http_requests_daily"], groups_for, datetime.date(2024, 1, 1), datetime.date(2024, 1, 2)
+        )
+        assert [c["since"] for c in calls] == ["2024-01-01", "2024-01-02"]
+        assert table.column("requests").to_pylist() == [0, 1, 2, 3, 9]  # emitted, not dropped
+
+    def test_last_bucket_filling_a_page_ends_paging(self) -> None:
         def groups_for(since: str, until: str) -> list[dict]:
             return [{"dimensions": {"date": since}, "sum": {"requests": i}} for i in range(4)]
 
         day = datetime.date(2024, 1, 1)
-        table, calls = self._run(groups_for, day, day)
+        table, calls = self._run(_BY_NAME["http_requests_daily"], groups_for, day, day)
         assert len(calls) == 1
-        assert table.num_rows == 4  # emitted, not dropped
-
-    def test_split_window_bounds_do_not_overlap(self) -> None:
-        halves = _split_window(
-            {"tag": "z", "since": "2024-01-01T00:00:00Z", "until": "2024-01-01T00:00:09Z"}, "datetime"
-        )
-        assert [(h["since"], h["until"]) for h in halves] == [
-            ("2024-01-01T00:00:00Z", "2024-01-01T00:00:04Z"),
-            ("2024-01-01T00:00:05Z", "2024-01-01T00:00:09Z"),
-        ]
-        assert _split_window({"tag": "z", "since": "2024-01-01", "until": "2024-01-01"}, "date") is None
+        assert table.num_rows == 4
 
 
 class TestPlanGatedDataset:

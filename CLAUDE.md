@@ -217,8 +217,12 @@ Current confidence:
 
 `firewall_events` and `health_check_events` are plan-gated: on a plan without
 them Cloudflare answers "zone … does not have access to the path" (not a field
-error). Adaptive datasets can hit the `limit` (10,000 groups) — there's no
-GraphQL pagination yet, so a full result is silently truncated.
+error). A response is capped at `limit` (10,000 groups) and the API has no cursor,
+so `_fetch_groups` pages by time: groups come back ordered, a full page is complete
+for every bucket before its last, and the next request resumes at that bucket. Only
+a single bucket (one second, or day) holding 10,000+ groups can still be truncated;
+that logs a warning. All pages of a batch are still collected into its one emit — a
+`RowTransformFunction` exchanges one output batch per input batch and has no state.
 
 To verify or regenerate against the real schema, use a token with `Analytics:Read`:
 
