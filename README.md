@@ -555,11 +555,17 @@ sent upstream automatically. Every `WHERE` predicate is also applied in DuckDB t
 the rows that come back, so results are correct either way; the API-side filter
 just fetches less.
 
-**Lateral calls are batched.** A list function or lookup receives a whole chunk of
-input rows at once, fetches them concurrently (up to 8 requests in flight),
+**Lateral calls are batched.** A list function or lookup receives input rows in
+calls of up to 32, fetches them concurrently (up to 8 requests in flight),
 fetches a repeated id only once, and maps each output row back to the row that
 produced it. A NULL id produces no rows; a lookup's 404 is "no row", while a
 list's 404 is an error (a missing parent is not an empty list).
+
+**Results stream a page at a time.** A list function answers each call with one
+reply per round of pages: the first page of every id, then the next page of each
+id that has more, and so on. The worker keeps only where each id's listing
+resumes, never the fetched rows, so a long listing doesn't pile up in memory, and
+a `LIMIT` on a single call stops fetching once it has its rows.
 
 ## Analytics (GraphQL)
 
@@ -577,7 +583,8 @@ query) and a required window, `since` and `until`. There is no default window:
 one that silently defaulted would quietly drop data a query asked for. The
 GraphQL API caps a response at 10,000 groups and has no cursor, so a response
 that comes back full is paged: the next request resumes at its last time
-bucket, and results are complete rather than silently truncated. `firewall_events` and
+bucket, and results are complete rather than silently truncated. Each time page
+is returned as it arrives, and ids are sent in calls of up to 8. `firewall_events` and
 `health_check_events` exist only on plans that include them; elsewhere the
 query fails with an error saying so, instead of returning an empty result that
 reads like "no events".
@@ -626,8 +633,9 @@ or sent upstream, and how to call it. Schema and catalog docs are hand-written
 (`vgi_cloudflare/schema_docs.py`). Runnable SQL lives only in
 `vgi.example_queries`, never inline in prose.
 
-**Pagination** follows the endpoint: page-numbered, cursor, or none. A scan
-fetches every page of a binding before emitting it as one batch.
+**Pagination** follows the endpoint: page-numbered, cursor, or none. A table scan
+emits one page per batch and fetches the next only when DuckDB asks for more, so
+`LIMIT` stops it early; list functions return one round of pages per reply.
 
 **Rate limits.** A `429` is retried with backoff, honouring `Retry-After`.
 
@@ -671,7 +679,7 @@ vgi-lint simulate "launch:env VGI_CLOUDFLARE_TOKEN_FILE=$HOME/cf-read-token.txt 
 | Command | What | Needs |
 |---|---|---|
 | `make test-unit` | pytest with mocked HTTP: lifecycle, pagination, pushdown, lateral batching, provenance, analytics paging, naming | nothing |
-| `make test-mock` | real DuckDB `ATTACH` against a local fake Cloudflare: lateral, `LEFT JOIN LATERAL`, a list across pages | the `vgi` sqllogictest runner |
+| `make test-mock` | real DuckDB `ATTACH` against a local fake Cloudflare: lateral, `LEFT JOIN LATERAL`, lists and analytics continued across pages (reply counts, `LIMIT`, batched vs row-by-row) | the `vgi` sqllogictest runner, from an extension build with continued output |
 | `make test-stdio` | real DuckDB against real Cloudflare (`test/sql/live*.test`) | a token in `$CLOUDFLARE_API_TOKEN` or `~/cf-read-token.txt` |
 | `vgi-lint simulate` | the agent-acceptance suite | a token file, and Claude |
 

@@ -55,7 +55,8 @@ descriptor shape, so there is **no per-endpoint code**.
 
 A descriptor's `kind` and `schema` decide its shape and namespace:
 - `kind="list"` **with path params** → a **list function**, plural noun, of those
-  ids (`dns.records(zone_id)`), all pages per input row. Its query params are named
+  ids (`dns.records(zone_id)`), all pages per input row (one reply per round of
+  pages, see "Continued output"). Its query params are named
   args (`records(z.id, type := 'A')`). There is no table for it: a table could only
   take its ids as constant `WHERE` filters, which the function does better.
 - `kind="list"` **without path params** → a scannable **table** (`zones.zones`);
@@ -65,8 +66,10 @@ A descriptor's `kind` and `schema` decide its shape and namespace:
   Parameterless ones (`accounts.user`, Radar reports) are tables too.
 - List and lookup functions with path params are VGI `RowTransformFunction`s: args
   are per-row input columns, so one registration serves `f('id')`, `FROM t, f(t.id)`
-  and `LATERAL`. A batch is fetched concurrently (deduped by key) and emitted once
-  with `parent_rows` provenance. Lookups treat 404 as 0 rows; list functions don't.
+  and `LATERAL`. A batch's distinct keys are fetched concurrently (8 in flight), and
+  every output row carries `parent_rows` provenance. A lookup answers a batch in one
+  reply; a list function continues across several (below). Both declare
+  `input_rows_per_call = 32`. Lookups treat 404 as 0 rows; list functions don't.
 - `schema` → the product family it lands in (`cloudflare.dns`, `cloudflare.access`, …).
 
 ```
@@ -87,8 +90,8 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 | `vgi_cloudflare/worker.py` | `CloudflareWorker`: merges resources, builds the catalog, declares the `cloudflare` secret type. `main()` (stdio) / `main_http()` (HTTP) — the `vgi-cloudflare` / `vgi-cloudflare-http` entry points. |
 | `cloudflare_worker.py`, `serve.py` | PEP-723 scripts (`uv run …`) wrapping `main` / `main_http`; their dependency headers must match `pyproject.toml`. |
 | `vgi_cloudflare/descriptor.py` | `ResourceDescriptor`, `Column`, `PathParam`, `QueryParam`, `Pagination`. The codegen target. |
-| `vgi_cloudflare/client.py` | httpx Cloudflare client: Bearer/legacy auth, page/cursor pagination, GraphQL POST, error envelopes. Module-global `httpx.Client` for pooling. |
-| `vgi_cloudflare/runtime.py` | `make_resource_function()` (list) + `make_item_function()` (get-by-id, dynamic args dataclass). Pushdown/args → fetch; JSON extraction & Arrow coercion. |
+| `vgi_cloudflare/client.py` | httpx Cloudflare client: Bearer/legacy auth, `fetch_page()` (one page + the next position; `paginate()` loops it), GraphQL POST, error envelopes. Module-global `httpx.Client` for pooling. |
+| `vgi_cloudflare/runtime.py` | `make_resource_function()` (table), `make_lateral_list_function()`, `make_item_function()` (dynamic args dataclass). `FanOutState` + `emit_round()`: the continued-output machinery lists and analytics share. Pushdown/args → fetch; JSON extraction & Arrow coercion. |
 | `vgi_cloudflare/secret.py` | The `cloudflare` DuckDB secret type (`api_token`, or `api_key`+`email`). |
 | `vgi_cloudflare/resources.py` | Hand-written core list descriptors (`zones.zones`, `accounts.accounts`, `accounts.members`, `dns.records`). |
 | `vgi_cloudflare/items.py` | Hand-written lookup descriptors (`zones.zone`, `dns.record`, …). |
@@ -116,22 +119,56 @@ comparison. Protocol 2.1.0 needs a matching vgi extension (2.1.0+).
 ### How a query runs
 
 List and lookup functions read their path ids from each input row and their
-query params from named args (`_lateral_process`). Unscoped tables run like this:
+query params from named args (`_lateral_start` / `_lateral_round`; see "Continued
+output"). Unscoped tables run like this:
 
 1. `WHERE status = '...'` arrives as a **pushdown filter** at `on_init`.
 2. `_resolve_bindings()` turns filters into *bindings*: **query params** matching
    an output column get pushed onto the API query string. DuckDB drops the filters it pushes to a scan, so the worker
    applies every predicate to its output (`Meta.auto_apply_filters`); without it a
    filter on a non-API column is silently ignored.
-3. `process()` pops a binding, **paginates** the Cloudflare API, maps each
-   result item to the output columns (nested via `Column.source` dotted paths;
-   objects/arrays JSON-encoded), and emits one Arrow batch per binding (all pages).
+3. `process()` pops a binding, fetches **one page** of it, maps each result item
+   to the output columns (nested via `Column.source` dotted paths; objects/arrays
+   JSON-encoded), and emits it as one Arrow batch. A binding with more pages goes
+   back on the storage queue with its next position, so the next `process()` call
+   continues it, and a LIMIT that stops calling stops fetching.
 
 ### Pagination
 
 `Pagination.PAGE` (default — `?page/per_page`, `result_info.total_pages`),
-`CURSOR` (`?cursor`, `result_info.cursor`), or `NONE` (single response). Each
-`process()` call fully paginates one binding.
+`CURSOR` (`?cursor`, `result_info.cursor`), or `NONE` (single response).
+`client.fetch_page()` fetches one page and returns the next page's position as a
+string (page number or cursor; `None` after the last, which the response itself
+says, so a one-page listing is one request). Tables and list functions emit a page
+(or a round of pages) at a time; only lookups and zero-arg items fetch whole.
+
+### Continued output (list functions and analytics)
+
+A table-in-out exchange answers each input batch with one reply, but a list or
+analytics function answers it with **one reply per round**: the next page of
+every distinct key of the batch that still has one, fetched concurrently
+(`LATERAL_CONCURRENCY = 8`, `GRAPHQL_CONCURRENCY = 4`). `emit_round()` emits the
+round with `parent_rows` (always indexing the batch, the last real input) and
+`more=True` while any key has pages left; the framework then calls `resume()` on
+the client's continuation tick, which runs the next round. A key whose first page
+is its last finishes in the first reply; a batch of only NULL keys is one empty
+reply. An error in a later round fails the query (the stream ends).
+
+- **State** is `FanOutState` (an `ArrowSerializableDataclass`): the pending keys,
+  the input rows each serves, and each key's next page number, cursor, or window
+  start — **positions only, never fetched rows**. Over HTTP (the Fly deploy) it
+  rides the per-turn state token, so a non-codec state would silently drop the
+  position; `process()` resets it for every new input batch.
+- **`input_rows_per_call`**: 32 for lateral REST functions (a turn is at most
+  32 requests, four waves of 8: about a second, well inside an HTTP timeout even
+  with a 429 retry, and a small state token), 8 for analytics (two waves of 4;
+  GraphQL has its own, smaller quota). Cloudflare allows ~1,200 requests per 5
+  minutes per user, so a whole 2,048-row chunk in one turn could spend the budget
+  before replying. Under batched LATERAL a LIMIT still drains the current chunk
+  (DuckDB's delim join reads a chunk whole); on a literal call it stops ticking.
+- Continued output is never cached by the extension, and continuation is refused
+  with `max_workers = 1` (these functions never set it). Lookups have no
+  `resume()` and no state.
 
 ## OpenAPI codegen
 
@@ -221,8 +258,9 @@ error). A response is capped at `limit` (10,000 groups) and the API has no curso
 so `_fetch_groups` pages by time: groups come back ordered, a full page is complete
 for every bucket before its last, and the next request resumes at that bucket. Only
 a single bucket (one second, or day) holding 10,000+ groups can still be truncated;
-that logs a warning. All pages of a batch are still collected into its one emit — a
-`RowTransformFunction` exchanges one output batch per input batch and has no state.
+that logs a warning. `_fetch_group_page` fetches one time page and returns where the
+next starts, and each round of time pages is one reply (see "Continued output"):
+the next window start per scope id is the resume position in `FanOutState`.
 
 To verify or regenerate against the real schema, use a token with `Analytics:Read`:
 
@@ -259,10 +297,18 @@ env vars in `fly.toml` (JWT/OAuth) — no app code. Put real secrets in
 
 1. **pytest** (`tests/`, mocked httpx) — fast, portable, no DuckDB. The
    `tests/harness.py` `invoke_resource()` drives the real bind→on_init→process
-   lifecycle with `MockOutputCollector`, pushdown filters, and secrets.
+   lifecycle with `MockOutputCollector`, pushdown filters, and secrets;
+   `run_lateral()` drives a `RowTransformFunction` through `process()` and then
+   `resume()` while a reply says more, one emit per turn, round-tripping the state
+   through its codec between turns as HTTP does (`tests/test_continuation.py`).
 2. **SQL sqllogictest** (`test/sql/*.test`) — the **authoritative** wire test;
    real DuckDB `ATTACH`es the worker. `catalog.test` covers schema/error paths
    with no token; `live.test` hits real Cloudflare (gated on `CLOUDFLARE_API_TOKEN`).
+   `test/mock/*.test` (`make test-mock`) run against `tests/mock_cloudflare.py`;
+   `continuation.test` counts replies (`table_in_out.continue` / `write_input` in
+   `duckdb_logs`, with `threads = 1`) and checks equivalence with
+   `SET vgi_batch_lateral = false`. Continuation needs a vgi extension that has it
+   (the community build at 454fefa+, or a build of the continuation branch).
 
 Run pytest with `--rootdir=. -o "addopts="` so it ignores any parent pytest config.
 
@@ -287,8 +333,11 @@ Run pytest with `--rootdir=. -o "addopts="` so it ignores any parent pytest conf
 7. **The worker needs a DuckDB engine** (`vgi-python[haybarn]`): vgi ≥0.37 binds
    Filter v2 pushdown predicates with it. Without it every `WHERE` on a table fails
    with "No DuckDB-compatible engine is installed".
-8. **One `out.emit()` per `process()` call** — collect a binding's pages into one
-   batch. The test harness enforces this; the framework raises otherwise.
+8. **One `out.emit()` per turn** — a `process()` or `resume()` call emits exactly
+   one batch. A table emits one page per `process()` call and re-queues the binding;
+   a list or analytics function emits one round of pages and says `more=True` for
+   the next (see "Continued output"). The test harness enforces this; the
+   framework raises otherwise.
 9. **Use `LOCATION 'launch:<cmd>'` for anything that opens many cursors** (vgi-lint,
    simulate): it shares one warm worker instead of cold-starting per connection
    (~2s each to build the catalog). A warm worker keeps serving the code it
