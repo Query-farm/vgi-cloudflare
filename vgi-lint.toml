@@ -94,3 +94,35 @@ the Cloudflare API, not accidental sprawl.\
 "cloudflare.zones.scripts" = { ignore = [
   { code = "VGI317", kind = "tooling-bug", reason = "status and exclude_urls are comma-separated lists; choices would allow only a single value" },
 ] }
+# Added with the codegen expansion (a83081f): same open-set arguments as above.
+"cloudflare.accounts.applications" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "lookup is free text; '2 and 1000' is a length bound on the phrase, not a numeric range" },
+] }
+# metrics' description is shared by billing.account_usage and the stream usage functions.
+"cloudflare.[bs]*.*usage" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "metrics is a comma-separated list whose supported names vary by endpoint; choices would allow only a single value" },
+] }
+"cloudflare.radar.[ao][nu][nt]*s" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "query is a free-text match (annotations and outages share it); the fields it names are not its values" },
+] }
+"cloudflare.registrar.*domain_search" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "q is a free-text search term; the quoted examples are not its values" },
+] }
+"cloudflare.security.actors" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "filters is a JSON array of {field, op, value} objects; the field names it mentions are not the argument's values" },
+] }
+"cloudflare.security.requests" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "metadata is a JSON object of filters; the operators it lists are not the argument's values" },
+] }
+"cloudflare.workers.log" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "ref is any git ref, branch, tag or commit hash" },
+] }
+"cloudflare.workers.*[sw]_[dp]*" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "preview_id is an ID, slug or URL-encoded name (three functions share it), not one of a fixed set" },
+] }
+"cloudflare.zero_trust.policy_logs" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "integration_id and policy_name are comma-separated lists; '100' and '128'/'255' bound the list length and each value's length, not a numeric value" },
+] }
+"cloudflare.zones.*sql" = { ignore = [
+  { code = "VGI317", kind = "tooling-bug", reason = "query is SQL text (account_sql and sql share it); the output FORMATs it names are not its values" },
+] }
