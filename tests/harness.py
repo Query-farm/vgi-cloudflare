@@ -2,12 +2,15 @@
 
 Runs a resource function through bind -> global_init -> process with mocked HTTP,
 capturing emitted batches into a pa.Table for assertions. Mirrors the lifecycle
-the real DuckDB ``vgi`` extension drives.
+the real DuckDB ``vgi`` extension drives, including continued table-in-out
+output: a reply that says ``more`` is followed by a ``resume()`` turn (the
+client's continuation tick), with the state round-tripped through its codec
+between turns as the HTTP state token carries it.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import pyarrow as pa
@@ -15,7 +18,10 @@ from vgi.arguments import Arguments
 from vgi.filter_v2_builder import build_filter_batch, value_payload
 from vgi.function_storage import BoundStorage, FunctionStorageSqlite
 from vgi.invocation import FunctionType
-from vgi.protocol import BindRequest, InitRequest
+from vgi.protocol import BindRequest, InitRequest, _is_state_codec
+
+#: Turns after which a continued exchange is assumed to be stuck.
+MAX_TURNS = 10_000
 
 
 class MockOutputCollector:
@@ -26,6 +32,7 @@ class MockOutputCollector:
         self.batches: list[pa.RecordBatch] = []
         self.parent_rows: list[int] = []
         self.logs: list[tuple[str, str]] = []
+        self.more = False  # whether the last emit said more output follows
         self._finished = False
 
     def emit(
@@ -34,11 +41,13 @@ class MockOutputCollector:
         partition_values: dict[str, Any] | None = None,
         metadata: dict[str, str] | None = None,
         parent_rows: list[int] | None = None,
+        more: bool = False,
     ) -> None:
         if parent_rows is not None:
             assert len(parent_rows) == batch.num_rows, "parent_rows must align with emitted rows"
             self.parent_rows.extend(parent_rows)
         self.batches.append(batch)
+        self.more = more
 
     def emit_pydict(self, data: dict[str, Any], schema: pa.Schema | None = None) -> None:
         self.emit(pa.RecordBatch.from_pydict(data, schema=schema or self.output_schema))
@@ -120,8 +129,12 @@ def invoke_resource(
     join_keys: list[pa.RecordBatch] | None = None,
     output_schema: pa.Schema | None = None,
     secrets: dict[str, dict[str, pa.Scalar]] | None = None,
+    max_calls: int | None = None,
 ) -> pa.Table:
-    """Run a resource table function end-to-end and return the emitted rows."""
+    """Run a resource table function end-to-end and return the emitted rows.
+
+    ``max_calls`` stops after that many ``process()`` calls, as a LIMIT does.
+    """
     from vgi.table_function import ProcessParams
 
     args = Arguments(positional=(), named={})
@@ -158,7 +171,9 @@ def invoke_resource(
 
         state = func_cls.initial_state(params)
         out = MockOutputCollector(out_schema)
-        while not out.finished:
+        n_calls = 0
+        while not out.finished and (max_calls is None or n_calls < max_calls):
+            n_calls += 1
             before = len(out.batches)
             func_cls.process(params, state, out)
             # Mirrors the framework: at most one data batch per process() call.
@@ -172,20 +187,58 @@ def invoke_resource(
     return pa.Table.from_batches(out.batches, schema=out_schema)
 
 
-def invoke_lateral(
+@dataclass
+class Reply:
+    """One reply of a table-in-out exchange turn."""
+
+    batch: pa.RecordBatch
+    parent_rows: list[int]
+    more: bool
+    #: Upstream requests made during this turn (when the test passes ``calls``).
+    requests: int = 0
+
+
+@dataclass
+class LateralRun:
+    """Every reply to every input batch of one exchange stream."""
+
+    schema: pa.Schema
+    #: ``replies[b]`` = the replies to input batch ``b``, in order.
+    replies: list[list[Reply]] = field(default_factory=list)
+    logs: list[tuple[str, str]] = field(default_factory=list)
+
+    def table(self, batch: int = 0) -> pa.Table:
+        return pa.Table.from_batches([r.batch for r in self.replies[batch]], schema=self.schema)
+
+    def parents(self, batch: int = 0) -> list[int]:
+        return [p for r in self.replies[batch] for p in r.parent_rows]
+
+
+def run_lateral(
     func_cls: type,
-    rows: dict[str, list[Any]],
+    inputs: dict[str, list[Any]] | list[dict[str, list[Any]]],
     *,
     named: dict[str, Any] | None = None,
     secrets: dict[str, dict[str, pa.Scalar]] | None = None,
-) -> tuple[pa.Table, list[int]]:
-    """Drive a ``RowTransformFunction`` with one input batch of per-row path params.
+    calls: list[Any] | None = None,
+    max_replies: int | None = None,
+) -> LateralRun:
+    """Drive a ``RowTransformFunction`` over one exchange stream, as the client does.
 
-    Returns the emitted rows and their ``parent_rows`` (input-row index per output row).
+    Each input batch goes to ``process()``; while the last reply said ``more``, a
+    tick goes to ``resume()``. Every turn must emit exactly one batch, and between
+    turns the state is serialized and restored through its codec (the HTTP path,
+    where it rides the state token), so state that isn't serializable fails here.
+    ``max_replies`` stops ticking after that many replies to the last batch, like a
+    LIMIT; ``calls`` (a list a mock appends to) counts requests per reply.
     """
     from vgi.table_function import ProcessParams
 
-    input_batch = pa.RecordBatch.from_pydict({k: pa.array(v, type=pa.string()) for k, v in rows.items()})
+    batches = [inputs] if isinstance(inputs, dict) else inputs
+    input_batches = [
+        pa.RecordBatch.from_pydict({k: pa.array(v, type=pa.string()) for k, v in rows.items()})
+        for rows in batches
+    ]
     arguments = Arguments(
         positional=(),
         named={k: v if isinstance(v, pa.Scalar) else pa.scalar(v) for k, v in (named or {}).items()},
@@ -194,9 +247,10 @@ def invoke_lateral(
         function_name=func_cls.Meta.name,
         arguments=arguments,
         function_type=FunctionType.TABLE,
-        input_schema=input_batch.schema,
+        input_schema=input_batches[0].schema,
     )
     out_schema = func_cls.bind(bind_req).output_schema
+    run = LateralRun(schema=out_schema)
 
     storage = FunctionStorageSqlite(":memory:")
     original_storage = getattr(func_cls, "storage", None)
@@ -213,16 +267,64 @@ def invoke_lateral(
             secrets=secrets if secrets is not None else token_secrets(),
             storage=BoundStorage(storage, init_resp.execution_id),
         )
-        out = MockOutputCollector(out_schema)
-        func_cls.process(params, func_cls.initial_state(params), input_batch, out)
+        state = func_cls.initial_state(params)
+
+        def turn(batch: pa.RecordBatch | None) -> Reply:
+            nonlocal state
+            out = MockOutputCollector(out_schema)
+            before = len(calls) if calls is not None else 0
+            if batch is None:
+                func_cls.resume(params, state, out)
+            else:
+                func_cls.process(params, state, batch, out)
+            assert len(out.batches) == 1, f"a turn must emit exactly one batch, got {len(out.batches)}"
+            run.logs.extend(out.logs)
+            if out.more:
+                assert func_cls.has_resume_override(), "emit(more=True) without a resume()"
+            if state is not None and _is_state_codec(type(state)):
+                state = type(state).deserialize_from_bytes(state.serialize_to_bytes())
+            elif out.more:
+                raise AssertionError("continued output needs a serializable state (it is dropped over HTTP)")
+            return Reply(
+                batch=out.batches[0],
+                parent_rows=list(out.parent_rows) if out.parent_rows else [],
+                more=out.more,
+                requests=(len(calls) - before) if calls is not None else 0,
+            )
+
+        for n, batch in enumerate(input_batches):
+            replies = [turn(batch)]
+            last = n == len(input_batches) - 1
+            while replies[-1].more:
+                if last and max_replies is not None and len(replies) >= max_replies:
+                    break  # a LIMIT: the client stops ticking and closes the input
+                assert len(replies) < MAX_TURNS, "continued output never ended"
+                replies.append(turn(None))
+            for r in replies:
+                assert all(0 <= p < batch.num_rows for p in r.parent_rows), "parent_rows index the last input"
+            run.replies.append(replies)
     finally:
         if original_storage is None:
             del func_cls.storage
         else:
             func_cls.storage = original_storage
+    return run
 
-    assert len(out.batches) == 1, "a RowTransformFunction must emit exactly once per input batch"
-    return pa.Table.from_batches(out.batches, schema=out_schema), out.parent_rows
+
+def invoke_lateral(
+    func_cls: type,
+    rows: dict[str, list[Any]],
+    *,
+    named: dict[str, Any] | None = None,
+    secrets: dict[str, dict[str, pa.Scalar]] | None = None,
+) -> tuple[pa.Table, list[int]]:
+    """Drive a ``RowTransformFunction`` with one input batch of per-row path params.
+
+    Returns the rows of every reply and their ``parent_rows`` (input-row index per
+    output row); :func:`run_lateral` exposes the replies themselves.
+    """
+    run = run_lateral(func_cls, rows, named=named, secrets=secrets)
+    return run.table(), run.parents()
 
 
 def invoke_item(

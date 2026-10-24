@@ -14,12 +14,14 @@ Every pushed predicate is applied to the rows we emit (``auto_apply_filters``):
 DuckDB drops the filters it pushes to a scan. The ones the API understands are
 also sent on the query string, so less is fetched.
 
-Lateral functions (singular-noun lookups like ``zone``, ``<table>_by_<parent>``
-fan-outs like ``records_by_zone``) are VGI
-``RowTransformFunction``s instead: their path params are per-row *input columns*,
-so one registration serves ``f('id')``, ``FROM t, f(t.id)`` and ``LATERAL``.
-Each input batch is fetched concurrently (deduplicated by key) and emitted as one
-output batch whose ``parent_rows`` map every output row back to its input row.
+Lateral functions (singular-noun lookups like ``zone``, scoped list functions
+like ``records``) are VGI ``RowTransformFunction``s instead: their path params are
+per-row *input columns*, so one registration serves ``f('id')``, ``FROM t, f(t.id)``
+and ``LATERAL``. An input batch's distinct keys are fetched concurrently, and every
+output row carries ``parent_rows`` provenance back to its input row. A lookup
+answers a batch in one reply. A list function answers it with one reply per round
+of upstream pages (the next page of every key that has one) and continues with
+``more=True`` / ``resume()``, keeping only each key's next page in its state.
 """
 
 from __future__ import annotations
@@ -32,7 +34,7 @@ import os
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, cast
@@ -54,15 +56,25 @@ from vgi.table_function import (
     bind_fixed_schema,
 )
 from vgi.table_in_out_function import RowTransformFunction
+from vgi_rpc.utils import ArrowSerializableDataclass
 
-from .client import CloudflareAuth, CloudflareError, paginate
+from .client import FIRST_PAGE, CloudflareAuth, CloudflareError, fetch_page, paginate
 from .descriptor import Column, Example, QueryParam, ResourceDescriptor
 from .secret import API_EMAIL_KEY, API_KEY_KEY, API_TOKEN_KEY, CLOUDFLARE_SECRET_TYPE
 
 log = logging.getLogger(__name__)
 
-#: Max concurrent Cloudflare requests per lateral input batch.
+#: Max concurrent Cloudflare requests per lateral reply.
 LATERAL_CONCURRENCY = 8
+
+#: Input rows per call of a lateral REST function (``Meta.input_rows_per_call``).
+#: A reply fetches one page of every pending key of its call, so this bounds a
+#: turn at 32 requests (four waves of ``LATERAL_CONCURRENCY``): about a second, far
+#: inside an HTTP request timeout even with a rate-limit retry, and a small state
+#: token, while the per-turn overhead is still spread over many requests. It bounds
+#: a burst too: Cloudflare allows ~1,200 requests per 5 minutes per user, and a
+#: whole 2,048-row chunk in one turn would spend more than that before replying.
+LATERAL_ROWS_PER_CALL = 32
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -156,6 +168,91 @@ def _fetch_all(
         raise
 
 
+def _fetch_page(
+    auth: CloudflareAuth,
+    desc: ResourceDescriptor,
+    path_values: dict[str, str],
+    query: dict[str, Any],
+    position: str,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """One page of one binding, and the next page's position (``None`` after the last)."""
+    path = _format_path(desc, path_values)
+    return fetch_page(auth, path, {**_defaults_for(desc, query), **query}, desc, position)
+
+
+@dataclass(kw_only=True)
+class FanOutState(ArrowSerializableDataclass):
+    """Where a lateral function's output for the current input batch resumes.
+
+    One entry per distinct key of the batch that still has pages: ``keys[i]`` (its
+    path ids, or scope id), ``rows[i]`` (the input rows it serves) and
+    ``positions[i]`` (its next page: a page number, a cursor, or a window start).
+    Positions only, never fetched rows: over HTTP this rides the per-turn state
+    token, so it must stay small and serializable.
+    """
+
+    keys: list[list[str]] = field(default_factory=list)
+    rows: list[list[int]] = field(default_factory=list)
+    positions: list[str] = field(default_factory=list)
+
+    def start(self, keys: list[tuple[str, ...] | None], position: str) -> None:
+        """Begin a new input batch: group its rows by key (NULL keys produce nothing)."""
+        groups: dict[tuple[str, ...], list[int]] = {}
+        for i, key in enumerate(keys):
+            if key is not None:
+                groups.setdefault(key, []).append(i)
+        self.keys = [list(k) for k in groups]
+        self.rows = list(groups.values())
+        self.positions = [position] * len(groups)
+
+
+#: Fetch one page for a key at a position: (raw items, next position or None).
+PageFetcher = Callable[[tuple[str, ...], str], tuple[list[Any], "str | None"]]
+
+
+def emit_round(
+    state: FanOutState,
+    out: OutputCollector,
+    output_schema: pa.Schema,
+    fetch: PageFetcher,
+    row: Callable[[tuple[str, ...], Any], list[Any]],
+    *,
+    concurrency: int,
+) -> None:
+    """Fetch the next page of every pending key concurrently and emit it as one reply.
+
+    Output rows follow input-row order and carry ``parent_rows``. Keys with more
+    pages stay in ``state``; the reply says ``more`` while any does, so the
+    framework calls ``resume()`` for the next round. A key whose first page is its
+    last finishes in the first reply, and a batch of only NULL keys gets one empty
+    reply. ``row(key, raw)`` builds an output row in ``output_schema`` order.
+    """
+    keys = [tuple(k) for k in state.keys]
+    if len(keys) == 1:
+        results = [fetch(keys[0], state.positions[0])]
+    elif keys:
+        with ThreadPoolExecutor(max_workers=min(concurrency, len(keys))) as pool:
+            results = list(pool.map(fetch, keys, state.positions))
+    else:
+        results = []
+
+    rows: list[list[Any]] = []
+    parent_rows: list[int] = []
+    for i, j in sorted((i, j) for j, served in enumerate(state.rows) for i in served):
+        for raw in results[j][0]:
+            rows.append(row(keys[j], raw))
+            parent_rows.append(i)
+
+    pending = [j for j, (_, nxt) in enumerate(results) if nxt is not None]
+    state.keys = [state.keys[j] for j in pending]
+    state.rows = [state.rows[j] for j in pending]
+    state.positions = [cast(str, results[j][1]) for j in pending]
+
+    data = {c: [r[k] for r in rows] for k, c in enumerate(output_schema.names)}
+    emit = cast(Callable[..., None], out.emit)
+    emit(pa.RecordBatch.from_pydict(data, schema=output_schema), parent_rows=parent_rows, more=bool(pending))
+
+
 def _row_values(
     raw: dict[str, Any], path_values: dict[str, str], out_cols: list[str], col_index: dict[str, Column]
 ) -> list[Any]:
@@ -215,11 +312,16 @@ def make_resource_function(
                 binding = json.loads(item.decode("utf-8"))
                 path_values: dict[str, str] = binding["path"]
 
-                # The framework allows one emit per process() call, so a binding's
-                # pages are collected into a single batch.
-                items = _fetch_all(auth, desc, path_values, binding["query"])
+                # One page per process() call (the framework allows one emit per
+                # call). A binding with more pages goes back on the queue with its
+                # next position, so a LIMIT that stops calling stops fetching.
+                items, position = _fetch_page(
+                    auth, desc, path_values, binding["query"], binding.get("position", FIRST_PAGE)
+                )
+                if position is not None:
+                    params.storage.queue_push([json.dumps({**binding, "position": position}).encode("utf-8")])
                 if not items:
-                    continue  # Empty binding — fall through to the next one.
+                    continue  # An empty last page: fall through to the next binding.
                 rows = [_row_values(raw, path_values, out_cols, col_index) for raw in items]
                 data = {c: [r[j] for r in rows] for j, c in enumerate(out_cols)}
                 out.emit(pa.RecordBatch.from_pydict(data, schema=params.output_schema))
@@ -327,54 +429,48 @@ def _named_query(desc: ResourceDescriptor, args: Any) -> dict[str, str]:
     return out
 
 
-def _lateral_process(
+def _lateral_start(desc: ResourceDescriptor, state: FanOutState, batch: pa.RecordBatch) -> None:
+    """Group a new input batch's rows by their path ids (a row with a NULL id produces nothing)."""
+    columns = [batch.column(p.name).to_pylist() for p in desc.path_params]
+    state.start(
+        [
+            None if any(v is None for v in row) else tuple(str(v) for v in row)
+            for row in zip(*columns, strict=True)
+        ],
+        FIRST_PAGE,
+    )
+
+
+def _lateral_round(
     desc: ResourceDescriptor,
     params: ProcessParams[Any],
-    batch: pa.RecordBatch,
+    state: FanOutState,
     out: OutputCollector,
     *,
-    not_found_ok: bool,
+    item: bool,
 ) -> None:
-    """Fetch every input row's binding and emit one batch with ``parent_rows``.
+    """Emit the next reply: one page of every key still pending in ``state``.
 
-    Rows with a NULL path param produce no output. Identical keys within the batch
-    are fetched once; distinct keys are fetched concurrently.
+    A lookup fetches its whole (single-object) response and treats 404 as no row,
+    so it always finishes in one reply. A list function fetches one page per key,
+    and a 404 is an error.
     """
     auth = _auth_from_secrets(params.secrets)
     names = [p.name for p in desc.path_params]
-    columns = [batch.column(n).to_pylist() for n in names]
-    keys: list[tuple[str, ...] | None] = [
-        None if any(v is None for v in row) else tuple(str(v) for v in row)
-        for row in zip(*columns, strict=True)
-    ]
-    distinct = list(dict.fromkeys(k for k in keys if k is not None))
-
     query = _named_query(desc, params.args)
-
-    def fetch(key: tuple[str, ...]) -> list[dict[str, Any]]:
-        return _fetch_all(auth, desc, dict(zip(names, key, strict=True)), query, not_found_ok=not_found_ok)
-
-    results: dict[tuple[str, ...], list[dict[str, Any]]] = {}
-    if len(distinct) == 1:
-        results[distinct[0]] = fetch(distinct[0])
-    elif distinct:
-        with ThreadPoolExecutor(max_workers=min(LATERAL_CONCURRENCY, len(distinct))) as pool:
-            results = dict(zip(distinct, pool.map(fetch, distinct), strict=True))
-
     out_cols = list(params.output_schema.names)
     col_index = desc.column_index()
-    rows: list[list[Any]] = []
-    parent_rows: list[int] = []
-    for i, key in enumerate(keys):
-        if key is None:
-            continue
+
+    def fetch(key: tuple[str, ...], position: str) -> tuple[list[Any], str | None]:
         path_values = dict(zip(names, key, strict=True))
-        for raw in results[key]:
-            rows.append(_row_values(raw, path_values, out_cols, col_index))
-            parent_rows.append(i)
-    data = {c: [r[j] for r in rows] for j, c in enumerate(out_cols)}
-    emit = cast(Callable[..., None], out.emit)
-    emit(pa.RecordBatch.from_pydict(data, schema=params.output_schema), parent_rows=parent_rows)
+        if item:
+            return _fetch_all(auth, desc, path_values, query, not_found_ok=True), None
+        return _fetch_page(auth, desc, path_values, query, position)
+
+    def row(key: tuple[str, ...], raw: Any) -> list[Any]:
+        return _row_values(raw, dict(zip(names, key, strict=True)), out_cols, col_index)
+
+    emit_round(state, out, params.output_schema, fetch, row, concurrency=LATERAL_CONCURRENCY)
 
 
 def _make_lateral_function(
@@ -384,25 +480,66 @@ def _make_lateral_function(
     args_class = _build_item_args_class(desc)
     kind = "get one by id" if item else "list, one call per input row"
 
-    class _Lateral(RowTransformFunction[args_class]):
-        DESCRIPTOR: ClassVar[ResourceDescriptor] = desc
-        FIXED_SCHEMA: ClassVar[pa.Schema] = output_schema
+    class _Meta:
+        name = fn_name
+        description, examples, tags = _meta(desc, docs, f"Cloudflare {desc.name} ({kind})")
+        categories = [*desc.categories, "lateral"]
+        required_secrets = [SecretLookupEntry(secret_type=CLOUDFLARE_SECRET_TYPE)]
+        input_rows_per_call = LATERAL_ROWS_PER_CALL
 
-        class Meta:
-            name = fn_name
-            description, examples, tags = _meta(desc, docs, f"Cloudflare {desc.name} ({kind})")
-            categories = [*desc.categories, "lateral"]
-            required_secrets = [SecretLookupEntry(secret_type=CLOUDFLARE_SECRET_TYPE)]
+    _Lateral: type[RowTransformFunction]
+    if item:
 
-        @classmethod
-        def on_bind(cls, params: BindParams[Any]) -> BindResponse:
-            return BindResponse(output_schema=output_schema)
+        class _Lookup(RowTransformFunction[args_class]):
+            DESCRIPTOR: ClassVar[ResourceDescriptor] = desc
+            FIXED_SCHEMA: ClassVar[pa.Schema] = output_schema
+            Meta = _Meta
 
-        @classmethod
-        def process(
-            cls, params: ProcessParams[Any], state: None, batch: pa.RecordBatch, out: OutputCollector
-        ) -> None:
-            _lateral_process(desc, params, batch, out, not_found_ok=item)
+            @classmethod
+            def on_bind(cls, params: BindParams[Any]) -> BindResponse:
+                return BindResponse(output_schema=output_schema)
+
+            @classmethod
+            def process(
+                cls, params: ProcessParams[Any], state: None, batch: pa.RecordBatch, out: OutputCollector
+            ) -> None:
+                # 0 or 1 row per input row: always one reply, so no state to resume from.
+                fan_out = FanOutState()
+                _lateral_start(desc, fan_out, batch)
+                _lateral_round(desc, params, fan_out, out, item=True)
+
+        _Lateral = _Lookup
+    else:
+
+        class _List(RowTransformFunction[args_class, FanOutState]):
+            DESCRIPTOR: ClassVar[ResourceDescriptor] = desc
+            FIXED_SCHEMA: ClassVar[pa.Schema] = output_schema
+            Meta = _Meta
+
+            @classmethod
+            def on_bind(cls, params: BindParams[Any]) -> BindResponse:
+                return BindResponse(output_schema=output_schema)
+
+            @classmethod
+            def initial_state(cls, params: ProcessParams[Any]) -> FanOutState:
+                return FanOutState()
+
+            @classmethod
+            def process(
+                cls,
+                params: ProcessParams[Any],
+                state: FanOutState,
+                batch: pa.RecordBatch,
+                out: OutputCollector,
+            ) -> None:
+                _lateral_start(desc, state, batch)
+                _lateral_round(desc, params, state, out, item=False)
+
+            @classmethod
+            def resume(cls, params: ProcessParams[Any], state: FanOutState, out: OutputCollector) -> None:
+                _lateral_round(desc, params, state, out, item=False)
+
+        _Lateral = _List
 
     suffix = "Item" if item else "Lateral"
     _Lateral.__name__ = f"{_camel(fn_name)}{suffix}"
@@ -432,8 +569,9 @@ def make_lateral_list_function(
 ) -> type[RowTransformFunction]:
     """Build a scoped list resource as a function of its path ids: ``records(zone_id)``.
 
-    Each input row's ids select one listing, fetched across all pages, so the
-    function works with literals or laterally from another table::
+    Each input row's ids select one listing, fetched across all its pages (one reply
+    per round of pages, see :func:`emit_round`), so the function works with
+    literals or laterally from another table::
 
         SELECT z.name, r.name, r.type
         FROM cf.zones.zones z, cf.dns.records(z.id) r;

@@ -12,7 +12,7 @@ import pyarrow as pa
 import pytest
 
 import vgi_cloudflare.client as client
-from tests.harness import invoke_lateral
+from tests.harness import invoke_lateral, run_lateral
 from vgi_cloudflare.catalog import build_catalog, merge_resources
 from vgi_cloudflare.client import CloudflareError
 from vgi_cloudflare.descriptor import Column, Pagination, PathParam, ResourceDescriptor
@@ -117,13 +117,13 @@ class TestLateralList:
 
         patcher, _ = _route(handler)
         with patcher:
-            table, parents = invoke_lateral(
-                make_lateral_list_function(DNS_RECORDS), {"zone_id": ["z1", "empty", "z2"]}
-            )
+            run = run_lateral(make_lateral_list_function(DNS_RECORDS), {"zone_id": ["z1", "empty", "z2"]})
 
-        assert parents == [0, 0, 2]
-        assert table.column("name").to_pylist() == ["p1.z1", "p2.z1", "z2"]
-        assert table.column("zone_id").to_pylist() == ["z1", "z1", "z2"]
+        # Reply 1: every key's first page; reply 2: z1's second page (the only key left).
+        assert [r.more for r in run.replies[0]] == [True, False]
+        assert run.parents() == [0, 2, 0]
+        assert run.table().column("name").to_pylist() == ["p1.z1", "z2", "p2.z1"]
+        assert run.table().column("zone_id").to_pylist() == ["z1", "z2", "z1"]
 
     def test_list_404_is_an_error(self) -> None:
         patcher, _ = _route(lambda path, params: _not_found())

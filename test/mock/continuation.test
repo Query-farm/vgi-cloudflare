@@ -1,0 +1,216 @@
+# Continued output against tests/mock_cloudflare.py (no token needed): a list or
+# analytics function answers an input batch with one reply per round of upstream
+# pages, and the client asks for each next reply with a continuation tick (one
+# `table_in_out.continue` log event per tick). Run via `make test-mock`.
+#
+# Mock data: DNS records of zone pN are N pages of 3; agent-memory namespaces of
+# account aN are N cursor pages of 2; analytics has 3 groups per second.
+
+require-env VGI_CLOUDFLARE_MOCK_WORKER
+
+require vgi
+
+statement ok
+ATTACH 'cloudflare' AS cf (TYPE vgi, LOCATION '${VGI_CLOUDFLARE_MOCK_WORKER}');
+
+statement ok
+CREATE SECRET cf (TYPE cloudflare, api_token 'mock');
+
+statement ok
+CREATE MACRO vgi_events(event, fn) AS (
+  SELECT count(*) FROM duckdb_logs()
+  WHERE type = 'VGI'
+    AND regexp_extract(message, '''event'': ([a-z_.]+)', 1) = event
+    AND message LIKE '%' || fn || '%'
+);
+
+# Reply counts are per exchange: with several threads, DuckDB may split one
+# chunk's distinct values across pipelines, each its own exchange.
+statement ok
+SET threads = 1;
+
+statement ok
+CALL enable_logging(level := 'debug');
+
+# ---------------------------------------------------------------------------
+# Literal call: 5 pages = 5 replies = 4 ticks.
+# ---------------------------------------------------------------------------
+
+statement ok
+CALL truncate_duckdb_logs();
+
+query II
+SELECT count(*), count(DISTINCT id) FROM cf.dns.records('p5');
+----
+15	15
+
+query I
+SELECT vgi_events('table_in_out.continue', 'records');
+----
+4
+
+# A single page is one reply: no tick, no trailing empty reply.
+statement ok
+CALL truncate_duckdb_logs();
+
+query I
+SELECT count(*) FROM cf.dns.records('p1');
+----
+3
+
+query I
+SELECT vgi_events('table_in_out.continue', 'records');
+----
+0
+
+# Cursor pagination continues the same way: 4 cursor pages = 3 ticks.
+statement ok
+CALL truncate_duckdb_logs();
+
+query II
+SELECT count(*), count(DISTINCT id) FROM cf.ai.account_namespaces('a4');
+----
+8	8
+
+query I
+SELECT vgi_events('table_in_out.continue', 'account_namespaces');
+----
+3
+
+# ---------------------------------------------------------------------------
+# Batched LATERAL: one input, one reply per round. Each round fetches the next
+# page of every zone that has one, so 1/3/5 pages take 5 replies (4 ticks), and
+# every row is stamped with the outer row that produced it.
+# ---------------------------------------------------------------------------
+
+statement ok
+CALL truncate_duckdb_logs();
+
+query TI
+SELECT t.z, count(*) FROM (VALUES ('p1'), ('p3'), ('p5')) t(z), cf.dns.records(t.z) r
+WHERE r.zone_id = t.z AND r.name LIKE '%.' || t.z
+GROUP BY 1 ORDER BY 1;
+----
+p1	3
+p3	9
+p5	15
+
+query II
+SELECT vgi_events('table_in_out.write_input', 'records'), vgi_events('table_in_out.continue', 'records');
+----
+1	4
+
+# input_rows_per_call = 32: 40 distinct zones go out as calls of 32 and 8 rows
+# (2 inputs). Zone pN has N pages, so the calls continue for 31 and 39 ticks.
+statement ok
+CALL truncate_duckdb_logs();
+
+statement ok
+CREATE TABLE paged AS
+SELECT t.i, r.id FROM range(1, 41) t(i), cf.dns.records('p' || t.i) r;
+
+query II
+SELECT count(*), count(DISTINCT id) FROM paged;
+----
+2460	2460
+
+query II
+SELECT vgi_events('table_in_out.write_input', 'records'), vgi_events('table_in_out.continue', 'records');
+----
+2	70
+
+# Every page of every zone, each once: zone pN's ids are pN-<page>-<k>.
+query I
+SELECT count(*) FROM paged WHERE id NOT LIKE 'p' || i || '-%';
+----
+0
+
+# ---------------------------------------------------------------------------
+# A LIMIT stops asking for pages: 1000 pages of 3, but LIMIT 5 needs two replies,
+# so one tick goes out, not 999.
+# ---------------------------------------------------------------------------
+
+statement ok
+CALL truncate_duckdb_logs();
+
+query I
+SELECT count(*) FROM (SELECT id FROM cf.dns.records('p1000') LIMIT 5);
+----
+5
+
+query I
+SELECT vgi_events('table_in_out.continue', 'records') <= 1;
+----
+true
+
+# ---------------------------------------------------------------------------
+# Analytics: an hour is 3,601 seconds x 3 = 10,803 groups, past the 10,000-group
+# cap, so it is two time pages = two replies = one tick, nothing lost or doubled.
+# ---------------------------------------------------------------------------
+
+statement ok
+CALL truncate_duckdb_logs();
+
+query III
+SELECT count(*), count(DISTINCT (datetime, client_country)), sum(count)
+FROM cf.analytics.http_requests_adaptive('zx',
+  since := TIMESTAMPTZ '2024-01-01 00:00:00+00', until := TIMESTAMPTZ '2024-01-01 01:00:00+00');
+----
+10803	10803	10803
+
+query I
+SELECT vgi_events('table_in_out.continue', 'http_requests_adaptive');
+----
+1
+
+statement ok
+CALL disable_logging();
+
+statement ok
+RESET threads;
+
+# ---------------------------------------------------------------------------
+# The row-by-row path (one input row per call, continuing per row) agrees.
+# ---------------------------------------------------------------------------
+
+statement ok
+CREATE TABLE batched AS
+SELECT t.z, r.id, r.zone_id FROM (VALUES ('p1'), ('p3'), ('p5'), ('p3'), (NULL)) t(z), cf.dns.records(t.z) r;
+
+statement ok
+CREATE TABLE batched_ns AS
+SELECT t.a, n.id FROM (VALUES ('a1'), ('a4'), ('a2')) t(a), cf.ai.account_namespaces(t.a) n;
+
+statement ok
+SET vgi_batch_lateral = false;
+
+statement ok
+CREATE TABLE row_by_row AS
+SELECT t.z, r.id, r.zone_id FROM (VALUES ('p1'), ('p3'), ('p5'), ('p3'), (NULL)) t(z), cf.dns.records(t.z) r;
+
+statement ok
+CREATE TABLE row_by_row_ns AS
+SELECT t.a, n.id FROM (VALUES ('a1'), ('a4'), ('a2')) t(a), cf.ai.account_namespaces(t.a) n;
+
+statement ok
+RESET vgi_batch_lateral;
+
+# The duplicate p3 row gets its own copy of p3's records.
+query I
+SELECT count(*) FROM batched;
+----
+36
+
+query II
+SELECT
+  (SELECT count(*) FROM (SELECT * FROM batched EXCEPT ALL SELECT * FROM row_by_row)),
+  (SELECT count(*) FROM (SELECT * FROM row_by_row EXCEPT ALL SELECT * FROM batched));
+----
+0	0
+
+query II
+SELECT
+  (SELECT count(*) FROM (SELECT * FROM batched_ns EXCEPT ALL SELECT * FROM row_by_row_ns)),
+  (SELECT count(*) FROM (SELECT * FROM row_by_row_ns EXCEPT ALL SELECT * FROM batched_ns));
+----
+0	0

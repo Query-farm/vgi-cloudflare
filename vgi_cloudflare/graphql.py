@@ -15,25 +15,26 @@ The Analytics API is one GraphQL endpoint with a very regular shape::
     }
 
 So one :class:`GraphQLDataset` descriptor + one generic runtime cover every
-``*Groups`` dataset. Each becomes a table in the ``analytics`` schema, scoped by
-a required ``zone_id`` / ``account_id`` filter, with the time bucket
-(``date``/``datetime``) read from `WHERE` range bounds (default: trailing N days).
+``*Groups`` dataset. Each becomes a function in the ``analytics`` schema of its
+``zone_id`` / ``account_id`` (per input row, so it works laterally) with a required
+``since`` / ``until`` window. A window past the API's group cap is paged by time,
+one reply per page round, continued with ``more=True`` / ``resume()``.
 
-    SELECT date, requests, threats FROM cloudflare.analytics.http_requests_daily
-    WHERE zone_id = '<zone>' AND date >= DATE '2024-01-01';
+    SELECT date, requests, threats FROM cloudflare.analytics.http_requests_daily(
+      '<zone>', since := DATE '2024-01-01', until := DATE '2024-01-31');
 
-    SELECT datetime, action, count FROM cloudflare.analytics.firewall_events
-    WHERE zone_id = '<zone>' AND datetime >= TIMESTAMP '2024-01-01';
+    SELECT z.name, sum(f.count) FROM cloudflare.zones.zones z,
+      cloudflare.analytics.firewall_events(z.id, since := TIMESTAMPTZ '2024-01-01 00:00:00+00',
+                                           until := TIMESTAMPTZ '2024-01-02 00:00:00+00') f
+    GROUP BY 1;
 """
 
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Annotated, Any, ClassVar, cast
+from typing import Annotated, Any, ClassVar
 
 import pyarrow as pa
 from vgi.arguments import Arg, SecretLookupEntry
@@ -50,10 +51,19 @@ from vgi_rpc.log import Level
 from .client import CloudflareError, graphql_post
 from .descriptor import Example, comment_field
 from .docs import result_columns_schema
-from .runtime import _auth_from_secrets, example_tags
+from .runtime import FanOutState, _auth_from_secrets, emit_round, example_tags
 from .secret import CLOUDFLARE_SECRET_TYPE
 
 ANALYTICS_SCHEMA = "analytics"
+
+#: Concurrent GraphQL queries per reply. Analytics queries are heavier than REST
+#: reads and have their own, smaller quota (~300 queries per 5 minutes).
+GRAPHQL_CONCURRENCY = 4
+
+#: Scope ids per call (``Meta.input_rows_per_call``): a reply runs one time page of
+#: each, so a turn is at most two waves of ``GRAPHQL_CONCURRENCY`` queries, and a
+#: lateral over many zones can't spend the quota in one turn before replying.
+GRAPHQL_ROWS_PER_CALL = 8
 _TS = pa.timestamp("us", tz="UTC")
 
 
@@ -243,42 +253,34 @@ def _dataset_args_class(desc: GraphQLDataset) -> type:
     )
 
 
-def _fetch_groups(
+def _fetch_group_page(
     auth: Any, query: str, desc: GraphQLDataset, tag: str, since: str, until: str, out: OutputCollector
-) -> list[dict[str, Any]]:
-    """Every group for one scope id and window, paging past the API's group cap.
+) -> tuple[list[dict[str, Any]], str | None]:
+    """One time page of groups for a scope id, and where the next page starts.
 
     The API returns at most ``desc.limit`` groups and has no cursor, but it orders
     them by time. So a full page is complete for every bucket before its last:
     those are kept, and the next page starts at that last bucket. A single bucket
     that fills a page can't be paged this way: it is kept as returned, with a
-    warning, and paging resumes after it.
+    warning, and paging resumes after it. ``None`` means the window is done.
     """
     plural = "zones" if desc.scope == "zone" else "accounts"
-    binding = {"tag": tag, "since": since, "until": until}
-    groups: list[dict[str, Any]] = []
-    while True:
-        data = _post(auth, query, binding, desc)
-        scoped = (data.get("viewer") or {}).get(plural) or []
-        got = scoped[0].get(desc.dataset, []) if scoped else []
-        if len(got) < desc.limit:
-            return groups + got
-        last = _bucket(got[-1], desc)
-        resume = _fmt(last, desc.time_field)
-        complete = [g for g in got if _bucket(g, desc) != last]
-        if complete and resume > binding["since"]:
-            groups.extend(complete)
-        else:
-            out.client_log(
-                Level.WARN,
-                f"{desc.name}: {resume} alone returned the {desc.limit}-group limit; "
-                "results for it may be truncated",
-            )
-            groups.extend(got)
-            resume = _after(resume, desc.time_field)
-            if resume > until:
-                return groups
-        binding = {**binding, "since": resume}
+    data = _post(auth, query, {"tag": tag, "since": since, "until": until}, desc)
+    scoped = (data.get("viewer") or {}).get(plural) or []
+    got = scoped[0].get(desc.dataset, []) if scoped else []
+    if len(got) < desc.limit:
+        return got, None
+    last = _bucket(got[-1], desc)
+    resume = _fmt(last, desc.time_field)
+    complete = [g for g in got if _bucket(g, desc) != last]
+    if complete and resume > since:
+        return complete, resume
+    out.client_log(
+        Level.WARN,
+        f"{desc.name}: {resume} alone returned the {desc.limit}-group limit; results for it may be truncated",
+    )
+    resume = _after(resume, desc.time_field)
+    return got, (None if resume > until else resume)
 
 
 def _bucket(group: dict[str, Any], desc: GraphQLDataset) -> Any:
@@ -306,7 +308,21 @@ def make_graphql_function(desc: GraphQLDataset) -> type[RowTransformFunction]:
     metric_by_name = {m.name: m for m in desc.metrics}
     args_class = _dataset_args_class(desc)
 
-    class _Dataset(RowTransformFunction[args_class]):
+    def fan_out(params: ProcessParams[Any], state: FanOutState, out: OutputCollector) -> None:
+        auth = _auth_from_secrets(params.secrets)
+        until = _fmt(params.args.until, desc.time_field)
+        out_cols = list(params.output_schema.names)
+
+        def fetch(key: tuple[str, ...], since: str) -> tuple[list[Any], str | None]:
+            return _fetch_group_page(auth, query, desc, key[0], since, until, out)
+
+        def row(key: tuple[str, ...], g: Any) -> list[Any]:
+            dims = g.get("dimensions") or {}
+            return [_extract(c, g, dims, key[0], desc, dim_by_name, metric_by_name) for c in out_cols]
+
+        emit_round(state, out, params.output_schema, fetch, row, concurrency=GRAPHQL_CONCURRENCY)
+
+    class _Dataset(RowTransformFunction[args_class, FanOutState]):
         DATASET: ClassVar[GraphQLDataset] = desc
         FIXED_SCHEMA: ClassVar[pa.Schema] = output_schema
 
@@ -317,39 +333,27 @@ def make_graphql_function(desc: GraphQLDataset) -> type[RowTransformFunction]:
             required_secrets = [SecretLookupEntry(secret_type=CLOUDFLARE_SECRET_TYPE)]
             examples = [FunctionExample(sql=e.sql, description=e.description) for e in dataset_examples(desc)]
             tags = {**example_tags(examples), **dataset_tags(desc)}
+            input_rows_per_call = GRAPHQL_ROWS_PER_CALL
 
         @classmethod
         def on_bind(cls, params: BindParams[Any]) -> BindResponse:
             return BindResponse(output_schema=output_schema)
 
         @classmethod
+        def initial_state(cls, params: ProcessParams[Any]) -> FanOutState:
+            return FanOutState()
+
+        @classmethod
         def process(
-            cls, params: ProcessParams[Any], state: None, batch: pa.RecordBatch, out: OutputCollector
+            cls, params: ProcessParams[Any], state: FanOutState, batch: pa.RecordBatch, out: OutputCollector
         ) -> None:
-            auth = _auth_from_secrets(params.secrets)
-            since = _fmt(params.args.since, desc.time_field)
-            until = _fmt(params.args.until, desc.time_field)
-            keys = [None if v is None else str(v) for v in batch.column(desc.scope_id).to_pylist()]
-            distinct = list(dict.fromkeys(k for k in keys if k is not None))
-            with ThreadPoolExecutor(max_workers=max(1, min(4, len(distinct)))) as pool:
-                fetched = dict(
-                    zip(
-                        distinct,
-                        pool.map(lambda t: _fetch_groups(auth, query, desc, t, since, until, out), distinct),
-                        strict=True,
-                    )
-                )
-            out_cols = list(params.output_schema.names)
-            rows: dict[str, list[Any]] = {c: [] for c in out_cols}
-            parent_rows: list[int] = []
-            for i, key in enumerate(keys):
-                for g in fetched.get(key, []) if key is not None else []:
-                    dims = g.get("dimensions") or {}
-                    for col in out_cols:
-                        rows[col].append(_extract(col, g, dims, key, desc, dim_by_name, metric_by_name))
-                    parent_rows.append(i)
-            emit = cast(Callable[..., None], out.emit)
-            emit(pa.RecordBatch.from_pydict(rows, schema=params.output_schema), parent_rows=parent_rows)
+            keys = [None if v is None else (str(v),) for v in batch.column(desc.scope_id).to_pylist()]
+            state.start(keys, _fmt(params.args.since, desc.time_field))
+            fan_out(params, state, out)
+
+        @classmethod
+        def resume(cls, params: ProcessParams[Any], state: FanOutState, out: OutputCollector) -> None:
+            fan_out(params, state, out)
 
     _Dataset.__name__ = f"{_camel(desc.name)}Dataset"
     _Dataset.__qualname__ = _Dataset.__name__
