@@ -132,6 +132,52 @@ def _result_items(data: dict[str, Any] | list[Any], result_path: str) -> list[di
     return [result]
 
 
+#: The position of a listing's first page, for :func:`fetch_page`.
+FIRST_PAGE = ""
+
+
+def fetch_page(
+    auth: CloudflareAuth,
+    path: str,
+    query: dict[str, Any],
+    desc: ResourceDescriptor,
+    position: str = FIRST_PAGE,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Fetch one page of a listing: its result items, and the next page's position.
+
+    A position is a string so a caller can keep it in serializable state: the page
+    number for ``Pagination.PAGE``, the cursor for ``CURSOR`` (``FIRST_PAGE`` for the
+    first page of either). The next position is ``None`` when this page is the last,
+    which the response itself says, so a single-page listing costs one request.
+    """
+    if desc.pagination is Pagination.NONE:
+        return _result_items(_get(auth, path, query), desc.result_path), None
+
+    if desc.pagination is Pagination.PAGE:
+        page = int(position) if position else 1
+        data = _get(auth, path, {**query, "page": page, "per_page": desc.per_page})
+        items = _result_items(data, desc.result_path)
+        info = (data.get("result_info") if isinstance(data, dict) else None) or {}
+        total_pages = info.get("total_pages")
+        if not items or not total_pages or page >= total_pages:
+            return items, None
+        return items, str(page + 1)
+
+    if desc.pagination is Pagination.CURSOR:
+        q = {**query, "per_page": desc.per_page}
+        if position:
+            q["cursor"] = position
+        data = _get(auth, path, q)
+        items = _result_items(data, desc.result_path)
+        info = (data.get("result_info") if isinstance(data, dict) else None) or {}
+        cursor = info.get("cursor")
+        if not items or not cursor:
+            return items, None
+        return items, str(cursor)
+
+    raise CloudflareError(f"Unknown pagination style: {desc.pagination!r}")
+
+
 def paginate(
     auth: CloudflareAuth,
     path: str,
@@ -139,36 +185,7 @@ def paginate(
     desc: ResourceDescriptor,
 ) -> Iterator[list[dict[str, Any]]]:
     """Yield one list of result items per page, following the descriptor's paging style."""
-    if desc.pagination is Pagination.NONE:
-        yield _result_items(_get(auth, path, query), desc.result_path)
-        return
-
-    if desc.pagination is Pagination.PAGE:
-        page = 1
-        while True:
-            data = _get(auth, path, {**query, "page": page, "per_page": desc.per_page})
-            items = _result_items(data, desc.result_path)
-            yield items
-            info = (data.get("result_info") if isinstance(data, dict) else None) or {}
-            total_pages = info.get("total_pages")
-            if not items or not total_pages or page >= total_pages:
-                return
-            page += 1
-        return
-
-    if desc.pagination is Pagination.CURSOR:
-        cursor: str | None = None
-        while True:
-            q = {**query, "per_page": desc.per_page}
-            if cursor:
-                q["cursor"] = cursor
-            data = _get(auth, path, q)
-            items = _result_items(data, desc.result_path)
-            yield items
-            info = (data.get("result_info") if isinstance(data, dict) else None) or {}
-            cursor = info.get("cursor")
-            if not items or not cursor:
-                return
-        return
-
-    raise CloudflareError(f"Unknown pagination style: {desc.pagination!r}")
+    position: str | None = FIRST_PAGE
+    while position is not None:
+        items, position = fetch_page(auth, path, query, desc, position)
+        yield items
