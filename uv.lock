@@ -788,10 +788,10 @@ dev = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "pyarrow", specifier = ">=20" },
-    { name = "vgi-python", extras = ["http", "haybarn"], specifier = ">=0.47.0" },
-    { name = "vgi-python", extras = ["http", "haybarn", "oauth"], marker = "extra == 'serve'", specifier = ">=0.47.0" },
-    { name = "vgi-rpc", specifier = ">=0.52.0" },
-    { name = "vgi-rpc", extras = ["sentry"], marker = "extra == 'serve'", specifier = ">=0.52.0" },
+    { name = "vgi-python", extras = ["http", "haybarn"], specifier = ">=0.48.2,<0.49" },
+    { name = "vgi-python", extras = ["http", "haybarn", "oauth"], marker = "extra == 'serve'", specifier = ">=0.48.2,<0.49" },
+    { name = "vgi-rpc", specifier = ">=0.52.4" },
+    { name = "vgi-rpc", extras = ["sentry"], marker = "extra == 'serve'", specifier = ">=0.52.4" },
 ]
 provides-extras = ["serve"]
 
@@ -803,19 +803,20 @@ dev = [
 
 [[package]]
 name = "vgi-python"
-version = "0.47.0"
+version = "0.48.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "httpx2" },
     { name = "platformdirs" },
     { name = "pyarrow" },
+    { name = "pycryptodome" },
     { name = "typer" },
     { name = "vgi-rpc" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/65/4d92908dbd9ac1d099eb19c9bd71722b3bf9386677ddf77787e773c98f33/vgi_python-0.47.0.tar.gz", hash = "sha256:f7e759b34ad5d79225e5ddd69f4415624f33fb7cd2ede2a7fead73919ba1bc8e", size = 4950849, upload-time = "2026-10-23T23:38:06.732Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/04/416356ee381654efa53df55170c00e2bb8df25f3078af08abfc5c36d8289/vgi_python-0.48.2.tar.gz", hash = "sha256:be283345c481908923f93475924ca0c0b0556926e80672c118c6fc5acb43d7cf", size = 5484007, upload-time = "2026-10-30T14:35:46.054Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/08/45a4a19a11bb0776eb09ab38615392c25fa46a9450d4682b732798dc9bf1/vgi_python-0.47.0-py3-none-any.whl", hash = "sha256:4a48b3140e2fbc521845a70e6319adda2b1c0ea0abcc0865b6193a099c1745c7", size = 1367487, upload-time = "2026-10-23T23:38:04.647Z" },
+    { url = "https://files.pythonhosted.org/packages/67/23/f590acfc164bd9157de772521b7dddd806e5a64e35b80b1244b5eb04f21a/vgi_python-0.48.2-py3-none-any.whl", hash = "sha256:3346d184fe238304d73a2667c6767859829f3dcc3fe0663f115df796829db984", size = 1409590, upload-time = "2026-10-30T14:35:43.675Z" },
 ]
 
 [package.optional-dependencies]
@@ -831,7 +832,7 @@ oauth = [
 
 [[package]]
 name = "vgi-rpc"
-version = "0.52.0"
+version = "0.52.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
@@ -839,9 +840,9 @@ dependencies = [
     { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/61/8b/0a4aefb96838c0e413c93afbd1c177aa3ebfaa22b134fd25b529d8763fee/vgi_rpc-0.52.0.tar.gz", hash = "sha256:fa94674f134ebce67662d803b5855a443057698d58d6ae90fa145b1bbb19f58d", size = 1636721, upload-time = "2026-10-20T14:20:29.216Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/c0/3f7ada33c06954f415a97a80eb8d73ec55dc0ec1c6bfe61f63966bbb415b/vgi_rpc-0.52.4.tar.gz", hash = "sha256:6914374b9c9cbcbc77a144cb95291611fce8e9d295c6ad7cbb1e3ce51e26f5ff", size = 1642693, upload-time = "2026-11-04T13:43:44.871Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/d9/88e65dd7b63a5bdadc6e1dd5921f3dc9cc36d03f3a8cce5d35cdb514211a/vgi_rpc-0.52.0-py3-none-any.whl", hash = "sha256:6a468b957cd8a9fbd78682dc093c02dba9392c7a2369e6c2cd663eb331098ee0", size = 761773, upload-time = "2026-10-20T14:20:27.039Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/80/aba455dea27e758b69b5b1b3c4dc44c4f26321902f663a8e6dc4a91646f5/vgi_rpc-0.52.4-py3-none-any.whl", hash = "sha256:c9ef5eaccd755b96000deda65d561b3639519a951b8b65cf61c1f61fd1ad56df", size = 762786, upload-time = "2026-11-04T13:43:42.891Z" },
 ]
 
 [package.optional-dependencies]

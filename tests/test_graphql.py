@@ -66,6 +66,43 @@ class TestHttpRequestsDaily:
         assert row["unique_visitors"] == 120
 
 
+class TestHttpTraffic:
+    def test_traffic_dimensions_and_sampling_adjusted_count(self) -> None:
+        capture: dict[str, Any] = {}
+        groups = [
+            {
+                "dimensions": {
+                    "datetime": "2024-03-01T12:00:00Z",
+                    "clientCountryName": "SG",
+                    "clientRequestHTTPHost": "example.com",
+                    "clientRequestPath": "/docs/",
+                    "userAgent": "test-crawler",
+                    "userAgentBrowser": "Chrome",
+                    "clientDeviceType": "desktop",
+                    "edgeResponseContentTypeName": "html",
+                    "requestSource": "eyeball",
+                    "securityAction": "managed_challenge",
+                    "verifiedBotCategory": "",
+                },
+                "count": 120,
+                "sum": {"edgeResponseBytes": 2048},
+                "avg": {"sampleInterval": 10.0},
+            }
+        ]
+        with _mock_graphql("zones", "httpRequestsAdaptiveGroups", groups, capture):
+            table, _ = _call(_BY_NAME["http_requests_traffic"], ["z1"])
+        row = table.to_pylist()[0]
+        assert row["path"] == "/docs/"
+        assert row["user_agent"] == "test-crawler"
+        assert row["security_action"] == "managed_challenge"
+        assert row["request_source"] == "eyeball"
+        assert row["sample_interval"] == 10.0
+        # Cloudflare already scales count; multiplying by sampleInterval again is wrong.
+        assert row["count"] == 120
+        assert row["response_bytes"] == 2048
+        assert "sampleInterval" in capture["body"]["query"]
+
+
 class TestFirewallEvents:
     def test_dimensions_and_count(self) -> None:
         groups = [

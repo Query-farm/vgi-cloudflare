@@ -107,14 +107,16 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 ### Catalog loading
 
 The catalog is declarative, read-only and version-frozen, so vgi-python
-(≥ 0.40.0, VGI protocol 2.1.0) advertises `supports_catalog_contents` and
+(≥ 0.48.2, VGI protocol 3) advertises `supports_catalog_contents` and
 serves the whole catalog — all ~24 schemas, ~1,690 functions — in **one**
 `catalog_contents` RPC instead of `catalog_schemas` + a
 `catalog_schema_contents_*` call per schema (32 sequential RPCs). The response
 (~17.6 MB raw, ~1.2 MB zstd) is built once per process (~1.8 s) and served
 from a cache afterwards. The DuckDB extension decodes each schema lazily.
 `SET vgi_catalog_contents = false` forces the old per-schema path for
-comparison. Protocol 2.1.0 needs a matching vgi extension (2.1.0+).
+comparison. Clients need a VGI 3 extension (Haybarn 2.0.0rc11 or newer).
+Launch workers through their PEP-723 scripts to keep the SDK-pinned internal
+Haybarn 1.5.5rc1 filter evaluator separate from the Haybarn 2.0 SQL client.
 
 ### How a query runs
 
@@ -251,6 +253,12 @@ Current confidence:
 | Dataset | Field names |
 |---------|-------------|
 | all six (`http_requests_daily`/`_hourly`/`_adaptive`, `firewall_events`, `health_check_events`, `workers_invocations`) | **verified** against live introspection (2026-10) |
+| `http_requests_traffic` | **verified** against live introspection and zone field availability (2026-11-04); request details without plan-restricted ASN, referrer, or bot scores |
+
+Adaptive counts are sampling-adjusted estimates. Never multiply them by the
+reported average sampling interval. Filter `request_source = 'eyeball'` when
+comparing website traffic with browser analytics; internal requests are otherwise
+included. SQL dimension filters are local, so keep diagnostic windows short.
 
 `firewall_events` and `health_check_events` are plan-gated: on a plan without
 them Cloudflare answers "zone … does not have access to the path" (not a field

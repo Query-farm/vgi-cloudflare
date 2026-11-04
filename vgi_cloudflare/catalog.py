@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from vgi.catalog import Catalog, ForeignKeyDef, Schema, Table
+from vgi.catalog import Catalog, Schema, Table, constraint_record
 
 from . import docs
 from .descriptor import ResourceDescriptor
@@ -120,9 +120,7 @@ def build_catalog(
                     function=fn,
                     comment=comment,
                     required_filters=tuple((p.name,) for p in d.path_params),
-                    primary_key=_primary_key(d),
-                    not_null=tuple(p.name for p in d.path_params),
-                    foreign_key=_foreign_keys(d),
+                    constraints=_constraints(d),
                     tags={
                         **tags,
                         **docs.CLASSIFICATION,
@@ -158,31 +156,24 @@ def build_catalog(
     )
 
 
-def _primary_key(d: ResourceDescriptor) -> tuple[tuple[str, ...], ...]:
-    """``id`` identifies a row within its parent, so the key includes the path ids."""
+def _constraints(d: ResourceDescriptor) -> tuple:
+    """Unscoped tables expose Cloudflare resource IDs as canonical VGI 3 keys.
+
+    Scoped resources are functions, not tables, so they have no table constraints.
+    """
     if "id" not in {c.name for c in d.columns}:
         return ()
-    return ((*(p.name for p in d.path_params), "id"),)
-
-
-# Scope ids that reference a canonical parent table: column -> (schema, table).
-_SCOPE_PARENTS = {"zone_id": ("zones", "zones"), "account_id": ("accounts", "accounts")}
-
-
-def _foreign_keys(d: ResourceDescriptor) -> tuple[ForeignKeyDef, ...]:
-    fks = []
-    for p in d.path_params:
-        parent = _SCOPE_PARENTS.get(p.name)
-        if parent and (d.schema, d.name) != parent:
-            fks.append(
-                ForeignKeyDef(
-                    columns=(p.name,),
-                    referenced_table=parent[1],
-                    referenced_columns=("id",),
-                    referenced_schema_path=[parent[0]],
-                )
-            )
-    return tuple(fks)
+    return (
+        constraint_record(
+            [d.schema],
+            d.name,
+            "pk",
+            "PRIMARY_KEY",
+            [["id"]],
+            enforcement="ENFORCED",
+            validation="ALL_ROWS",
+        ),
+    )
 
 
 def _schema(

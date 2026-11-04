@@ -54,11 +54,11 @@ ORDER BY zone, r.name;
 
 ## Quick start
 
-You need DuckDB with the `vgi` extension: either **DuckDB 1.5.5** with
-`INSTALL vgi FROM community`, or [Haybarn](https://query.farm) (`uvx haybarn-cli`,
-or `pip install haybarn` for Python), which ships with it. Community builds can
-lag the newest DuckDB release by a little — if `INSTALL` reports a 404, use the
-version above.
+You need a **VGI 3** client, such as [Haybarn](https://query.farm)
+**2.0.0rc11 or newer**, with its matching `vgi` extension. The worker uses
+`vgi-python` 0.48.2 and `vgi-rpc` 0.52.4 or newer. Its internal filter evaluator
+runs on the SDK-pinned Haybarn 1.5.5rc1; run the worker through its PEP-723 script
+so that environment stays separate from the Haybarn 2.0 SQL client.
 
 ```sql
 INSTALL vgi FROM community; LOAD vgi;     -- Haybarn: just LOAD vgi;
@@ -534,7 +534,7 @@ and `cloudflare.radar.http_versions(date_range := '28d')` both work.
 | `billing` | Billable and pay-as-you-go usage | 0 | 2 |
 | `registrar` | Domains registered with Cloudflare Registrar | 0 | 1 |
 | `browser_rendering` | Headless browser sessions | 0 | 7 |
-| `analytics` | GraphQL traffic, firewall, health-check, and Workers rollups | 6 | 6 |
+| `analytics` | GraphQL traffic, firewall, health-check, and Workers rollups | 7 | 7 |
 | `radar` | Cloudflare Radar: Internet-wide traffic, attack, routing, and adoption trends | 205 | 270 |
 
 `DESCRIBE cloudflare.dns.records` shows any object's columns; the
@@ -573,7 +573,8 @@ a `LIMIT` on a single call stops fetching once it has its rows.
 |---|---|---|---|
 | `http_requests_daily` | zone | day | requests, bytes, cache, encryption, page views, threats, uniques |
 | `http_requests_hourly` | zone | hour | the same, hourly |
-| `http_requests_adaptive` | zone | event time | sampled requests by country, host, method, status |
+| `http_requests_adaptive` | zone | event time | estimated requests by country, host, method, status |
+| `http_requests_traffic` | zone | event time | paths, user agents, browsers, devices, content types, security actions, verified bot categories, and sampling intervals |
 | `firewall_events` | zone | event time | WAF/firewall events by action, source, country, rule |
 | `health_check_events` | zone | event time | origin health checks by hostname, region, origin, status |
 | `workers_invocations` | account | event time | Worker requests, errors, subrequests by script and status |
@@ -591,6 +592,18 @@ reads like "no events".
 
 Every dataset, dimension, and metric name was verified against Cloudflare's live
 GraphQL schema by introspection.
+
+For traffic diagnosis, use `http_requests_traffic` with short windows and filter
+`host` to the website being investigated and `request_source = 'eyeball'` to
+exclude internal Cloudflare requests. SQL predicates apply to returned groups;
+only the zone and time window bound the upstream query. Field availability and
+retention depend on the zone's GraphQL settings. This function deliberately
+does not request plan-restricted ASN, referrer, or bot-score fields.
+
+Adaptive `count` and byte totals are already adjusted for sampling by Cloudflare;
+do **not** multiply them by `sample_interval`. They are request estimates, not
+browser sessions or verified human visits. A user agent can be spoofed, and an
+empty verified-bot category does not establish that a request came from a human.
 
 ## Radar
 

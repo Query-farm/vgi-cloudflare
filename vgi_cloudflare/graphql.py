@@ -463,12 +463,50 @@ DATASETS: tuple[GraphQLDataset, ...] = (
             Dimension("status", pa.int64(), "Edge response status code.", field="edgeResponseStatus"),
         ),
         metrics=(
-            Metric("count", "count", doc="Sampled request count."),
+            Metric("count", "count", doc="Estimated requests, adjusted by Cloudflare for sampling."),
             Metric("response_bytes", "sum", "edgeResponseBytes", doc="Edge response bytes."),
         ),
         description="HTTP requests broken down by country, host, method, and status.",
         default_range_days=1,
         cardinality_estimate=500,
+        cardinality_max=1_000_000,
+    ),
+    GraphQLDataset(
+        name="http_requests_traffic",
+        dataset="httpRequestsAdaptiveGroups",
+        scope="zone",
+        time_field="datetime",
+        dimensions=(
+            Dimension("client_country", field="clientCountryName", doc="Client country (ISO-2)."),
+            Dimension("host", field="clientRequestHTTPHost", doc="Requested host."),
+            Dimension("method", field="clientRequestHTTPMethodName", doc="HTTP method."),
+            Dimension("status", _I64, "Edge response status code.", field="edgeResponseStatus"),
+            Dimension("path", field="clientRequestPath", doc="Requested URL path."),
+            Dimension("user_agent", field="userAgent", doc="Client-supplied user agent; can be spoofed."),
+            Dimension("browser", field="userAgentBrowser", doc="Parsed browser name."),
+            Dimension("device_type", field="clientDeviceType", doc="Parsed client device type."),
+            Dimension("content_type", field="edgeResponseContentTypeName", doc="Response content type."),
+            Dimension("request_source", field="requestSource", doc="eyeball identifies client requests."),
+            Dimension("security_action", field="securityAction", doc="Security action, if any."),
+            Dimension(
+                "verified_bot_category", field="verifiedBotCategory", doc="Verified bot category, if any."
+            ),
+        ),
+        metrics=(
+            Metric("count", "count", doc="Estimated requests, adjusted by Cloudflare for sampling."),
+            Metric("response_bytes", "sum", "edgeResponseBytes", doc="Estimated edge response bytes."),
+            Metric(
+                "sample_interval", "avg", "sampleInterval", _F64, "Mean sampling interval; 1 means unsampled."
+            ),
+        ),
+        description=(
+            "HTTP traffic by path, user agent, browser, device, and security action. "
+            "Counts are sampling-adjusted estimates, not sessions. Field access and retention "
+            "depend on the zone plan. SQL predicates filter returned groups locally; "
+            "use short since/until windows to bound API work."
+        ),
+        default_range_days=1,
+        cardinality_estimate=1000,
         cardinality_max=1_000_000,
     ),
     GraphQLDataset(
@@ -534,6 +572,7 @@ _CATEGORY = {
     "http_requests_daily": "http-traffic",
     "http_requests_hourly": "http-traffic",
     "http_requests_adaptive": "http-traffic",
+    "http_requests_traffic": "http-traffic",
     "firewall_events": "security-events",
     "health_check_events": "health-checks",
     "workers_invocations": "workers",
