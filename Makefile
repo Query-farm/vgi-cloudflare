@@ -7,6 +7,7 @@
 #   make test-mock    # SQL sqllogictest of lateral functions against a mock Cloudflare
 #   make test         # unit + stdio + mock
 #   make codegen      # regenerate resources_generated.json from the OpenAPI spec
+#   make update-api   # fetch/pin upstream spec, regenerate, write a compatibility report
 #   make deploy       # build, smoke-test, push, deploy to Fly.io
 
 # The sqllogictest runner from a build of the DuckDB `vgi` extension.
@@ -33,7 +34,7 @@ ifneq ($(CLOUDFLARE_API_TOKEN),)
 export CLOUDFLARE_API_TOKEN
 endif
 
-.PHONY: test test-unit test-stdio test-mock test-http test-cloud codegen build smoke-test push deploy lint
+.PHONY: test test-unit test-stdio test-mock test-http test-cloud codegen update-api build smoke-test push deploy lint
 
 test: test-unit test-stdio test-mock
 
@@ -46,6 +47,9 @@ lint:
 
 codegen:
 	.venv/bin/python tools/generate_resources.py --emit
+
+update-api:
+	.venv/bin/python -m tools.update_api
 
 test-stdio:
 	@IDS="$$(.venv/bin/python tools/live_test_ids.py)"; \

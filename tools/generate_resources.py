@@ -998,14 +998,13 @@ def build_item_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str
     }
 
 
-def main() -> int:
-    emit = "--emit" in sys.argv
-    spec = Spec(json.load(open(SPEC_PATH)))
+def generate_manifest(spec: Spec, previous: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Generate in memory, retaining published names; return skipped GET paths too."""
     paths = spec.spec["paths"]
 
     descriptors: list[dict[str, Any]] = []
     items: list[dict[str, Any]] = []
-    skipped = 0
+    skipped: list[str] = []
     for path, item in paths.items():
         if not isinstance(item, dict):
             continue
@@ -1029,14 +1028,29 @@ def main() -> int:
         if it is not None:
             items.append(it)
         else:
-            skipped += 1
+            skipped.append(path)
 
     descriptors.extend(items)
     published: dict[str, tuple[str, str, str]] = {}
-    if "--rename" not in sys.argv and OUT_PATH.exists():
-        for r in json.loads(OUT_PATH.read_text()).get("resources", []):
-            published[r["path"]] = (r["schema"], r["kind"], r["name"])
+    for r in previous.get("resources", []):
+        published[r["path"]] = (r["schema"], r["kind"], r["name"])
     assign_names_per_schema(descriptors, published)  # names unique within each schema
+    manifest = {
+        "_generated_from": "spec/openapi.json",
+        "_spec_version": spec.spec.get("info", {}).get("version"),
+        "resources": descriptors,
+    }
+    return manifest, sorted(skipped)
+
+
+def main() -> int:
+    emit = "--emit" in sys.argv
+    spec = Spec(json.loads(SPEC_PATH.read_bytes()))
+    previous = json.loads(OUT_PATH.read_text()) if "--rename" not in sys.argv and OUT_PATH.exists() else {}
+    manifest, skipped = generate_manifest(spec, previous)
+    descriptors = manifest["resources"]
+    paths = spec.spec["paths"]
+    published = {r["path"]: (r["schema"], r["kind"], r["name"]) for r in previous.get("resources", [])}
     kept = sum(1 for d in descriptors if published.get(d["path"], ("", "", ""))[2] == d["name"])
 
     # Stats
@@ -1046,13 +1060,13 @@ def main() -> int:
     print(f"List (collection) tables:   {len(list_descs)}")
     print(f"Item (get-by-id) functions: {len(item_descs)}")
     print(f"  wrapperless (result_path=''): {sum(1 for d in item_descs if d['result_path'] == '')}")
-    print(f"Skipped (no usable schema): {skipped}")
+    print(f"Skipped (no usable schema): {len(skipped)}")
     print(f"TOTAL descriptors: {len(descriptors)}")
     print(f"Published names kept: {kept} of {len(published)} (new: {len(descriptors) - kept})")
     col_counts = [len(d["columns"]) for d in descriptors]
     print(
-        f"Columns/resource: min={min(col_counts)} max={max(col_counts)} "
-        f"avg={sum(col_counts) // len(col_counts)}"
+        f"Columns/resource: min={min(col_counts, default=0)} max={max(col_counts, default=0)} "
+        f"avg={sum(col_counts) // max(len(col_counts), 1)}"
     )
     from collections import Counter
 
@@ -1065,11 +1079,6 @@ def main() -> int:
     print("Sample dns names:", sorted(d["name"] for d in descriptors if d["schema"] == "dns"))
 
     if emit:
-        manifest = {
-            "_generated_from": "spec/openapi.json",
-            "_spec_version": spec.spec.get("info", {}).get("version"),
-            "resources": descriptors,
-        }
         OUT_PATH.write_text(json.dumps(manifest, indent=1, sort_keys=True))
         print(f"\nWrote {len(descriptors)} descriptors to {OUT_PATH.relative_to(ROOT)}")
     else:

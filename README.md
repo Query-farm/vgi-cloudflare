@@ -652,6 +652,60 @@ emits one page per batch and fetches the next only when DuckDB asks for more, so
 
 **Rate limits.** A `429` is retried with backoff, honouring `Retry-After`.
 
+## Keeping up with Cloudflare API changes
+
+```sh
+uv sync --locked
+make update-api
+make lint test-unit
+```
+
+`make update-api` resolves the latest upstream commit touching `openapi.json`,
+downloads that exact revision, and regenerates the catalog while retaining
+published names for existing endpoints of the same schema and kind. It records
+the commit, download URL, SHA-256 checksum, and skipped GET paths in
+`cloudflare-api.lock.json`. Commit that file together with
+`vgi_cloudflare/resources_generated.json`; the downloaded spec stays git-ignored.
+Downloads and generation finish before tracked files are replaced.
+
+Review `spec/api-update.md` for additions, removals, column/type and argument
+changes, pagination changes, skipped endpoints, and unmapped product areas.
+`spec/api-update.json` contains the full report. These reports are git-ignored.
+Use `uv run python -m tools.update_api --dry-run` to generate reports without
+changing the catalog, cached spec, or lock. To reproduce a pinned update, run
+`uv run python -m tools.update_api --locked`; this verifies the download checksum.
+`--revision <full-upstream-commit-SHA>` selects a specific upstream revision.
+`make codegen` still regenerates from the local spec without downloading anything;
+avoid `--rename` for maintenance updates.
+
+The **Update Cloudflare API** GitHub Actions workflow runs Mondays at 09:17 UTC
+and can also be run manually from the Actions tab. It runs lint, offline tests,
+entry-point smoke checks, and structural catalog validation before opening or
+updating one PR on `automation/cloudflare-api`. Failed checks make the PR a draft
+and leave the workflow run failed so updates needing generator fixes are visible.
+Unchanged tracked files produce no PR. Reports and catalog lint findings are
+available in the run summary and the `api-update-report` artifact, including when
+validation fails. It does not merge or deploy changes. The first update creates
+the lock file and establishes the skipped-endpoint baseline.
+The automation rebuilds its branch from the default branch on each run; land
+generator fixes on the default branch, then rerun the workflow.
+
+The workflow must be on the default branch for the schedule to run. In repository
+**Settings → Actions → General → Workflow permissions**, enable **Allow GitHub
+Actions to create and approve pull requests**. The workflow requests only
+`contents: write` and `pull-requests: write` and uses the built-in `GITHUB_TOKEN`;
+no Cloudflare credentials or additional secret is needed. GitHub may require a
+maintainer to approve PR workflow runs created by this token; the maintenance
+workflow runs validation itself before creating the PR.
+
+Review API changes before merging, especially removals and changed SQL types or
+positional arguments. Add new product areas to `AREA_TO_SCHEMA` in
+`tools/generate_resources.py`; unsupported response shapes need generator work.
+Hand-written descriptors in `resources.py` and `items.py` override generated
+ones and require separate review. GraphQL is separate from OpenAPI: maintain
+`DATASETS` in `graphql.py`, verify fields and deprecations using authenticated
+introspection, and run relevant live tests when changing those datasets.
+
 ## Authentication
 
 **Upstream (worker → Cloudflare)** uses the `cloudflare` DuckDB secret: an
