@@ -13,7 +13,7 @@ __pycache__/
 dist/
 build/
 
-# OpenAPI spec source (~10MB, re-downloaded by codegen). The generated manifest
+# OpenAPI spec source and update reports (downloaded by make update-api). The generated manifest
 # vgi_cloudflare/resources_generated.json IS committed.
 /spec/
 /tools/cache/

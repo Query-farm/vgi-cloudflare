@@ -31,6 +31,7 @@ make test-unit                      # pytest (mocked HTTP — portable, no netwo
 make test-stdio                     # SQL sqllogictest, worker as subprocess (authoritative)
 make test-mock                      # SQL lateral E2E against tests/mock_cloudflare.py (no token)
 make codegen                        # regenerate the OpenAPI manifest (see below)
+make update-api                     # pin latest upstream spec + catalog + compatibility report
 make lint                           # ruff check + format --check
 make deploy                         # build, smoke-test, push, fly deploy
 
@@ -175,7 +176,7 @@ reply. An error in a later round fails the query (the stream ends).
 ## OpenAPI codegen
 
 `tools/generate_resources.py` reads `spec/openapi.json` (the Cloudflare spec,
-~27MB, **git-ignored** — re-downloaded by the script) and emits the committed
+~27MB, **git-ignored** — downloaded by `make update-api`) and emits the committed
 `resources_generated.json` (~1,680 resources). It:
 
 - generates **list** tables (`result` is an array) and **item** get-by-id
@@ -216,12 +217,21 @@ around them — otherwise a spec update repoints names users already query (the
 registrar *sandbox* sorts ahead of `registrar` and would take `registrar.registrations`).
 `--emit --rename` names everything afresh.
 
-Regenerate after a spec update:
+Refresh and review an upstream update:
 ```sh
-curl -sL -o spec/openapi.json https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.json
-.venv/bin/python tools/generate_resources.py --emit   # writes resources_generated.json
+make update-api      # writes resources_generated.json and cloudflare-api.lock.json
+# Review spec/api-update.md (full details: spec/api-update.json).
 make test-unit      # regression guard: every descriptor must build a valid function
 ```
+
+`uv run python -m tools.update_api --dry-run` only writes reports. `--locked`
+downloads the recorded commit and verifies its SHA-256 checksum. `--revision`
+accepts a full upstream commit SHA. `make codegen` uses the already downloaded
+spec and does not fetch updates. Commit the manifest and lock together.
+`.github/workflows/update-api.yml` checks weekly and on manual dispatch, runs
+lint/tests/entry-point and structural catalog checks, then updates a single
+maintenance PR (a draft with a failed workflow run when checks fail). It never
+merges or deploys. See README for repository permissions.
 
 Hand-written resources in `resources.py` override generated ones of the same
 name (`merge_resources`, primary wins), so curated schemas take precedence.

@@ -1,0 +1,131 @@
+name: Update Cloudflare API
+
+on:
+  schedule:
+    # Mondays at 09:17 UTC; avoid the busiest start-of-hour window.
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Optional full cloudflare/api-schemas commit SHA (blank = latest spec)'
+        type: string
+        required: false
+
+concurrency:
+  group: update-cloudflare-api
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UV_NO_SOURCES: '1'
+
+jobs:
+  update:
+    # Forks can still use make update-api locally.
+    if: github.repository == 'Query-farm/vgi-cloudflare'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked --no-sources
+      - name: Refresh pinned spec and generated catalog
+        id: refresh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_REVISION: ${{ inputs.revision }}
+        run: |
+          if [ -n "$API_REVISION" ]; then
+            uv run --no-sources python -m tools.update_api --revision "$API_REVISION"
+          else
+            make update-api
+          fi
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: make lint
+      - name: Offline tests
+        id: tests
+        continue-on-error: true
+        run: make test-unit
+      - name: Entry points start without dev checkouts
+        id: smoke
+        continue-on-error: true
+        run: |
+          uv run --no-project cloudflare_worker.py --help > /dev/null
+          uv run --no-project serve.py --help > /dev/null
+      - name: Structural catalog validation
+        id: catalog
+        continue-on-error: true
+        run: >
+          uvx --prerelease=allow --from vgi-lint-check vgi-lint lint "launch:uv run --no-sources cloudflare_worker.py"
+          --no-execute --no-check-links --audit-waivers --fail-on error --format json
+          > spec/catalog-lint.json
+      - name: Publish compatibility report
+        if: always()
+        env:
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          CATALOG_OUTCOME: ${{ steps.catalog.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -f spec/api-update.md ]; then
+            cat >> spec/api-update.md <<EOF
+
+          ## Check results
+
+          | Check | Result |
+          | --- | --- |
+          | Lint | $LINT_OUTCOME |
+          | Offline tests | $TEST_OUTCOME |
+          | Entry points | $SMOKE_OUTCOME |
+          | Structural catalog | $CATALOG_OUTCOME |
+
+          [Workflow logs and report artifact]($RUN_URL)
+
+          Failed checks keep this update in draft until a maintainer resolves them.
+          EOF
+            cat spec/api-update.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Keep reports even if validation fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-update-report
+          path: |
+            spec/api-update.md
+            spec/api-update.json
+            spec/catalog-lint.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Create or update maintenance PR
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.CLOUDFLARE_API_UPDATE_TOKEN || github.token }}
+          branch: automation/cloudflare-api
+          delete-branch: true
+          title: 'chore: refresh Cloudflare API catalog'
+          commit-message: 'chore: refresh Cloudflare API catalog'
+          draft: >-
+            ${{ (steps.lint.outcome != 'success' || steps.tests.outcome != 'success' ||
+                 steps.smoke.outcome != 'success' || steps.catalog.outcome != 'success') && 'always-true' || 'false' }}
+          body-path: spec/api-update.md
+          add-paths: |
+            vgi_cloudflare/resources_generated.json
+            cloudflare-api.lock.json
+      - name: Fail the run when generated changes need repairs
+        if: >-
+          steps.refresh.outcome == 'success' &&
+          (steps.lint.outcome != 'success' || steps.tests.outcome != 'success' ||
+           steps.smoke.outcome != 'success' || steps.catalog.outcome != 'success')
+        run: |
+          echo '::error::Generated catalog checks failed. See the draft maintenance PR and report artifact.'
+          exit 1
