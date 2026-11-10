@@ -43,14 +43,14 @@ SCHEMA_DOCS: dict[str, SchemaDoc] = {
         ("ai gateway", "llm", "workers ai", "autorag", "ai search", "vectorize", "rag"),
     ),
     "alerting": SchemaDoc(
-        "Cloudflare Notifications & Alerts",
+        "Cloudflare Notifications",
         "Cloudflare Notifications: alert policies, delivery destinations (email, PagerDuty, webhooks), silences, and the history of alerts that fired for an account.",
         "Use to audit what Cloudflare alerts are configured, where they are delivered, which are silenced, and what fired recently (alert history). "
         + _ACCOUNT,
         ("notifications", "alerts", "pagerduty", "webhooks", "alert history"),
     ),
     "analytics": SchemaDoc(
-        "Cloudflare Analytics (GraphQL)",
+        "Cloudflare Analytics",
         "Cloudflare traffic and security analytics from the GraphQL Analytics API: HTTP requests by day or hour, adaptive request samples, firewall events, health checks, and Workers invocations.",
         "Use for time-series questions — traffic volume, bandwidth, threats, cache ratios, firewall actions, Worker errors. Each is a function of a zone_id (account_id for Workers), a literal or per row of cloudflare.zones.zones, with a required window: since := … and until := …. Large windows are split automatically so results aren't truncated.",
         (
@@ -145,7 +145,7 @@ SCHEMA_DOCS: dict[str, SchemaDoc] = {
         ("registrar", "domain registration", "domains", "renewal", "expiry"),
     ),
     "security": SchemaDoc(
-        "Cloudflare Security & Threat Intelligence",
+        "Cloudflare Security",
         "Cloudflare security and threat intelligence: Cloudforce One threat events and requests, Intel lookups (domains, IPs, ASNs), Security Center insights, URL scanner, brand protection, abuse reports, vulnerability scanner, and bot management.",
         "Use for threat-intelligence and security-posture questions: what Cloudflare knows about a domain or IP, open Security Center insights, URL scan results, brand impersonation alerts, and Cloudforce One threat events. Mostly account-scoped; some bot and fraud settings are per zone.",
         (
@@ -159,7 +159,7 @@ SCHEMA_DOCS: dict[str, SchemaDoc] = {
         ),
     ),
     "ssl": SchemaDoc(
-        "Cloudflare SSL/TLS & Certificates",
+        "Cloudflare SSL/TLS",
         "Cloudflare SSL/TLS: edge certificate packs, custom and keyless certificates, origin and client (mTLS) certificates, certificate authorities, Advanced Certificate Manager, and certificate transparency monitoring.",
         "Use to audit certificates — what is deployed at the edge for a zone, when certificates expire, which client certificates exist for mTLS, and custom CSRs. Edge certificates are zone-scoped, mTLS certificates are account-scoped, and custom CSRs exist at both levels.",
         ("ssl", "tls", "certificates", "mtls", "origin certificates", "certificate expiry", "acm"),
@@ -179,21 +179,21 @@ SCHEMA_DOCS: dict[str, SchemaDoc] = {
         ("stream", "video", "live streaming", "realtime", "webrtc", "calls", "turn"),
     ),
     "waf": SchemaDoc(
-        "Cloudflare Firewall (Legacy WAF)",
+        "Cloudflare Legacy Firewall",
         "Cloudflare firewall configuration for a zone: legacy firewall rules, IP access rules, user-agent blocking, and lockdown rules.",
         "Use to audit older firewall-style configuration on a zone — IP access rules, user-agent blocks, and zone lockdowns. "
         + _ZONE,
         ("waf", "firewall", "ip access rules", "user agent blocking", "zone lockdown"),
     ),
     "workers": SchemaDoc(
-        "Cloudflare Workers & Developer Platform",
+        "Cloudflare Workers",
         "Cloudflare developer platform: Workers scripts and their versions, deployments, routes and domains; Workflows, Queues, Pipelines, Containers, Secrets Store, and Workers Builds.",
         "Use for serverless application questions: which Workers exist and how they are deployed, their routes, versions, and settings; Queues and consumers; Workflows and their instances; Pipelines; Containers; and builds. "
         + _ACCOUNT,
         ("workers", "serverless", "scripts", "deployments", "queues", "workflows", "pipelines", "containers"),
     ),
     "zero_trust": SchemaDoc(
-        "Cloudflare Zero Trust (Gateway, DLP, Devices)",
+        "Cloudflare Zero Trust",
         "Cloudflare Zero Trust: Gateway filtering rules and locations, Data Loss Prevention profiles and datasets, device enrollment and posture (WARP), Digital Experience Monitoring, tunnels, and risk scoring.",
         "Use for secure-web-gateway and endpoint questions: Gateway DNS/HTTP/network rules, DLP detection profiles, enrolled devices and their posture, DEX tests and fleet status, Cloudflare Tunnels, and user risk scores. "
         + _ACCOUNT,

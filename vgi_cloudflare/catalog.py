@@ -232,6 +232,7 @@ EXECUTABLE_EXAMPLES = [
 def catalog_tags() -> dict[str, str]:
     return {
         "vgi.title": "Cloudflare API",
+        "vgi.subtitle": "Query your Cloudflare accounts, zones, DNS, security, and analytics as SQL tables.",
         "vgi.doc_llm": CATALOG_DOC_LLM,
         "vgi.doc_md": CATALOG_DOC_MD,
         "vgi.keywords": json.dumps(list(CATALOG_KEYWORDS)),
