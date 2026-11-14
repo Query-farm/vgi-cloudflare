@@ -220,6 +220,15 @@ def _qualified(desc: ResourceDescriptor, name: str | None = None) -> str:
     return f"{CATALOG}.{desc.schema}.{name or desc.name}"
 
 
+def _sql_name(desc: ResourceDescriptor, name: str | None = None) -> str:
+    """The qualified name as example SQL writes it.
+
+    Object names can be reserved words (``access.group``, ``zones.default``, ``stream.all``),
+    which DuckDB only parses in a FROM clause when quoted.
+    """
+    return f"{CATALOG}.{desc.schema}.{ident(name or desc.name)}"
+
+
 def table_examples(desc: ResourceDescriptor) -> list[Example]:
     """Examples that scan the table itself (fan-out examples live on the fan-out)."""
     cols = ", ".join(_key_columns(desc))
@@ -230,7 +239,7 @@ def table_examples(desc: ResourceDescriptor) -> list[Example]:
         scope = f" for one {_scope_noun(desc)} ({_args(desc)} {verb} required: each maps to the URL path)"
     out = [
         Example(
-            f"SELECT {cols} FROM {_qualified(desc)}" + (f" WHERE {where}" if where else ""),
+            f"SELECT {cols} FROM {_sql_name(desc)}" + (f" WHERE {where}" if where else ""),
             f"List {_noun(desc)}s{scope}.",
         )
     ]
@@ -240,7 +249,7 @@ def table_examples(desc: ResourceDescriptor) -> list[Example]:
         cond = " AND ".join([*([where] if where else []), f"{ident(q.name)} = {_placeholder(q.name)}"])
         out.append(
             Example(
-                f"SELECT {cols} FROM {_qualified(desc)} WHERE {cond}",
+                f"SELECT {cols} FROM {_sql_name(desc)} WHERE {cond}",
                 f"Only {_noun(desc)}s with a given {q.name}: the {q.name} filter is sent to the API.",
             )
         )
@@ -248,7 +257,7 @@ def table_examples(desc: ResourceDescriptor) -> list[Example]:
         p = desc.path_params[0].name
         out.append(
             Example(
-                f"SELECT {ident(p)}, count(*) AS n FROM {_qualified(desc)} "
+                f"SELECT {ident(p)}, count(*) AS n FROM {_sql_name(desc)} "
                 f"WHERE {ident(p)} IN ({_placeholder(p + '_1')}, {_placeholder(p + '_2')}) "
                 f"GROUP BY {ident(p)}",
                 f"Count {_noun(desc)}s for several {p.removesuffix('_id')}s at once (one API call each).",
@@ -266,14 +275,14 @@ def fanout_example(desc: ResourceDescriptor, fanout: str) -> Example:
         schema, table = _PARENT_TABLES[parent]
         sql = (
             f"SELECT p.name AS {parent}, {cols} FROM {CATALOG}.{schema}.{table} p, "
-            f"{_qualified(desc, fanout)}(p.id) r"
+            f"{_sql_name(desc, fanout)}(p.id) r"
         )
         what = f"Every {_noun(desc)} across all of your {parent}s, one API call per {parent}."
     else:
         args = ", ".join([*literal_args, f"t.{last.name}"])
         sql = (
             f"SELECT t.{last.name}, {cols} FROM (VALUES ({_placeholder(last.name)})) t({last.name}), "
-            f"{_qualified(desc, fanout)}({args}) r"
+            f"{_sql_name(desc, fanout)}({args}) r"
         )
         what = f"{humanize(_noun(desc))}s for each {last.name} in another relation (one API call per row)."
     return Example(sql, what)
@@ -287,13 +296,13 @@ def lookup_examples(desc: ResourceDescriptor) -> list[Example]:
         if _by_id(desc)
         else f"Read the {_noun(desc)} object for one {_scope_noun(desc)}."
     )
-    out = [Example(f"SELECT {cols} FROM {_qualified(desc)}({args})", first)]
+    out = [Example(f"SELECT {cols} FROM {_sql_name(desc)}({args})", first)]
     if len(desc.path_params) == 1:
         p = desc.path_params[0].name
         out.append(
             Example(
                 f"SELECT t.{p}, d.* EXCLUDE ({p}) FROM (VALUES ({_placeholder(p)})) t({p}) "
-                f"LEFT JOIN LATERAL {_qualified(desc)}(t.{p}) d ON true",
+                f"LEFT JOIN LATERAL {_sql_name(desc)}(t.{p}) d ON true",
                 f"Read the {_noun(desc)} for each row of another relation, keeping rows with no match.",
             )
         )
@@ -302,7 +311,7 @@ def lookup_examples(desc: ResourceDescriptor) -> list[Example]:
 
 def singleton_examples(desc: ResourceDescriptor) -> list[Example]:
     cols = ", ".join(_key_columns(desc))
-    return [Example(f"SELECT {cols} FROM {_qualified(desc)}", f"Read the {_noun(desc)}: {_summary(desc)}")]
+    return [Example(f"SELECT {cols} FROM {_sql_name(desc)}", f"Read the {_noun(desc)}: {_summary(desc)}")]
 
 
 def example_tag(examples: Iterable[Example]) -> str:
@@ -412,7 +421,7 @@ def list_function_examples(desc: ResourceDescriptor, name: str) -> list[Example]
     ids = "the URL path id" if len(desc.path_params) == 1 else "the URL path ids"
     out = [
         Example(
-            f"SELECT {cols} FROM {_qualified(desc, name)}({args})",
+            f"SELECT {cols} FROM {_sql_name(desc, name)}({args})",
             f"List {_noun(desc)}s for one {_scope_noun(desc)} ({_args(desc)}: {ids}).",
         ),
         fanout_example(desc, name),
@@ -422,7 +431,7 @@ def list_function_examples(desc: ResourceDescriptor, name: str) -> list[Example]
         q = named[0]
         out.append(
             Example(
-                f"SELECT {cols} FROM {_qualified(desc, name)}({args}, {q} := {_placeholder(q)})",
+                f"SELECT {cols} FROM {_sql_name(desc, name)}({args}, {q} := {_placeholder(q)})",
                 f"Only {_noun(desc)}s matching a {q}: the named argument is sent to the API, which filters.",
             )
         )
