@@ -72,7 +72,7 @@ SELECT name, status FROM cloudflare.zones.zones;
 ```
 
 - **`uvx`** fetches and caches the worker on first use; nothing to install. Pin a
-  tag for a deployment (`…/vgi-cloudflare@v0.1.0 vgi-cloudflare`) so it can't
+  tag for a deployment (`…/vgi-cloudflare@v0.1.1 vgi-cloudflare`) so it can't
   change under you.
 - **`launch:`** keeps one warm worker shared by every query, cursor, and DuckDB
   process. Without it each connection starts its own (a couple of seconds to
@@ -342,7 +342,7 @@ GROUP BY zone ORDER BY requests DESC;
 ```
 
 **Which zones still have DNS but no traffic?** Each zone's record count beside a
-week's requests and cache-hit share; a zone with records and 0 requests is a
+the last 7 full days' requests and cache-hit share; a zone with records and 0 requests is a
 cleanup candidate:
 
 ```sql
@@ -354,7 +354,7 @@ traffic AS (
   SELECT t.zone_id, sum(t.requests) AS requests, sum(t.cached_requests) AS cached
   FROM cloudflare.zones.zones z,
        cloudflare.analytics.http_requests_daily(z.id,
-         since := DATE '2026-11-01', until := DATE '2026-11-07') t
+         since := current_date - 7, until := current_date - 1) t
   GROUP BY ALL)
 SELECT d.zone, d.dns_records, coalesce(t.requests, 0) AS requests,
        round(100.0 * t.cached / nullif(t.requests, 0), 1) AS cached_pct
