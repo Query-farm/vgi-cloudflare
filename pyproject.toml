@@ -1,6 +1,6 @@
 [project]
 name = "vgi-cloudflare"
-version = "0.1.1"
+version = "0.1.2"
 description = "A read-only VGI (Vector Gateway Interface) worker exposing the Cloudflare API to DuckDB/SQL"
 readme = "README.md"
 license = "MIT"

@@ -606,17 +606,19 @@ CATEGORIES = [
 _PLAN_GATED = {"firewall_events", "health_check_events"}
 
 
-def _window_sql(desc: GraphQLDataset, recent: bool) -> str:
-    """A literal window: named arguments must be constants (no ``current_date``) in a lateral call."""
+def _window_sql(desc: GraphQLDataset) -> tuple[str, str]:
+    """A rolling window (SQL, prose) that stays inside Cloudflare's retention.
+
+    Fixed dates age out: hourly/adaptive datasets only keep a few days, so a literal
+    window fails with "cannot request data older than …". ``current_date`` and
+    ``now()`` fold to constants at bind time, so they also work in a lateral call.
+    """
     if desc.time_field == "date":
-        return (
-            "since := DATE '2026-09-24', until := DATE '2026-09-30'"
-            if recent
-            else "since := DATE '2026-09-01', until := DATE '2026-09-07'"
-        )
-    if recent:
-        return "since := TIMESTAMPTZ '2026-09-30 18:00:00+00', until := TIMESTAMPTZ '2026-10-01 00:00:00+00'"
-    return "since := TIMESTAMPTZ '2026-09-01 00:00:00+00', until := TIMESTAMPTZ '2026-09-01 06:00:00+00'"
+        return "since := current_date - 7, until := current_date - 1", "the last 7 full days"
+    return (
+        "since := date_trunc('hour', now()) - INTERVAL 6 HOUR, until := date_trunc('hour', now())",
+        "the last 6 hours",
+    )
 
 
 def dataset_examples(desc: GraphQLDataset) -> list[Example]:
@@ -625,17 +627,18 @@ def dataset_examples(desc: GraphQLDataset) -> list[Example]:
     t = desc.time_field
     group = f", {dims}" if dims else ""
     parent = "zones.zones" if desc.scope == "zone" else "accounts.accounts"
+    window, span = _window_sql(desc)
     return [
         Example(
             f"SELECT {t}{group}, {metric} FROM cloudflare.analytics.{desc.name}("
-            f"'<{desc.scope_id}>', {_window_sql(desc, False)}) ORDER BY {t}",
-            f"{metric} per {t}{' and ' + dims if dims else ''} for one {desc.scope} over a fixed window.",
+            f"'<{desc.scope_id}>', {window}) ORDER BY {t}",
+            f"{metric} per {t}{' and ' + dims if dims else ''} for one {desc.scope} over {span}.",
         ),
         Example(
             f"SELECT p.name AS {desc.scope}, sum(x.{metric}) AS {metric} FROM cloudflare.{parent} p, "
-            f"cloudflare.analytics.{desc.name}(p.id, {_window_sql(desc, True)}) x "
+            f"cloudflare.analytics.{desc.name}(p.id, {window}) x "
             f"GROUP BY ALL ORDER BY {metric} DESC",
-            f"Total {metric} for every {desc.scope} over one window, one API call per {desc.scope}.",
+            f"Total {metric} for every {desc.scope} over {span}, one API call per {desc.scope}.",
         ),
     ]
 
@@ -646,8 +649,10 @@ def dataset_tags(desc: GraphQLDataset) -> dict[str, str]:
     llm = (
         f"{desc.description.rstrip('.')}, from Cloudflare's GraphQL Analytics API ({desc.dataset}). "
         f"Call it with a {desc.scope_id} — a literal, or per row of another query for a lateral join — and "
-        f"a required window, since := … and until := … (inclusive {bucket}s, UTC; constants, not "
-        f"expressions like current_date, in a lateral call). One row per {bucket}"
+        f"a required window, since := … and until := … (inclusive {bucket}s, UTC; constants or "
+        "bind-time expressions such as current_date - 7 or now() - INTERVAL 6 HOUR, also in a lateral call; "
+        "Cloudflare rejects windows older than the dataset's retention, a few days for hourly data). "
+        f"One row per {bucket}"
         + (f" and combination of {', '.join(d.name for d in desc.dimensions)}" if desc.dimensions else "")
         + f", with metrics {', '.join(m.name for m in desc.metrics)}. Large windows are paged over several "
         "API calls so results aren't truncated."

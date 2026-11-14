@@ -72,7 +72,7 @@ SELECT name, status FROM cloudflare.zones.zones;
 ```
 
 - **`uvx`** fetches and caches the worker on first use; nothing to install. Pin a
-  tag for a deployment (`…/vgi-cloudflare@v0.1.1 vgi-cloudflare`) so it can't
+  tag for a deployment (`…/vgi-cloudflare@v0.1.2 vgi-cloudflare`) so it can't
   change under you.
 - **`launch:`** keeps one warm worker shared by every query, cursor, and DuckDB
   process. Without it each connection starts its own (a couple of seconds to
@@ -327,7 +327,7 @@ SELECT date, requests,
        round(100.0 * cached_requests / requests, 1) AS cache_hit_pct,
        threats, unique_visitors
 FROM cloudflare.analytics.http_requests_daily('<zone-id>',
-       since := DATE '2026-09-01', until := DATE '2026-09-07')
+       since := current_date - 7, until := current_date - 1)
 ORDER BY date;
 ```
 
@@ -337,12 +337,12 @@ ORDER BY date;
 SELECT z.name AS zone, sum(d.requests) AS requests, sum(d.threats) AS threats
 FROM cloudflare.zones.zones z,
      cloudflare.analytics.http_requests_daily(z.id,
-       since := DATE '2026-09-24', until := DATE '2026-09-30') d
+       since := current_date - 7, until := current_date - 1) d
 GROUP BY zone ORDER BY requests DESC;
 ```
 
-**Which zones still have DNS but no traffic?** Each zone's record count beside a
-the last 7 full days' requests and cache-hit share; a zone with records and 0 requests is a
+**Which zones still have DNS but no traffic?** Each zone's record count beside the
+last 7 full days' requests and cache-hit share; a zone with records and 0 requests is a
 cleanup candidate:
 
 ```sql
