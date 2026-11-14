@@ -55,3 +55,12 @@ Compare the review queue and first figure. The source fingerprint, unresolved co
 The default and a detached notebooks-only experiment were executed through Haybarn 2.0.0rc11 and all four chart outputs inspected. Source checks cover unit tests, lint and formatting. Wire checks use the published `haybarn-unittest` runner with temporary test copies replacing the legacy `require vgi` line with explicit `INSTALL`/`LOAD`; the original tests are unchanged. Credential-free catalog and local mock tests exercise the compatible runtime. Live account suites remain outside this fixture delivery. Raw logs and extracted charts are ignored; outputs remain embedded in the notebook.
 
 The full metadata audit on the unchanged pinned worker fails: score 45/100, 11 VGI901 errors in example SQL using unquoted reserved function names (`group`, `references`, `default`, `all`), 4,504 warnings and 339 informational findings. The notebook uses none of those failing examples. These upstream findings are recorded separately from the passing notebook, unit, mock and catalog checks; the delivery does not claim a clean metadata audit.
+
+## SQL credential isolation
+
+The notebook creates Haybarn with a fresh temporary `secret_directory` and
+`allow_persistent_secrets=False` before attaching workers. It fully drains and
+checks an empty secret inventory, then creates only explicitly `TEMPORARY`
+public fixture secrets and verifies their `persistent=false`, `storage=memory`
+metadata. Cleanup removes the temporary directory after closing the connection.
+Existing user SQL secrets are neither read, modified nor deleted.
