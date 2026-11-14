@@ -1598,5 +1598,9 @@
   {
     "name": "net_http_daily_qf_totals",
     "prompt": "What were query.farm's total requests, total threats and peak daily unique visitors over 1\u20137 September 2026, and on which day were threats highest? Return total_requests, total_threats, peak_unique_visitors, worst_threat_day."
+  },
+  {
+    "name": "net_zone_dnssec_and_dns_only_records",
+    "prompt": "For each of my zones, report its DNSSEC status and how many of its A, AAAA and CNAME DNS records Cloudflare could proxy but are DNS-only (proxiable, not proxied). Return one row per zone, including zones with none (count 0), with columns zone_name, dnssec_status, dns_only_proxiable_records, ordered by zone_name."
   }
 ]

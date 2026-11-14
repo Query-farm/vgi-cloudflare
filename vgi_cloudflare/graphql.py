@@ -49,6 +49,7 @@ from vgi.table_in_out_function import RowTransformFunction
 from vgi_rpc.log import Level
 
 from .client import CloudflareError, graphql_post
+from .composed import with_composed
 from .descriptor import Example, comment_field
 from .docs import result_columns_schema
 from .runtime import FanOutState, _auth_from_secrets, emit_round, example_tags
@@ -331,7 +332,10 @@ def make_graphql_function(desc: GraphQLDataset) -> type[RowTransformFunction]:
             description = desc.description or f"Cloudflare {desc.dataset} analytics."
             categories = ["cloudflare", "analytics", desc.scope]
             required_secrets = [SecretLookupEntry(secret_type=CLOUDFLARE_SECRET_TYPE)]
-            examples = [FunctionExample(sql=e.sql, description=e.description) for e in dataset_examples(desc)]
+            examples = [
+                FunctionExample(sql=e.sql, description=e.description)
+                for e in with_composed("analytics", desc.name, dataset_examples(desc))
+            ]
             tags = {**example_tags(examples), **dataset_tags(desc)}
             input_rows_per_call = GRAPHQL_ROWS_PER_CALL
 

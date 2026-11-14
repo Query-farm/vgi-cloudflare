@@ -11,7 +11,7 @@ from typing import Any
 
 from vgi.catalog import Catalog, Schema, Table, constraint_record
 
-from . import docs
+from . import composed, docs
 from .descriptor import ResourceDescriptor
 from .runtime import (
     FunctionDocs,
@@ -95,6 +95,7 @@ def build_catalog(
     funcs: dict[str, list] = defaultdict(list)
     tables: dict[str, list] = defaultdict(list)
     for d, role, name, o in plans:
+        o = dataclasses.replace(o, examples=composed.with_composed(d.schema, name, o.examples))
         out = d.output_schema()
         comment = comments[(d.schema, name)]
         tags = {
@@ -203,6 +204,7 @@ def _schema(
         "vgi.categories": json.dumps(registry),
         **docs.CLASSIFICATION,
     }
+    examples = [*composed.BY_SCHEMA.get(name, ()), *examples]
     if examples:
         tags["vgi.example_queries"] = docs.example_tag(examples)
     return Schema(path=[name], comment=sd.comment, functions=functions, tables=tables, tags=tags)

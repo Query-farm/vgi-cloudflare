@@ -341,6 +341,27 @@ FROM cloudflare.zones.zones z,
 GROUP BY zone ORDER BY requests DESC;
 ```
 
+**Which zones still have DNS but no traffic?** Each zone's record count beside a
+week's requests and cache-hit share; a zone with records and 0 requests is a
+cleanup candidate:
+
+```sql
+WITH dns AS (
+  SELECT z.id AS zone_id, z.name AS zone, count(*) AS dns_records
+  FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r
+  GROUP BY ALL),
+traffic AS (
+  SELECT t.zone_id, sum(t.requests) AS requests, sum(t.cached_requests) AS cached
+  FROM cloudflare.zones.zones z,
+       cloudflare.analytics.http_requests_daily(z.id,
+         since := DATE '2026-11-01', until := DATE '2026-11-07') t
+  GROUP BY ALL)
+SELECT d.zone, d.dns_records, coalesce(t.requests, 0) AS requests,
+       round(100.0 * t.cached / nullif(t.requests, 0), 1) AS cached_pct
+FROM dns d LEFT JOIN traffic t USING (zone_id)
+ORDER BY requests DESC, d.zone;
+```
+
 **The busiest hours of a day:**
 
 ```sql

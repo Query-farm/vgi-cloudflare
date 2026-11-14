@@ -89,3 +89,30 @@ query I
 SELECT count(*) >= 0 FROM cf.analytics.workers_invocations('${CLOUDFLARE_TEST_ACCOUNT_ID}', since := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:00:00+00', until := TIMESTAMPTZ '${CLOUDFLARE_TEST_UNTIL} 00:10:00+00');
 ----
 true
+
+# Composed examples (vgi_cloudflare/composed.py) bind and return what they claim.
+# Security posture: one row per zone from two settings lookups and DNSSEC.
+query I
+SELECT count(*) = (SELECT count(*) FROM cf.zones.zones) AND bool_and(ssl.value IS NOT NULL AND d.status IS NOT NULL)
+FROM cf.zones.zones z, cf.zones.setting(z.id, 'ssl') ssl,
+     cf.zones.setting(z.id, 'always_use_https') https, cf.dns.dnssec(z.id) d;
+----
+true
+
+# DNS-only proxiable records: filtering in SQL agrees with the API's proxied filter.
+query I
+SELECT (SELECT count(*) FROM cf.zones.zones z, cf.dns.records(z.id) r
+        WHERE r.type IN ('A', 'AAAA', 'CNAME') AND r.proxiable AND NOT r.proxied)
+     = (SELECT count(*) FROM cf.zones.zones z, cf.dns.records(z.id, proxied := false) r
+        WHERE r.type IN ('A', 'AAAA', 'CNAME') AND r.proxiable);
+----
+true
+
+# Traffic beside DNS footprint: one row per zone that has records, none lost to the LEFT JOIN.
+query I
+WITH dns AS (SELECT z.id AS zone_id, count(*) AS dns_records FROM cf.zones.zones z, cf.dns.records(z.id) r GROUP BY ALL),
+traffic AS (SELECT t.zone_id, sum(t.requests) AS requests FROM cf.zones.zones z,
+  cf.analytics.http_requests_daily(z.id, since := DATE '${CLOUDFLARE_TEST_SINCE}', until := DATE '${CLOUDFLARE_TEST_UNTIL}') t GROUP BY ALL)
+SELECT count(*) = (SELECT count(*) FROM dns) FROM dns d LEFT JOIN traffic t USING (zone_id);
+----
+true

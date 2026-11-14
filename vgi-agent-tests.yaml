@@ -1215,3 +1215,7 @@ tasks:
   - name: "net_http_daily_qf_totals"
     reference_sql: |
       SELECT sum(requests) AS total_requests, sum(threats) AS total_threats, max(unique_visitors) AS peak_unique_visitors, arg_max(date, threats) AS worst_threat_day FROM cloudflare.analytics.http_requests_daily('f762db64a4e321f026a26321acf2b65b', since := DATE '2026-09-01', until := DATE '2026-09-07')
+  - name: "net_zone_dnssec_and_dns_only_records"
+    reference_sql: |
+      WITH dns_only AS (SELECT r.zone_id, count(*) AS n FROM cloudflare.zones.zones z, cloudflare.dns.records(z.id) r WHERE r.type IN ('A', 'AAAA', 'CNAME') AND r.proxiable AND NOT r.proxied GROUP BY r.zone_id)
+      SELECT z.name AS zone_name, d.status AS dnssec_status, coalesce(o.n, 0) AS dns_only_proxiable_records FROM cloudflare.zones.zones z JOIN cloudflare.dns.dnssec(z.id) d ON true LEFT JOIN dns_only o ON o.zone_id = z.id ORDER BY zone_name

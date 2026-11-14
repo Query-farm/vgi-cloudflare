@@ -101,6 +101,7 @@ build_catalog() (catalog.py) ─► Catalog with ~24 Schemas ─► CloudflareWo
 | `vgi_cloudflare/graphql.py` | Descriptor-driven GraphQL analytics: `GraphQLDataset` + `make_graphql_function()` + the `DATASETS` list (`http_requests_daily`, `firewall_events`, …). All land in the `analytics` schema. |
 | `vgi_cloudflare/catalog.py` | `build_catalog()` + `merge_resources()` (hand-written wins on name collisions; inherits spec docs from its generated twin). Catalog tags, agent-test tasks, executable examples. |
 | `vgi_cloudflare/docs.py` | Per-object `doc_llm`/`doc_md`/examples/result schema/categories, generated from descriptors. |
+| `vgi_cloudflare/composed.py` | Hand-written examples combining several objects (settings + DNSSEC, DNS-only records, traffic beside DNS); placed on the driving object and its schema's `vgi.example_queries`. |
 | `vgi_cloudflare/schema_docs.py` | Hand-written catalog and schema docs. |
 | `vgi_cloudflare/agent_tasks.json` + `vgi-agent-tests.yaml` | Public agent-test prompts (catalog tag) + their private graders. Written by `tools/agent_tasks.py`. |
 | `tools/generate_resources.py` | OpenAPI → manifest codegen. |
