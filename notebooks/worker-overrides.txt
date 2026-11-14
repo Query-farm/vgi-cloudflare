@@ -1,0 +1,7 @@
+# Notebook-only protocol compatibility with Haybarn 2.0.0rc11.
+# The pinned worker's declared SDK 0.50 speaks VGI 3.2; 0.51 speaks VGI 3.3.
+vgi-python==0.51.1
+vgi-rpc==0.53.1
+haybarn==1.5.5rc1
+httpx==0.28.1
+pyarrow==26.0.1

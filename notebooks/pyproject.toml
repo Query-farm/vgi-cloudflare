@@ -1,0 +1,29 @@
+[project]
+name = "vgi-cloudflare-notebooks"
+version = "0.1.0"
+description = "Cloudflare inventory completeness through a synthetic local API"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+    "haybarn==2.0.0rc11",
+    "ipykernel>=6.30,<8",
+    "jupysql>=0.11,<0.12",
+    "matplotlib>=3.10,<4",
+    "nbclient>=0.10,<0.11",
+    "nbformat>=5.10,<6",
+    "pandas>=2.2,<3",
+    "seaborn>=0.13.2,<0.14",
+    "toml>=0.10,<0.11",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+# Variables assigned by visible JupySQL %%sql capture cells.
+builtins = ["scope_status", "records", "counts", "identity_counts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebook prose and visible SQL are intentionally kept readable as whole lines.
+"*.ipynb" = ["E501"]

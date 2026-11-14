@@ -790,3 +790,7 @@ This project is not affiliated with or endorsed by Cloudflare, Inc.
   Built with <a href="https://query.farm/vgi/">VGI — the Vector Gateway Interface</a><br>
   by <a href="https://query.farm">🚜 Query.Farm</a>
 </p>
+
+## Executed notebook
+
+[Keep scopes and record identity](notebooks/README.md) follows a synthetic local DNS inventory through paginated requests, unresolved scopes and name-versus-record counts.
