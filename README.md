@@ -72,7 +72,7 @@ SELECT name, status FROM cloudflare.zones.zones;
 ```
 
 - **`uvx`** fetches and caches the worker on first use; nothing to install. Pin a
-  tag for a deployment (`…/vgi-cloudflare@v0.1.2 vgi-cloudflare`) so it can't
+  tag for a deployment (`…/vgi-cloudflare@v0.1.3 vgi-cloudflare`) so it can't
   change under you.
 - **`launch:`** keeps one warm worker shared by every query, cursor, and DuckDB
   process. Without it each connection starts its own (a couple of seconds to

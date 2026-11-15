@@ -11,4 +11,4 @@ Layout:
 The entry point is ../cloudflare_worker.py.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"

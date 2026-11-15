@@ -249,6 +249,14 @@ Data is fetched from Cloudflare at query time; nothing is cached or stored.
 - Filters on a table's documented API filter columns are sent to Cloudflare; other filters run in DuckDB.
 - Lookup functions return no row for an unknown id instead of failing, so they are safe in joins.
 - Requests are retried on rate limiting (HTTP 429). Large analytics windows are split to avoid truncation.
+
+## Sources and references
+
+- [Cloudflare API reference](https://developers.cloudflare.com/api/) — the REST endpoints behind every table and function
+- [GraphQL Analytics API](https://developers.cloudflare.com/analytics/graphql-api/) — the source of `cloudflare.analytics`
+- [Cloudflare Radar](https://developers.cloudflare.com/radar/) — the Internet-wide data behind `cloudflare.radar`
+- [Create an API token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) — how to make the token the `cloudflare` secret holds
+- [cloudflare/api-schemas](https://github.com/cloudflare/api-schemas) — the OpenAPI spec the worker's resources are generated from
 """
 
 CATALOG_KEYWORDS = ("cloudflare", "dns", "zones", "cdn", "waf", "zero trust", "workers", "analytics", "api")
