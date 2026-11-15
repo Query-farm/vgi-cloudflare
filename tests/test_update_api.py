@@ -195,3 +195,23 @@ def test_new_colliding_endpoint_cannot_steal_a_published_name() -> None:
     by_path = {r["path"]: r for r in new["resources"]}
     assert by_path["/accounts"]["name"] == old["resources"][0]["name"]
     assert by_path["/organizations/{organization_id}/accounts"]["name"] != by_path["/accounts"]["name"]
+
+
+def test_endpoint_on_another_host_is_skipped_not_named() -> None:
+    # K2's data plane (/subscriptions) is served from the stream's own host, not
+    # the Client API; generating it named a broken function `subscriptions_2`.
+    spec = spec_document()
+    spec["servers"] = [{"url": "https://api.cloudflare.com/client/v4"}]
+    spec["paths"]["/subscriptions"] = copy.deepcopy(spec["paths"]["/accounts"])
+    spec["paths"]["/subscriptions"]["get"]["servers"] = [
+        {"url": "https://{stream_id}.k2.cloudflarestorage.com"}
+    ]
+    spec["paths"]["/staged"] = copy.deepcopy(spec["paths"]["/accounts"])
+    spec["paths"]["/staged"]["get"]["servers"] = [
+        {"url": "https://api.cloudflare.com/client/v4"},
+        {"url": "https://api.staging.cloudflare.com/client/v4"},
+    ]
+    manifest, skipped = generate_manifest(Spec(spec), {})
+    paths = {r["path"] for r in manifest["resources"]}
+    assert "/subscriptions" in skipped and "/subscriptions" not in paths
+    assert "/staged" in paths

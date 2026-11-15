@@ -998,6 +998,24 @@ def build_item_descriptor(spec: Spec, path: str, op: dict[str, Any]) -> dict[str
     }
 
 
+def served_by_client_api(spec: Spec, path_item: dict[str, Any], op: dict[str, Any]) -> bool:
+    """Whether the operation is served from the Client API base the worker calls.
+
+    OpenAPI lets an operation (or path item) override the document's ``servers``.
+    K2's data-plane endpoints (``/subscriptions``, ``/produce``) are served from
+    ``https://{stream_id}.k2.cloudflarestorage.com``, so generating them would
+    point a function at ``api.cloudflare.com/client/v4/subscriptions`` — a path
+    that does not exist there — and steal names from real endpoints. An override
+    that still lists the Client API (zero trust ``region`` adds staging) is fine.
+    """
+    servers = op.get("servers") or path_item.get("servers")
+    if not servers:
+        return True
+    base = {s.get("url", "").rstrip("/") for s in spec.spec.get("servers") or []}
+    base = base or {"https://api.cloudflare.com/client/v4"}
+    return any(s.get("url", "").rstrip("/") in base for s in servers)
+
+
 def generate_manifest(spec: Spec, previous: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """Generate in memory, retaining published names; return skipped GET paths too."""
     paths = spec.spec["paths"]
@@ -1010,6 +1028,9 @@ def generate_manifest(spec: Spec, previous: dict[str, Any]) -> tuple[dict[str, A
             continue
         op = item.get("get")
         if not op:
+            continue
+        if not served_by_client_api(spec, item, op):
+            skipped.append(path)
             continue
         op = with_path_item_params(spec, item, op)
         try:
