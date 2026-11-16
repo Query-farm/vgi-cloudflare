@@ -10,13 +10,13 @@
 #   make update-api   # fetch/pin upstream spec, regenerate, write a compatibility report
 #   make deploy       # build, smoke-test, push, deploy to Fly.io
 
-# The sqllogictest runner from a build of the DuckDB `vgi` extension.
-VGI_BUILD_DIR  ?= $(HOME)/Development/vgi/build/release
-TEST_RUNNER     = $(VGI_BUILD_DIR)/test/unittest
+# SQL tests run on the published haybarn-unittest with the community vgi extension
+# (ci/run-sqllogic.sh installs both; no local DuckDB/vgi builds).
+TEST_RUNNER     = ci/run-sqllogic.sh
 TEST_DIR        = .
 TEST_PATTERN    = test/sql/*
 
-WORKER_STDIO   ?= uv run --python 3.13 cloudflare_worker.py
+WORKER_STDIO   ?= uv run --python 3.14 cloudflare_worker.py
 WORKER_HTTP    ?= http://localhost:8000
 WORKER_CLOUD   ?= https://$(FLY_APP).fly.dev
 HTTP_PORT      ?= 8000

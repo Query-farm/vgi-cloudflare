@@ -1035,7 +1035,7 @@ def generate_manifest(spec: Spec, previous: dict[str, Any]) -> tuple[dict[str, A
         op = with_path_item_params(spec, item, op)
         try:
             desc = build_descriptor(spec, path, op)
-        except (KeyError, RecursionError):
+        except KeyError, RecursionError:
             desc = None
         if desc is not None:
             desc["kind"] = "list"
@@ -1044,7 +1044,7 @@ def generate_manifest(spec: Spec, previous: dict[str, Any]) -> tuple[dict[str, A
         # Not a list — try a get-one-by-id item.
         try:
             it = build_item_descriptor(spec, path, op)
-        except (KeyError, RecursionError):
+        except KeyError, RecursionError:
             it = None
         if it is not None:
             items.append(it)

@@ -25,3 +25,5 @@ duckdb_unittest_tempdir/
 .env
 *.local
 scratch/
+.tools/
+test/_sqllogic_stage/

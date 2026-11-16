@@ -13,12 +13,12 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Database",
     "Topic :: Internet :: Name Service (DNS)",
     "Typing :: Typed",
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     # `haybarn` is not optional: vgi-python binds a pushed-down WHERE clause with an
     # in-process DuckDB engine, and without one every filtered scan fails at runtime
@@ -59,7 +59,7 @@ packages = ["vgi_cloudflare"]
 
 [tool.ruff]
 line-length = 110
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -69,5 +69,5 @@ select = ["E", "F", "I", "UP", "B"]
 "vgi_cloudflare/schema_docs.py" = ["E501"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 ignore_missing_imports = true
