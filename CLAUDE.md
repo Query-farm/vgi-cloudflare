@@ -229,10 +229,8 @@ make test-unit      # regression guard: every descriptor must build a valid func
 downloads the recorded commit and verifies its SHA-256 checksum. `--revision`
 accepts a full upstream commit SHA. `make codegen` uses the already downloaded
 spec and does not fetch updates. Commit the manifest and lock together.
-`.github/workflows/update-api.yml` checks weekly and on manual dispatch, runs
-lint/tests/entry-point and structural catalog checks, then updates a single
-maintenance PR (a draft with a failed workflow run when checks fail). It never
-merges or deploys. See README for repository permissions.
+Updates are manual (no scheduled workflow): run `make update-api` locally,
+review, then commit.
 
 Hand-written resources in `resources.py` override generated ones of the same
 name (`merge_resources`, primary wins), so curated schemas take precedence.

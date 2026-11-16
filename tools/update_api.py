@@ -125,7 +125,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "This compares generated descriptors. Hand-written overrides in resources.py/items.py "
         "and GraphQL DATASETS need separate review and live validation.",
-        "Full details are in the api-update-report workflow artifact (or spec/api-update.json locally).",
+        "Full details are in spec/api-update.json.",
     ]
 
     def section(title: str, entries: list[str]) -> None:

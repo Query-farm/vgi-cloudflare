@@ -699,38 +699,11 @@ changing the catalog, cached spec, or lock. To reproduce a pinned update, run
 `make codegen` still regenerates from the local spec without downloading anything;
 avoid `--rename` for maintenance updates.
 
-The **Update Cloudflare API** GitHub Actions workflow runs Mondays at 09:17 UTC
-and can also be run manually from the Actions tab. It runs lint, offline tests,
-entry-point smoke checks, and structural catalog validation before opening or
-updating one PR on `automation/cloudflare-api`. Failed checks make the PR a draft
-and leave the workflow run failed so updates needing generator fixes are visible.
-Unchanged tracked files produce no PR. Reports and catalog lint findings are
-available in the run summary and the `api-update-report` artifact, including when
-validation fails. It does not merge or deploy changes. The first update creates
-the lock file and establishes the skipped-endpoint baseline.
-The automation rebuilds its branch from the default branch on each run; land
-generator fixes on the default branch, then rerun the workflow.
+Updates are manual: there is no scheduled job. Run the commands above when you
+want the latest Cloudflare API, review the report, and commit the manifest and lock
+together.
 
-The workflow must be on the default branch for the schedule to run. Configure
-one of these GitHub authentication options:
-
-- **Built-in token:** the organization must permit Actions to create PRs. Then
-  enable **Allow GitHub Actions to create and approve pull requests** in repository
-  **Settings → Actions → General → Workflow permissions**. No additional secret
-  is needed. GitHub may require a maintainer to approve PR workflow runs created
-  by this token; the maintenance workflow runs validation itself first.
-- **Repository-scoped bot token:** if organization policy blocks the built-in
-  token, create the Actions secret `CLOUDFLARE_API_UPDATE_TOKEN` using a bot's
-  fine-grained personal access token scoped to this repository with **Contents:
-  read/write** and **Pull requests: read/write**. Obtain organization approval
-  for that token if required. The PR action uses this credential when present.
-
-The workflow requests only `contents: write` and `pull-requests: write`; it never
-needs Cloudflare credentials. Query Farm currently blocks PR creation using the
-built-in token, so use the repository-scoped credential unless an administrator
-changes that policy.
-
-Review API changes before merging, especially removals and changed SQL types or
+Review API changes before committing, especially removals and changed SQL types or
 positional arguments. Add new product areas to `AREA_TO_SCHEMA` in
 `tools/generate_resources.py`; unsupported response shapes need generator work.
 Hand-written descriptors in `resources.py` and `items.py` override generated
