@@ -1,7 +1,7 @@
 # Live tests of lookups, fan-outs, and GraphQL analytics against REAL Cloudflare.
 #
 # Needs a read token (e.g. the "Read all resources" template) plus a zone and
-# account it can see; `make test-stdio` fills these in from the token.
+# account it can see; `make test-sql` fills these in from the token.
 
 require-env VGI_CLOUDFLARE_WORKER
 

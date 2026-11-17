@@ -1,6 +1,6 @@
 """A tiny fake Cloudflare API for end-to-end SQL tests without a token.
 
-    python tests/mock_cloudflare.py <port>
+    python tests/mock_cloudflare.py <port>   # 0 = any free port, printed as PORT:<n>
 
 Serves three zones (``z1``..``z3``); zone ``zN`` has ``N`` DNS records per page
 across two pages, so fan-out counts are 2/4/6. Unknown zones 404. Point the
@@ -123,4 +123,7 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), _Handler).serve_forever()
+    # Port 0 picks a free port; the chosen one is printed as PORT:<n> once listening.
+    server = ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), _Handler)
+    print(f"PORT:{server.server_address[1]}", flush=True)
+    server.serve_forever()

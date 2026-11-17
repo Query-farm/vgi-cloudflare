@@ -1,7 +1,7 @@
 # Live integration test against the REAL Cloudflare API.
 #
 # Skipped automatically unless CLOUDFLARE_API_TOKEN is set. To run:
-#   CLOUDFLARE_API_TOKEN=<token> make test-stdio
+#   CLOUDFLARE_API_TOKEN=<token> make test-sql
 #
 # The token needs at least Zone:Read and Account:Read. These assertions avoid
 # hard-coding any account-specific data, so they pass for any valid token.

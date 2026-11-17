@@ -1,7 +1,7 @@
 # Continued output against tests/mock_cloudflare.py (no token needed): a list or
 # analytics function answers an input batch with one reply per round of upstream
 # pages, and the client asks for each next reply with a continuation tick (one
-# `table_in_out.continue` log event per tick). Run via `make test-mock`.
+# `table_in_out.continue` log event per tick). Run via `make test-sql`.
 #
 # Mock data: DNS records of zone pN are N pages of 3; agent-memory namespaces of
 # account aN are N cursor pages of 2; analytics has 3 groups per second.

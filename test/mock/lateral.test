@@ -1,5 +1,5 @@
 # End-to-end lateral tests against tests/mock_cloudflare.py (no token needed).
-# Run via `make test-mock`, which starts the mock and points the worker at it.
+# Run via `make test-sql`; ci/run-integration.sh starts the mock and points the worker at it.
 
 require-env VGI_CLOUDFLARE_MOCK_WORKER
 
