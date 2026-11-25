@@ -116,7 +116,7 @@ serves the whole catalog — all ~24 schemas, ~1,690 functions — in **one**
 (~17.6 MB raw, ~1.2 MB zstd) is built once per process (~1.8 s) and served
 from a cache afterwards. The DuckDB extension decodes each schema lazily.
 `SET vgi_catalog_contents = false` forces the old per-schema path for
-comparison. Clients need a VGI 3 extension (Haybarn 2.0.0rc11 or newer).
+comparison. Clients need a VGI 3 extension (Haybarn 2.0.1 or newer).
 Launch workers through their PEP-723 scripts to keep the SDK-pinned internal
 Haybarn 1.5.5rc1 filter evaluator separate from the Haybarn 2.0 SQL client.
 

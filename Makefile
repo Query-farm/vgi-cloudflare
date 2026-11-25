@@ -12,7 +12,7 @@
 # SQL tests run test/sql/*.test and test/mock/*.test (against tests/mock_cloudflare.py)
 # through the published haybarn-unittest with the signed community vgi extension
 # (ci/run-integration.sh; no local DuckDB/vgi builds).
-HAYBARN_VERSION ?= 2.0.0rc11
+HAYBARN_VERSION ?= 2.0.1rc3
 WORKER         := $(CURDIR)/.venv/bin/vgi-cloudflare
 TOOLS          := $(CURDIR)/.tools
 HAYBARN_UNITTEST := $(TOOLS)/bin/haybarn-unittest

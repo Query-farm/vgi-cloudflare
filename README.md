@@ -52,10 +52,12 @@ ORDER BY zone, r.name;
 | Research the Internet itself — protocol adoption, top domains, outages, route leaks | [Radar](#internet-research-with-radar) |
 | Keep a history, export to Parquet, or drive it from Python | [Beyond the API](#beyond-the-api-history-exports-and-python) |
 
+vgi-cloudflare 0.2.0 speaks VGI protocol 3.4, so it needs Haybarn 2.0.1 or newer (Haybarn 2.0.0 loads a 3.3 `vgi` extension that cannot attach it).
+
 ## Quick start
 
 You need a **VGI 3** client, such as [Haybarn](https://query.farm)
-**2.0.0rc11 or newer**, with its matching `vgi` extension. The worker uses
+**2.0.1 or newer**, with its matching `vgi` extension. The worker uses
 `vgi-python` 0.48.2 and `vgi-rpc` 0.52.4 or newer. Its internal filter evaluator
 runs on the SDK-pinned Haybarn 1.5.5rc1; run the worker through its PEP-723 script
 so that environment stays separate from the Haybarn 2.0 SQL client.
